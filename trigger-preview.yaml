@@ -1,0 +1,17 @@
+# Cloud Build trigger: deploy to PREVIEW on pull request.
+# Створено через gcloud CLI (з повними Firebase substitutions у тригері).
+# Цей файл — документація конфігурації, не джерело для import (секрети не зберігаються в репо).
+name: deploy-preview
+description: Preview deploy on pull request
+filename: cloudbuild.yaml
+repositoryEventConfig:
+  repository: projects/gen-lang-client-0366868514/locations/europe-west3/connections/github-connection/repositories/svit-kavu-qr-menu
+  pullRequest:
+    branch: ^.*$
+    commentControl: COMMENTS_ENABLED
+serviceAccount: projects/gen-lang-client-0366868514/serviceAccounts/12521585156-compute@developer.gserviceaccount.com
+substitutions:
+  _TAG: preview
+  _SERVICE: aura-cafe-qr-menu-preview
+  _ENV: preview
+  # _FIREBASE_* — задаються в тригері через gcloud (з .env.local), не комітяться
