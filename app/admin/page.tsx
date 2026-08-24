@@ -25,7 +25,7 @@ import {
   Product
 } from '@/lib/firebase';
 import { User } from 'firebase/auth';
-import { TRANSLATIONS, Language } from '@/lib/translations';
+import { TRANSLATIONS } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
   Coffee, 
@@ -57,26 +57,12 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
+import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 
 export default function AdminPage() {
   const { showToast } = useToast();
-  const [lang, setLang] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('aura_lang');
-      if (savedLang === 'uk' || savedLang === 'hu' || savedLang === 'en') {
-        return savedLang as Language;
-      }
-    }
-    return 'uk';
-  });
-
-  const changeLanguage = (newLang: Language) => {
-    setLang(newLang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('aura_lang', newLang);
-    }
-  };
+  const { lang, changeLanguage, t } = useLanguage();
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'reset'>('signin');
@@ -118,17 +104,7 @@ export default function AdminPage() {
   }, []);
 
   // App Data State
-  const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('cafeInfo');
-        if (cached) return JSON.parse(cached);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return null;
-  });
+  const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -137,29 +113,35 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr'>('cafe');
 
   // Form states - Cafe Info
-  const [cafeForm, setCafeForm] = useState<CafeInfo>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('cafeInfo');
-        if (cached) return JSON.parse(cached);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {
-      name: '',
-      description: '',
-      banner: '',
-      logo: '',
-      instagram: '',
-      bannerScale: 1,
-      bannerX: 50,
-      bannerY: 50,
-      logoScale: 1,
-      logoX: 50,
-      logoY: 50
-    };
+  const [cafeForm, setCafeForm] = useState<CafeInfo>({
+    name: '',
+    description: '',
+    banner: '',
+    logo: '',
+    instagram: '',
+    bannerScale: 1,
+    bannerX: 50,
+    bannerY: 50,
+    logoScale: 1,
+    logoX: 50,
+    logoY: 50
   });
+
+  // Load cached cafe info after mount to avoid SSR hydration mismatch.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cached = localStorage.getItem('cafeInfo');
+      if (cached) {
+        const parsed = JSON.parse(cached) as CafeInfo;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCafeInfo(parsed);
+        setCafeForm(prev => ({ ...prev, ...parsed }));
+      }
+    } catch (e) {
+      // ignore invalid cache
+    }
+  }, []);
 
   // Form states - Category
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -340,10 +322,6 @@ export default function AdminPage() {
       }));
     }
     setIsLogoCropModalOpen(false);
-  };
-
-  const t = (key: keyof typeof TRANSLATIONS['uk']) => {
-    return TRANSLATIONS[lang][key] || TRANSLATIONS['uk'][key] || key;
   };
 
   // Declared as classic hoisted function to avoid access-before-declaration issues

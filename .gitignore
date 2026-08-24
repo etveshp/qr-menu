@@ -9,3 +9,5 @@ coverage/
 firebase-debug.log
 test-results/
 playwright-report/
+.playwright-mcp/
+service*.yaml

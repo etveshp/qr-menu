@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   addToCart,
   setCartQty,
@@ -26,9 +26,20 @@ function loadPersistedCart(): Cart {
 }
 
 export function useCart(products: Array<{ id: string; price: number }>) {
-  const [cart, setCart] = useState<Cart>(loadPersistedCart);
+  const [cart, setCart] = useState<Cart>({});
+  const hydratedRef = useRef(false);
 
+  // Load persisted cart after mount to avoid SSR hydration mismatch.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCart(loadPersistedCart());
+    hydratedRef.current = true;
+  }, []);
+
+  // Persist on every change after the initial hydration.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!hydratedRef.current) return;
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     } catch (e) {

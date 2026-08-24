@@ -1,20 +1,24 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TRANSLATIONS, Language } from '@/lib/translations';
 
 const STORAGE_KEY = 'aura_lang';
 
 export function useLanguage() {
-  const [lang, setLang] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem(STORAGE_KEY);
-      if (savedLang === 'uk' || savedLang === 'hu' || savedLang === 'en') {
-        return savedLang as Language;
-      }
+  const [lang, setLang] = useState<Language>('uk');
+  const hydratedRef = useRef(false);
+
+  // Load saved language after mount to avoid SSR hydration mismatch.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedLang = localStorage.getItem(STORAGE_KEY);
+    if (savedLang === 'uk' || savedLang === 'hu' || savedLang === 'en') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLang(savedLang as Language);
     }
-    return 'uk';
-  });
+    hydratedRef.current = true;
+  }, []);
 
   const changeLanguage = useCallback((newLang: Language) => {
     setLang(newLang);

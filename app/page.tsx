@@ -1,11 +1,20 @@
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
 import { MenuContainer, type MenuContainerProps } from '@/components/menu/MenuContainer';
 
 // ISR: revalidate the menu page at most every 30 seconds.
 export const revalidate = 30;
 
 async function fetchMenuData(): Promise<MenuContainerProps['initialData']> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
+  // Build the site URL dynamically from the incoming request so SSR self-fetch
+  // works on any domain (Cloud Run, custom domain, localhost) without env config.
+  const headersList = await headers();
+  const host = headersList.get('x-forwarded-host') || headersList.get('host');
+  const proto = headersList.get('x-forwarded-proto') || 'https';
+  const baseUrl = host
+    ? `${proto}://${host}`
+    : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
+
   try {
     const res = await fetch(`${baseUrl}/api/menu`, {
       next: { revalidate: 30 },
