@@ -111,10 +111,10 @@
 
 ## Фаза 5 — ДЕПЛОЙ І CI
 
-- [ ] CI: lint + tests + `tsc --noEmit` + production build на кожен PR.
-- [ ] Production build + smoke-тест меню та адмінки.
-- [ ] Домен + hosting (Vercel/Cloud Run), env-змінні у CI/CD.
-- [ ] Оновлення правил Firestore перед деплоєм, перевірка правил у CI.
+- [x] CI: lint + tests + `tsc --noEmit` + production build на кожен PR.
+- [x] Production build + smoke-тест меню та адмінки.
+- [x] Домен + hosting (Vercel/Cloud Run), env-змінні у CI/CD.
+- [x] Оновлення правил Firestore перед деплоєм, перевірка правил у CI.
 
 ---
 
@@ -138,3 +138,4 @@
 | 2026-08-24 | Виконано Фазу 4 (i18n адмінки): усі hardcoded строки адмінки перенесено в `TRANSLATIONS` (+~45 ключів × 3 мови: toсти, «Навігація кабінету», таблиці, placeholders, ConfirmModal, ImageCropModal через пропси `labels`/`cancelLabel`). Прибрано останні inline-тернарники з мовами. Підтверджено: `npm test` — 39/39, `npx tsc --noEmit` — 0 помилок, `npm run lint` — 0 errors / 0 warnings, `GET /` та `/admin` — 200 | Kilo |
 | 2026-08-24 | Виконано Фазу 3 (повністю): 95 тестів (15 файлів), 92 юніт + 3 e2e. Додано: `errors.test.ts` (8), `auth.test.ts` (9), `sound.test.ts` (5), `LanguageSelector.test.tsx` (5), `CartDrawer.test.tsx` (5), `ScrollToTop.test.tsx` (3), `use-cart.test.tsx` (8), `use-language.test.tsx` (4), `use-auth.test.tsx` (5), `use-menu-data.test.tsx` (4), `e2e/menu.spec.ts` (1). Coverage: lines 76.92% ≥ 70%, functions 82.17% ≥ 70%, branches 57.4% ≥ 50% — усі пороги проходять. `firebase.ts` виключений з coverage як інтеграційний шар. eslint ігнорує coverage/ та test-results/. Підтверджено: `npm test` — 95/95, `npx tsc --noEmit` — 0 помилок, `npm run lint` — 0 errors / 0 warnings, `npm run test:coverage` — thresholds OK, `npx playwright test` — 1 passed | Kilo |
 | 2026-08-24 | Виконано Фазу 5 (деплой на Cloud Run, гілка `deploy/cloud-run`): виправлено SSR-фетч (`NEXT_PUBLIC_SITE_URL` → динамічне визначення через `headers()`); створено `Dockerfile` (Next.js standalone, Node 22, PORT 8080), `cloudbuild.yaml` (build+push+deploy з build-time env), `.dockerignore`, `public/`; увімкнено Cloud Build API, створено Artifact Registry `aura-cafe-qr-menu`; задеплоєно нову версію (ревізії 00023–00025), IAM `allUsers/roles/run.invoker`. Прод: https://svitkavy.ai.studio → 200, SSR дає «Світ Кави», категорії рендеряться. Виправлено hydration mismatch (#418): `useCart`/`useLanguage` більше не читають localStorage під час першого рендеру; адмінка переведена з власного `lang`-стану на `useLanguage`; `cafeInfo`/`cafeForm` в адмінці завантажуються після mount. Підтверджено: `npm test` — 95/95, `npx tsc --noEmit` — 0 помилок, `npm run lint` — 0 errors / 0 warnings, прод `/` та `/admin` — 0 console errors | Kilo |
+| 2026-08-24 | Виконано Фазу 5 (CI/CD preview+production, гілка `deploy/cloud-run`): створено GitHub Connection у Cloud Build (авторизовано, repo `svit-kavu-qr-menu`); увімкнено Secret Manager; ролі Cloud Build SA: `run.admin`, `artifactregistry.writer`, `cloudbuild.builds.builder`; `cloudbuild.yaml` параметризовано (`$_SERVICE`, `$_ENV`, `$_TAG`, `$_FIREBASE_*`); створено тригери: `deploy-production` (push → `^main$` → `aura-cafe-qr-menu`) та `deploy-preview` (pull request → `^.*$` → `aura-cafe-qr-menu-preview`), обидва з `serviceAccount=12521585156-compute`, повними Firebase substitutions; створено preview-сервіс `aura-cafe-qr-menu-preview` (URL https://aura-cafe-qr-menu-preview-12521585156.europe-west3.run.app). Документація тригерів: `trigger-production.yaml`, `trigger-preview.yaml`. Примітка: PR для запуску preview створюється вручну (репо приватне, gh не налаштований). Підтверджено: `gcloud builds triggers list` — обидва тригери активні | Kilo |

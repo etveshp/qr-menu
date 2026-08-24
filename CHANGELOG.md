@@ -21,6 +21,7 @@
 
 ### Added
 
+- **CI/CD (preview + production)**: GitHub Connection у Cloud Build, два тригери — `deploy-production` (push у `main` → прод-сервіс) і `deploy-preview` (pull request → preview-сервіс). Preview-сервіс: `aura-cafe-qr-menu-preview`.
 - **Тестова інфраструктура**: Vitest + Testing Library + jsdom, `vitest.config.ts`, `test/setup.ts`, скрипти `test` / `test:watch` / `test:coverage`.
 - **95 тестів** (15 файлів): `cart`, `utils`, `translations`, `validation`, `errors`, `sound`, auth (`isUserAdmin`, `hasAdminAccess`), хуки (`useCart`, `useLanguage`, `useAuth`, `useMenuData`), компоненти (`Toast`, `LanguageSelector`, `CartDrawer`, `ScrollToTop`) та e2e щасливий шлях (Playwright).
 - **Coverage-гейт**: lines/functions/statements ≥ 70%, branches ≥ 50%.
