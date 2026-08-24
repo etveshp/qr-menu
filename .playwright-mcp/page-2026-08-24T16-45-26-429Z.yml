@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - img "Світ Кави" [ref=e9]
+        - generic [ref=e10]:
+          - button "UA" [ref=e13] [cursor=pointer]
+          - button "Ваше замовлення" [ref=e14] [cursor=pointer]:
+            - generic [ref=e18]: "1"
+    - generic [ref=e19]:
+      - img "Cafe Banner" [ref=e20]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Світ Кави" [level=2] [ref=e24]
+          - paragraph [ref=e25]: Затишна кав'ярня в центрі Вишкова
+        - link "Instagram" [ref=e26] [cursor=pointer]:
+          - /url: https://www.instagram.com/svit.kavy
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - heading "Категорії" [level=3] [ref=e32]
+        - generic [ref=e33]:
+          - button "Еспресо бар Еспресо бар" [ref=e34] [cursor=pointer]:
+            - img "Еспресо бар" [ref=e35]
+            - generic [ref=e37]: Еспресо бар
+          - button "Авторські напої Авторські напої" [ref=e38] [cursor=pointer]:
+            - img "Авторські напої" [ref=e39]
+            - generic [ref=e41]: Авторські напої
+          - button "Чай та Матча Чай та Матча" [ref=e42] [cursor=pointer]:
+            - img "Чай та Матча" [ref=e43]
+            - generic [ref=e45]: Чай та Матча
+          - button "Вишукані десерти Вишукані десерти" [ref=e46] [cursor=pointer]:
+            - img "Вишукані десерти" [ref=e47]
+            - generic [ref=e49]: Вишукані десерти
+    - contentinfo [ref=e50]:
+      - paragraph [ref=e51]: © 2026 Світ Кави
+  - button "Open Next.js Dev Tools" [ref=e57] [cursor=pointer]
+  - alert [ref=e61]

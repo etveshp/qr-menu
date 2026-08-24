@@ -1,0 +1,96 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - img "Світ Кави" [ref=e10]
+        - generic [ref=e11]:
+          - button "UA" [ref=e14] [cursor=pointer]
+          - button "Ваше замовлення" [ref=e15] [cursor=pointer]
+    - generic [ref=e19]:
+      - img "Cafe Banner" [ref=e20]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Світ Кави" [level=2] [ref=e24]
+          - paragraph [ref=e25]: Затишна кав'ярня в центрі Вишкова
+        - link "Instagram" [ref=e26] [cursor=pointer]:
+          - /url: https://www.instagram.com/svit.kavy
+    - main [ref=e30]:
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - button "В МЕНЮ" [ref=e63] [cursor=pointer]
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - img "Category Mini" [ref=e70]
+              - heading "Еспресо бар" [level=3] [ref=e71]
+            - heading "2" [level=3] [ref=e72]
+        - generic [ref=e73]:
+          - generic [ref=e74] [cursor=pointer]:
+            - img "Подвійне еспресо" [ref=e76]
+            - generic [ref=e77]:
+              - heading "Подвійне еспресо" [level=4] [ref=e78]
+              - generic [ref=e79]:
+                - generic [ref=e80]: 65 ₴
+                - button "Додати" [active] [ref=e81]
+          - generic [ref=e83] [cursor=pointer]:
+            - img "Флет Вайт" [ref=e85]
+            - generic [ref=e86]:
+              - heading "Флет Вайт" [level=4] [ref=e87]
+              - generic [ref=e88]:
+                - generic [ref=e89]: 95 ₴
+                - button "Додати" [ref=e90]
+    - generic [ref=e92]:
+      - button "Ваше замовлення" [ref=e94] [cursor=pointer]
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - img "Подвійне еспресо" [ref=e100]
+          - button "Close" [ref=e101] [cursor=pointer]
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - heading "Подвійне еспресо" [level=3] [ref=e107]
+            - generic [ref=e108]: 65 ₴
+          - paragraph [ref=e110]: Зварено на спешелті зерні свіжого обсмаження (100% арабіка). Має насичений смак з нотками темного шоколаду, карамелі та цитрусовою кислинкою.
+          - generic [ref=e111]:
+            - generic [ref=e112]: Інгредієнти
+            - list [ref=e113]:
+              - listitem [ref=e114]:
+                - generic [ref=e116]: Спешелті кава
+              - listitem [ref=e117]:
+                - generic [ref=e119]: очищена вода
+          - generic [ref=e120]:
+            - generic [ref=e121]: Ідеально смакує разом
+            - generic [ref=e122]:
+              - button [ref=e123] [cursor=pointer]:
+                - generic:
+                  - img "Лавандовий раф"
+                - generic [ref=e124]:
+                  - heading "Лавандовий раф" [level=4]
+              - button [ref=e125] [cursor=pointer]:
+                - generic:
+                  - img "Фісташковий лате"
+                - generic [ref=e126]:
+                  - heading "Фісташковий лате" [level=4]
+              - button [ref=e127] [cursor=pointer]:
+                - generic:
+                  - img "Церемоніальна Матча Лате"
+                - generic [ref=e128]:
+                  - heading "Церемоніальна Матча Лате" [level=4]
+              - button [ref=e129] [cursor=pointer]:
+                - generic:
+                  - img "Макарон Фісташка-Малина"
+                - generic [ref=e130]:
+                  - heading "Макарон Фісташка-Малина" [level=4]
+              - button [ref=e131] [cursor=pointer]:
+                - generic:
+                  - img "Флет Вайт"
+                - generic [ref=e132]:
+                  - heading "Флет Вайт" [level=4]
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - button "Decrease quantity" [disabled] [ref=e135] [cursor=pointer]
+            - generic [ref=e137]: "1"
+            - button "Increase quantity" [ref=e138] [cursor=pointer]
+          - button "Додати" [ref=e140] [cursor=pointer]
+    - contentinfo [ref=e50]:
+      - paragraph [ref=e51]: © 2026 Світ Кави
+  - button "Open Next.js Dev Tools" [ref=e57] [cursor=pointer]
+  - alert [ref=e5]: Aura Cafe — Premium QR Menu

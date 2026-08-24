@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: categories/{id}
+    //   - id: string (document id)
+    //   - nameUk, nameHu, nameEn: string (required)
+    //   - photo: string (required, base64 data URL or https URL)
+    //
+    // Collection: products/{id}
+    //   - id: string (document id)
+    //   - categoryId: string (required)
+    //   - nameUk, nameHu, nameEn: string (required)
+    //   - descriptionUk/Hu/En, ingredientsUk/Hu/En: string (optional)
+    //   - price: number (required, >= 0)
+    //   - photo: string (required, base64 data URL or https URL)
+    //
+    // Collection: settings/cafeInfo
+    //   - name, description: string (required)
+    //   - banner, logo: string (optional, base64 data URL or https URL)
+    //   - instagram: string (optional)
+    //   - bannerScale/X/Y, logoScale/X/Y: number (optional)
+    //
+    // Collection: settings/security
+    //   - adminPass: string, updatedAt: string  -> PRIVATE, denied for everyone
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    // Admin access: custom claim `admin == true` OR verified email allow-list.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && (request.auth.token.admin == true
+            || request.auth.token.email in [
+              'etvesh.p@gmail.com',
+              'admin@aura.cafe',
+              'svitkavy@gmail.com'
+            ]);
+    }
+
+    // String validators (type + size limit to prevent DoS)
+    function isValidString(field, maxLen) {
+      return field is string && field.size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, maxLen) {
+      return !(field in request.resource.data)
+        || (field is string && field.size() <= maxLen);
+    }
+
+    function isValidOptionalNumber(field, min, max) {
+      return !(field in request.resource.data)
+        || (field is number && field >= min && field <= max);
+    }
+    // ===============================================================
+
+    // Public menu: anyone can read, only admins can write.
+    match /categories/{document} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && isValidString(request.resource.data.nameUk, 100)
+        && isValidString(request.resource.data.nameHu, 100)
+        && isValidString(request.resource.data.nameEn, 100)
+        && isValidString(request.resource.data.photo, 1000000);
+      allow delete: if isAdmin();
+    }
+
+    match /products/{document} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && isValidString(request.resource.data.categoryId, 100)
+        && isValidString(request.resource.data.nameUk, 200)
+        && isValidString(request.resource.data.nameHu, 200)
+        && isValidString(request.resource.data.nameEn, 200)
+        && isValidOptionalString(request.resource.data.descriptionUk, 2000)
+        && isValidOptionalString(request.resource.data.descriptionHu, 2000)
+        && isValidOptionalString(request.resource.data.descriptionEn, 2000)
+        && isValidOptionalString(request.resource.data.ingredientsUk, 2000)
+        && isValidOptionalString(request.resource.data.ingredientsHu, 2000)
+        && isValidOptionalString(request.resource.data.ingredientsEn, 2000)
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0
+        && request.resource.data.price <= 1000000
+        && isValidString(request.resource.data.photo, 1000000);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/cafeInfo {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && isValidString(request.resource.data.name, 200)
+        && isValidString(request.resource.data.description, 200)
+        && isValidOptionalString(request.resource.data.banner, 1000000)
+        && isValidOptionalString(request.resource.data.logo, 1000000)
+        && isValidOptionalString(request.resource.data.instagram, 500)
+        && isValidOptionalNumber(request.resource.data.bannerScale, 0.1, 10)
+        && isValidOptionalNumber(request.resource.data.bannerX, 0, 100)
+        && isValidOptionalNumber(request.resource.data.bannerY, 0, 100)
+        && isValidOptionalNumber(request.resource.data.logoScale, 0.1, 10)
+        && isValidOptionalNumber(request.resource.data.logoX, 0, 100)
+        && isValidOptionalNumber(request.resource.data.logoY, 0, 100);
+      allow delete: if isAdmin();
+    }
+
+    // settings/security holds the plaintext admin password: fully denied.
+    match /settings/security {
+      allow read, write: if false;
+    }
+
+    // Default deny for any other document under settings.
+    match /settings/{document} {
+      allow read, write: if false;
+    }
+  }
+}

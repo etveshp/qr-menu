@@ -1,0 +1,100 @@
+'use client';
+
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCircle2, AlertCircle, Info as InfoIcon, X } from 'lucide-react';
+
+export type ToastType = 'success' | 'error' | 'info';
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+}
+
+interface ToastContextType {
+  showToast: (message: string, type?: ToastType) => void;
+}
+
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = useCallback((message: string, type: ToastType = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      {children}
+      
+      {/* Toast Portal Container */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 pointer-events-none w-full max-w-md px-4">
+        <AnimatePresence>
+          {toasts.map((toast) => {
+            let bgColor = 'bg-[#FAF6EE]';
+            let borderColor = 'border-[#E6DFD5]';
+            let textColor = 'text-[#3E2F26]';
+            let Icon = InfoIcon;
+            let iconColor = 'text-[#C09E6D]';
+
+            if (toast.type === 'success') {
+              borderColor = 'border-emerald-200/80';
+              iconColor = 'text-emerald-600';
+              Icon = CheckCircle2;
+            } else if (toast.type === 'error') {
+              borderColor = 'border-rose-200/80';
+              iconColor = 'text-rose-600';
+              Icon = AlertCircle;
+            }
+
+            return (
+              <motion.div
+                key={toast.id}
+                layout
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border ${bgColor} ${borderColor} ${textColor} shadow-lg shadow-[#3E2F26]/5 backdrop-blur-md`}
+              >
+                <div className={`${iconColor} mt-0.5 shrink-0`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                
+                <div className="flex-1 text-xs font-semibold tracking-wide font-sans leading-relaxed">
+                  {toast.message}
+                </div>
+
+                <button
+                  onClick={() => removeToast(toast.id)}
+                  className="shrink-0 text-[#8E7A68] hover:text-[#3E2F26] transition-colors p-0.5 rounded-lg hover:bg-[#F1ECE3]"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </ToastContext.Provider>
+  );
+}
+
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
+}

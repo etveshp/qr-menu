@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-display), serif;
+  --font-sans: var(--font-sans), sans-serif;
+  --color-brand-brown: #3E2F26;
+  --color-brand-beige: #E6DFD5;
+  --color-brand-cream: #FDFBF7;
+  --color-brand-ivory: #FAF6EE;
+  --color-brand-gold: #C09E6D;
+  --color-brand-lightgold: #F1ECE3;
+  --color-brand-dark: #231913;
+  --color-brand-accent: #8E7A68;
+}
+
+:root {
+  --font-size-base: 16px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-size: 16px;
+}
+
+body {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Custom premium styling */
+.premium-shadow {
+  box-shadow: 0 4px 20px -2px rgba(62, 47, 38, 0.05), 0 2px 6px -1px rgba(62, 47, 38, 0.03);
+}
+
+.premium-card-shadow {
+  box-shadow: 0 10px 30px -5px rgba(62, 47, 38, 0.06), 0 4px 12px -2px rgba(62, 47, 38, 0.04);
+}
+
+/* Utility to hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF6EE;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E6DFD5;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C09E6D;
+}
+
+/* Ensure consistent pointer cursors on all interactive/clickable elements */
+button,
+a,
+select,
+summary,
+label,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+@keyframes btn-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-btn-shimmer {
+  animation: btn-shimmer 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes btn-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-btn-pop {
+  animation: btn-pop 0.35s ease-out forwards;
+}
+
+

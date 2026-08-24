@@ -1,0 +1,44 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - img "Світ Кави" [ref=e10]
+        - generic [ref=e11]:
+          - button "UA" [ref=e14] [cursor=pointer]
+          - button "Ваше замовлення" [ref=e15] [cursor=pointer]
+    - generic [ref=e19]:
+      - img "Cafe Banner" [ref=e20]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Світ Кави" [level=2] [ref=e24]
+          - paragraph [ref=e25]: Затишна кав'ярня в центрі Вишкова
+        - link "Instagram" [ref=e26] [cursor=pointer]:
+          - /url: https://www.instagram.com/svit.kavy
+    - main [ref=e30]:
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - button "В МЕНЮ" [ref=e63] [cursor=pointer]
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - img "Category Mini" [ref=e70]
+              - heading "Еспресо бар" [level=3] [ref=e71]
+            - heading "2" [level=3] [ref=e72]
+        - generic [ref=e73]:
+          - generic [ref=e74] [cursor=pointer]:
+            - img "Подвійне еспресо" [ref=e76]
+            - generic [ref=e77]:
+              - heading "Подвійне еспресо" [level=4] [ref=e78]
+              - generic [ref=e79]:
+                - generic [ref=e80]: 65 ₴
+                - button "Додати" [ref=e81]
+          - generic [ref=e83] [cursor=pointer]:
+            - img "Флет Вайт" [ref=e85]
+            - generic [ref=e86]:
+              - heading "Флет Вайт" [level=4] [ref=e87]
+              - generic [ref=e88]:
+                - generic [ref=e89]: 95 ₴
+                - button "Додати" [ref=e90]
+    - contentinfo [ref=e50]:
+      - paragraph [ref=e51]: © 2026 Світ Кави
+  - button "Open Next.js Dev Tools" [ref=e57] [cursor=pointer]
+  - alert [ref=e5]

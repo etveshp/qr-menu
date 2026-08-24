@@ -1,0 +1,96 @@
+- generic [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - banner [ref=f3e6]:
+      - generic [ref=f3e7]:
+        - img "Світ Кави" [ref=f3e10]
+        - generic [ref=f3e11]:
+          - button "UA" [ref=f3e14] [cursor=pointer]
+          - button "Ваше замовлення" [ref=f3e15] [cursor=pointer]
+    - generic [ref=f3e19]:
+      - img "Cafe Banner" [ref=f3e20]
+      - generic [ref=f3e22]:
+        - generic [ref=f3e23]:
+          - heading "Світ Кави" [level=2] [ref=f3e24]
+          - paragraph [ref=f3e25]: Затишна кав'ярня в центрі Вишкова
+        - link "Instagram" [ref=f3e26] [cursor=pointer]:
+          - /url: https://www.instagram.com/svit.kavy
+    - main [ref=f3e30]:
+      - generic [ref=f3e61]:
+        - generic [ref=f3e62]:
+          - button "В МЕНЮ" [ref=f3e63] [cursor=pointer]
+          - generic [ref=f3e67]:
+            - generic [ref=f3e68]:
+              - img "Category Mini" [ref=f3e70]
+              - heading "Еспресо бар" [level=3] [ref=f3e71]
+            - heading "2" [level=3] [ref=f3e72]
+        - generic [ref=f3e73]:
+          - generic [ref=f3e74] [cursor=pointer]:
+            - img "Подвійне еспресо" [ref=f3e76]
+            - generic [ref=f3e77]:
+              - heading "Подвійне еспресо" [level=4] [ref=f3e78]
+              - generic [ref=f3e79]:
+                - generic [ref=f3e80]: 65 ₴
+                - button "Додати" [active] [ref=f3e81]
+          - generic [ref=f3e83] [cursor=pointer]:
+            - img "Флет Вайт" [ref=f3e85]
+            - generic [ref=f3e86]:
+              - heading "Флет Вайт" [level=4] [ref=f3e87]
+              - generic [ref=f3e88]:
+                - generic [ref=f3e89]: 95 ₴
+                - button "Додати" [ref=f3e90]
+    - generic [ref=f3e92]:
+      - button "Ваше замовлення" [ref=f3e94] [cursor=pointer]
+      - generic [ref=f3e98]:
+        - generic [ref=f3e99]:
+          - img "Подвійне еспресо" [ref=f3e100]
+          - button "Close" [ref=f3e101] [cursor=pointer]
+        - generic [ref=f3e105]:
+          - generic [ref=f3e106]:
+            - heading "Подвійне еспресо" [level=3] [ref=f3e107]
+            - generic [ref=f3e108]: 65 ₴
+          - paragraph [ref=f3e110]: Зварено на спешелті зерні свіжого обсмаження (100% арабіка). Має насичений смак з нотками темного шоколаду, карамелі та цитрусовою кислинкою.
+          - generic [ref=f3e111]:
+            - generic [ref=f3e112]: Інгредієнти
+            - list [ref=f3e113]:
+              - listitem [ref=f3e114]:
+                - generic [ref=f3e116]: Спешелті кава
+              - listitem [ref=f3e117]:
+                - generic [ref=f3e119]: очищена вода
+          - generic [ref=f3e120]:
+            - generic [ref=f3e121]: Ідеально смакує разом
+            - generic [ref=f3e122]:
+              - button [ref=f3e123] [cursor=pointer]:
+                - generic:
+                  - img "Лавандовий раф"
+                - generic [ref=f3e124]:
+                  - heading "Лавандовий раф" [level=4]
+              - button [ref=f3e125] [cursor=pointer]:
+                - generic:
+                  - img "Фісташковий лате"
+                - generic [ref=f3e126]:
+                  - heading "Фісташковий лате" [level=4]
+              - button [ref=f3e127] [cursor=pointer]:
+                - generic:
+                  - img "Церемоніальна Матча Лате"
+                - generic [ref=f3e128]:
+                  - heading "Церемоніальна Матча Лате" [level=4]
+              - button [ref=f3e129] [cursor=pointer]:
+                - generic:
+                  - img "Макарон Фісташка-Малина"
+                - generic [ref=f3e130]:
+                  - heading "Макарон Фісташка-Малина" [level=4]
+              - button [ref=f3e131] [cursor=pointer]:
+                - generic:
+                  - img "Флет Вайт"
+                - generic [ref=f3e132]:
+                  - heading "Флет Вайт" [level=4]
+        - generic [ref=f3e133]:
+          - generic [ref=f3e134]:
+            - button "Decrease quantity" [disabled] [ref=f3e135] [cursor=pointer]
+            - generic [ref=f3e137]: "1"
+            - button "Increase quantity" [ref=f3e138] [cursor=pointer]
+          - button "Додати" [ref=f3e140] [cursor=pointer]
+    - contentinfo [ref=f3e50]:
+      - paragraph [ref=f3e51]: © 2026 Світ Кави
+  - button "Open Next.js Dev Tools" [ref=f3e57] [cursor=pointer]
+  - alert [ref=f3e5]
