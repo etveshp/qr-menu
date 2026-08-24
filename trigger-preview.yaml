@@ -1,14 +1,13 @@
-# Cloud Build trigger: deploy to PREVIEW on pull request.
+# Cloud Build trigger: deploy to PREVIEW on push to main branch.
 # Створено через gcloud CLI (з повними Firebase substitutions у тригері).
 # Цей файл — документація конфігурації, не джерело для import (секрети не зберігаються в репо).
-name: deploy-preview
-description: Preview deploy on pull request
+name: deploy-preview-main
+description: Preview deploy on push to main branch
 filename: cloudbuild.yaml
 repositoryEventConfig:
   repository: projects/gen-lang-client-0366868514/locations/europe-west3/connections/github-connection/repositories/svit-kavu-qr-menu
-  pullRequest:
-    branch: ^.*$
-    commentControl: COMMENTS_ENABLED
+  push:
+    branch: ^main$
 serviceAccount: projects/gen-lang-client-0366868514/serviceAccounts/12521585156-compute@developer.gserviceaccount.com
 substitutions:
   _TAG: preview
