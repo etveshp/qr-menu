@@ -111,8 +111,8 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   return getLocal('cafeInfo', DEFAULT_CAFE_INFO);
 };
 export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => void) => {
-  callback(getLocal('cafeInfo', DEFAULT_CAFE_INFO));
   if (!supabase) return () => {};
+  callback(getLocal('cafeInfo', DEFAULT_CAFE_INFO));
   const channel = supabase.channel('cafe_info');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
@@ -147,8 +147,8 @@ export const getCategories = async (): Promise<Category[]> => {
   return getLocal('categories', DEFAULT_CATEGORIES);
 };
 export const subscribeCategories = (callback: (cats: Category[]) => void): (() => void) => {
-  callback(getLocal('categories', DEFAULT_CATEGORIES));
   if (!supabase) return () => {};
+  callback(getLocal('categories', DEFAULT_CATEGORIES));
   const channel = supabase.channel('categories');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, async (payload) => {
     if (payload.eventType === 'DELETE') {
@@ -193,8 +193,8 @@ export const getProducts = async (): Promise<Product[]> => {
   return getLocal('products', DEFAULT_PRODUCTS);
 };
 export const subscribeProducts = (callback: (prods: Product[]) => void): (() => void) => {
-  callback(getLocal('products', DEFAULT_PRODUCTS));
   if (!supabase) return () => {};
+  callback(getLocal('products', DEFAULT_PRODUCTS));
   const channel = supabase.channel('products');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
     const { data } = await supabase!.from('products').select('*');
