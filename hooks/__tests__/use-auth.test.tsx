@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   hasAdminAccess: vi.fn(),
 }));
 
-vi.mock('@/lib/firebase', () => ({
+vi.mock('@/lib/supabase', () => ({
   subscribeToAuth: mocks.subscribeToAuth,
   hasAdminAccess: mocks.hasAdminAccess,
 }));

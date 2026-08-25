@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { Coffee, Key, Check, ConciergeBell } from 'lucide-react';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import type { CafeInfo } from '@/lib/firebase';
+import type { CafeInfo } from '@/lib/supabase';
 import type { Language } from '@/lib/translations';
 import type { Translator } from '@/lib/translator';
 

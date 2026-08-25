@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { CartDrawer } from '../menu/CartDrawer';
-import type { Product } from '@/lib/firebase';
+import type { Product } from '@/lib/supabase';
 
 afterEach(() => {
   cleanup();

@@ -23,8 +23,8 @@ import {
   CafeInfo,
   Category,
   Product
-} from '@/lib/firebase';
-import { User } from 'firebase/auth';
+} from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import { TRANSLATIONS } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
@@ -81,7 +81,7 @@ export default function AdminPage() {
     return false;
   });
 
-  // Subscribe to Firebase Auth
+  // Subscribe to Supabase Auth
   useEffect(() => {
     const unsubscribe = subscribeToAuth(async (user) => {
       setCurrentUser(user);
@@ -949,9 +949,9 @@ export default function AdminPage() {
             {currentUser && (
               <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 bg-[#FAF6EE] border border-[#E6DFD5] rounded-full">
                 <div className="w-6 h-6 rounded-full bg-[#3E2F26] text-[#C09E6D] flex items-center justify-center font-serif font-bold text-[11px] overflow-hidden relative">
-                  {currentUser.photoURL ? (
+                  {currentUser.user_metadata?.avatar_url ? (
                     <Image
-                      src={currentUser.photoURL}
+                      src={currentUser.user_metadata.avatar_url}
                       alt="User"
                       fill
                       className="object-cover"
@@ -959,13 +959,13 @@ export default function AdminPage() {
                     />
                   ) : (
                     <span>
-                      {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : currentUser.email ? currentUser.email[0].toUpperCase() : 'A'}
+                      {currentUser.user_metadata?.full_name ? currentUser.user_metadata.full_name[0].toUpperCase() : currentUser.email ? currentUser.email[0].toUpperCase() : 'A'}
                     </span>
                   )}
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-[#231913] leading-none">
-                    {currentUser.displayName || currentUser.email?.split('@')[0]}
+                    {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
                   </span>
                   <span className="text-[9px] text-[#C09E6D] font-semibold uppercase tracking-wider">
                     {isUserAdmin(currentUser) ? t('roleAdmin') : t('roleCustomer')}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product } from '@/lib/firebase';
+import { Category, Product } from '@/lib/supabase';
 import AuthModal from '@/components/AuthModal';
 import {
   playAddToCartChime,

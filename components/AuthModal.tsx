@@ -20,10 +20,10 @@ import {
   loginWithEmail,
   loginWithGoogle,
   resetUserPassword
-} from '../lib/firebase';
+} from '@/lib/supabase';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { TRANSLATIONS, Language } from '../lib/translations';
-import { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 
 interface AuthModalProps {
   isOpen: boolean;

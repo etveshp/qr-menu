@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
-import type { Product } from '@/lib/firebase';
+import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
 interface ProductCardProps {

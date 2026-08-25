@@ -1,67 +1,58 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Server-side read of the public menu data.
-// Uses Firestore REST API (public documents, no service account required).
+// Server-side read of the public menu data via Supabase.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const DB_ID =
-  process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID ||
-  '(default)';
-
-interface MenuData {
-  cafeInfo: Record<string, unknown> | null;
-  categories: Record<string, unknown>[];
-  products: Record<string, unknown>[];
-}
-
-function fromFields(fields: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {};
-  for (const [key, value] of Object.entries(fields ?? {})) {
-    if ('stringValue' in value) out[key] = value.stringValue;
-    else if ('integerValue' in value) out[key] = Number(value.integerValue);
-    else if ('doubleValue' in value) out[key] = Number(value.doubleValue);
-    else if ('booleanValue' in value) out[key] = value.booleanValue;
-    else if ('arrayValue' in value) out[key] = (value.arrayValue?.values ?? []).map((v: any) => fromFields(v.mapValue?.fields ?? {}));
-    else if ('mapValue' in value) out[key] = fromFields(value.mapValue?.fields ?? {});
-    else if ('nullValue' in value) out[key] = null;
-  }
-  return out;
-}
-
-async function fetchCollection(collectionName: string): Promise<Record<string, unknown>[]> {
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${encodeURIComponent(DB_ID)}` +
-    `/documents/${collectionName}?pageSize=300&key=${API_KEY}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) return [];
-  const json = await res.json();
-  return (json.documents ?? []).map((doc: any) => ({
-    id: doc.name.split('/').pop(),
-    ...fromFields(doc.fields ?? {}),
-  }));
+function adminClient() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.startsWith('YOUR')) return null;
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 export async function GET(): Promise<NextResponse> {
-  if (!API_KEY || !PROJECT_ID || API_KEY.startsWith('YOUR')) {
-    return NextResponse.json({ error: 'Firebase not configured' }, { status: 503 });
+  const supabase = adminClient();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
   }
 
   try {
-    const [categories, products] = await Promise.all([
-      fetchCollection('categories'),
-      fetchCollection('products'),
+    const [cafeRes, catsRes, prodsRes] = await Promise.all([
+      supabase.from('cafe_info').select('*').eq('id', 1).single(),
+      supabase.from('categories').select('*'),
+      supabase.from('products').select('*'),
     ]);
 
-    const cafeUrl =
-      `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${encodeURIComponent(DB_ID)}` +
-      `/documents/settings/cafeInfo?key=${API_KEY}`;
-    const cafeRes = await fetch(cafeUrl, { cache: 'no-store' });
-    const cafeJson = cafeRes.ok ? await cafeRes.json() : null;
-    const cafeInfo = cafeJson?.fields ? fromFields(cafeJson.fields) : null;
+    const cafeRow = cafeRes.data;
+    const cafeInfo = cafeRow
+      ? {
+          name: cafeRow.name,
+          description: cafeRow.description,
+          banner: cafeRow.banner,
+          logo: cafeRow.logo,
+          instagram: cafeRow.instagram,
+          bannerScale: cafeRow.banner_scale,
+          bannerX: cafeRow.banner_x,
+          bannerY: cafeRow.banner_y,
+          logoScale: cafeRow.logo_scale,
+          logoX: cafeRow.logo_x,
+          logoY: cafeRow.logo_y,
+        }
+      : null;
 
-    const data: MenuData = { cafeInfo, categories, products };
-    return NextResponse.json(data, {
+    const categories = (catsRes.data ?? []).map((r: any) => ({
+      id: r.id, nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en, photo: r.photo,
+    }));
+
+    const products = (prodsRes.data ?? []).map((r: any) => ({
+      id: r.id, categoryId: r.category_id,
+      nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en,
+      descriptionUk: r.description_uk, descriptionHu: r.description_hu, descriptionEn: r.description_en,
+      ingredientsUk: r.ingredients_uk, ingredientsHu: r.ingredients_hu, ingredientsEn: r.ingredients_en,
+      price: Number(r.price), photo: r.photo,
+    }));
+
+    return NextResponse.json({ cafeInfo, categories, products }, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
     });
   } catch (e) {

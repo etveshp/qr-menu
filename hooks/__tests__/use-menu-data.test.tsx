@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   subscribeProducts: vi.fn(),
 }));
 
-vi.mock('@/lib/firebase', () => ({
+vi.mock('@/lib/supabase', () => ({
   subscribeCafeInfo: mocks.subscribeCafeInfo,
   subscribeCategories: mocks.subscribeCategories,
   subscribeProducts: mocks.subscribeProducts,

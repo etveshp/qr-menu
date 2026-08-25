@@ -8,7 +8,7 @@ import {
   type CafeInfo,
   type Category,
   type Product,
-} from '@/lib/firebase';
+} from '@/lib/supabase';
 
 export interface MenuDataInitial {
   cafeInfo: Record<string, unknown> | null;

@@ -118,6 +118,42 @@
 
 ---
 
+## Фаза 6 — МІГРАЦІЯ НА SUPABASE + VERCEL (окрема копія)
+
+> **Рішення (2026-08-25):** поточний Firebase/Cloud Run проект лишається як є (підстраховка).
+> Ця копія — `svit-kavu-qr-menu-supabase` — мігрується на Supabase + Vercel.
+
+### 6.1 Підготовка копії (зроблено)
+- [x] Клон коду в окрему папку (без node_modules/.env).
+- [x] Заміна `lib/firebase.ts` → `lib/supabase.ts` (той самий інтерфейс: get/subscribe/save/delete/auth).
+- [x] Оновлено імпорти у 13 файлах (`@/lib/firebase` → `@/lib/supabase`).
+- [x] Видалено: firebase, firebase-admin, firestore.rules, cloudbuild.yaml, Dockerfile, trigger-*.yaml, firebase-конфіги.
+- [x] `app/api/menu` переписано під Supabase.
+- [x] `lib/errors.ts`, тести auth — під Supabase User.
+- [x] Підтверджено: 95 тестів, typecheck, lint — все чисто.
+
+### 6.2 Supabase (очікує користувача)
+- [ ] Створити Supabase-проєкт.
+- [ ] Виконати `supabase-schema.sql` (таблиці cafe_info/categories/products/profiles + RLS).
+- [ ] Увімкнути Google OAuth + email/password в Auth.
+- [ ] Записати URL + anon key у `.env.local` та Vercel.
+
+### 6.3 Міграція даних
+- [ ] Експорт категорій/товарів/cafeInfo з Firestore (з поточного проекту).
+- [ ] Імпорт у Supabase-таблиці.
+
+### 6.4 Vercel
+- [ ] Підключити GitHub-репо `svit-kavu-qr-menu-supabase` до Vercel.
+- [ ] `main` → Preview, `production` → Production (автоматично).
+- [ ] Env-змінні у Vercel Project Settings.
+- [ ] Домен `svitkavy.ai.studio` → Vercel (після стабілізації).
+
+### 6.5 Перевірка
+- [ ] Smoke-тест: меню, адмінка, вхід через Google, реальний час.
+- [ ] Порівняти з поточним Cloud Run-продакшном.
+
+---
+
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |

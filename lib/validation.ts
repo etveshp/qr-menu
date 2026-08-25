@@ -1,4 +1,4 @@
-import type { CafeInfo, Category, Product } from './firebase';
+import type { CafeInfo, Category, Product } from './supabase';
 
 export type ValidationResult = { ok: true } | { ok: false; error: string };
 

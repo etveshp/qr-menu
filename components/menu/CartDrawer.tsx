@@ -4,7 +4,7 @@ import { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConciergeBell, X, Coffee, Info, Minus, Plus } from 'lucide-react';
-import type { Product } from '@/lib/firebase';
+import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
 interface CartDrawerProps {

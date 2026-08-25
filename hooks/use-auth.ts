@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
-import { subscribeToAuth, hasAdminAccess } from '@/lib/firebase';
+import type { User } from '@supabase/supabase-js';
+import { subscribeToAuth, hasAdminAccess } from '@/lib/supabase';
 
 export function useAuth() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

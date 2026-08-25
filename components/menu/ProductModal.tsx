@@ -4,7 +4,7 @@ import { type RefObject, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, Minus, Plus, ConciergeBell } from 'lucide-react';
-import type { Product } from '@/lib/firebase';
+import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
 interface ProductModalProps {

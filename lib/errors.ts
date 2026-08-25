@@ -1,4 +1,3 @@
-import type { FirebaseError } from 'firebase/app';
 import type { Language } from './translations';
 
 const MESSAGES: Record<string, Record<Language, string>> = {
@@ -77,7 +76,7 @@ const FALLBACK: Record<Language, string> = {
 
 export const getFriendlyErrorMessage = (error: unknown, lang: Language = 'uk'): string => {
   if (!error) return FALLBACK[lang];
-  const err = error as Partial<FirebaseError> & { message?: string };
+  const err = error as { code?: string; message?: string };
   const code = err.code || '';
   const localized = MESSAGES[code];
   if (localized) return localized[lang];

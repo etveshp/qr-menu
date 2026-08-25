@@ -1,6 +1,0 @@
-{
-  "name": "Aura Cafe QR Menu",
-  "description": "Елегантне преміум QR-меню для кав'ярні з кабінетом адміністратора, мультиязичністю та генератором кодів для столів.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

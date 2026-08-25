@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { motion } from 'motion/react';
-import type { Category } from '@/lib/firebase';
+import type { Category } from '@/lib/supabase';
 
 interface CategoryCardProps {
   category: Category;

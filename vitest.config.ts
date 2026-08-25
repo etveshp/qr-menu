@@ -13,7 +13,7 @@ export default defineConfig({
       provider: 'v8',
       include: ['lib/**', 'components/**', 'hooks/**'],
       exclude: [
-        'lib/firebase.ts',
+        'lib/supabase.ts',
         'lib/translator.ts',
         'components/menu/MenuContainer.tsx',
         'components/menu/ProductModal.tsx',

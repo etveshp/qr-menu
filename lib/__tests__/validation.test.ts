@@ -4,7 +4,7 @@ import {
   validateCategory,
   validateProduct,
 } from '../validation';
-import type { CafeInfo, Category, Product } from '../firebase';
+import type { CafeInfo, Category, Product } from '../supabase';
 
 const baseCafe: CafeInfo = {
   name: 'Світ Кави',

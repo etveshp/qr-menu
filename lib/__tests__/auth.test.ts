@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isUserAdmin, hasAdminAccess } from '../firebase';
-import type { User } from 'firebase/auth';
+import { isUserAdmin, hasAdminAccess } from '../supabase';
+import type { User } from '@supabase/supabase-js';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
-    uid: 'uid-1',
-    email: 'etvesh.p@gmail.com',
-    emailVerified: true,
-    getIdTokenResult: async () => ({ claims: {} }) as any,
+    id: 'uid-1',
+    email: 'svitkavyvisk@gmail.com',
     ...overrides,
   } as unknown as User;
 }
@@ -18,7 +16,7 @@ describe('isUserAdmin', () => {
   });
 
   it('is case-insensitive', () => {
-    expect(isUserAdmin(makeUser({ email: 'ETVESH.P@GMAIL.COM' }))).toBe(true);
+    expect(isUserAdmin(makeUser({ email: 'SVITKAVYVISK@GMAIL.COM' }))).toBe(true);
   });
 
   it('returns false for non-admin email', () => {
@@ -30,28 +28,21 @@ describe('isUserAdmin', () => {
   });
 
   it('returns false for user without email', () => {
-    expect(isUserAdmin(makeUser({ email: null }))).toBe(false);
+    expect(isUserAdmin(makeUser({ email: undefined }))).toBe(false);
   });
 });
 
 describe('hasAdminAccess', () => {
-  it('returns true for admin email without claims', async () => {
+  it('returns true for admin email', async () => {
     expect(await hasAdminAccess(makeUser())).toBe(true);
   });
 
-  it('returns true for admin claim', async () => {
-    const user = makeUser({
-      email: 'some-other@mail.com',
-      getIdTokenResult: async () => ({ claims: { admin: true } }) as any,
-    });
-    expect(await hasAdminAccess(user)).toBe(true);
+  it('returns true for admin email case-insensitive', async () => {
+    expect(await hasAdminAccess(makeUser({ email: 'SVITKAVYVISK@GMAIL.COM' }))).toBe(true);
   });
 
-  it('returns false for non-admin without claim', async () => {
-    const user = makeUser({
-      email: 'guest@mail.com',
-      getIdTokenResult: async () => ({ claims: {} }) as any,
-    });
+  it('returns false for non-admin (no Supabase configured)', async () => {
+    const user = makeUser({ email: 'guest@mail.com' });
     expect(await hasAdminAccess(user)).toBe(false);
   });
 

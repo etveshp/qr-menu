@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Sparkles, Instagram } from 'lucide-react';
-import type { CafeInfo } from '@/lib/firebase';
+import type { CafeInfo } from '@/lib/supabase';
 
 interface HeroBannerProps {
   cafeInfo: CafeInfo | null;
