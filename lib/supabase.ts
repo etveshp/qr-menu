@@ -112,7 +112,13 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
 };
 export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => void) => {
   if (!supabase) return () => {};
-  callback(getLocal('cafeInfo', DEFAULT_CAFE_INFO));
+  // Fetch current value first (Realtime only pushes changes, not the initial state)
+  supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
+    if (!error && data) {
+      const info: CafeInfo = { name: data.name, description: data.description, banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
+      setLocal('cafeInfo', info); callback(info);
+    }
+  }, () => {});
   const channel = supabase.channel('cafe_info');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
@@ -148,7 +154,12 @@ export const getCategories = async (): Promise<Category[]> => {
 };
 export const subscribeCategories = (callback: (cats: Category[]) => void): (() => void) => {
   if (!supabase) return () => {};
-  callback(getLocal('categories', DEFAULT_CATEGORIES));
+  // Fetch current value first (Realtime only pushes changes, not the initial state)
+  supabase.from('categories').select('*').then(({ data, error }) => {
+    if (!error && data?.length) {
+      const cats = data.map(mapCategory); setLocal('categories', cats); callback(cats);
+    }
+  }, () => {});
   const channel = supabase.channel('categories');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, async (payload) => {
     if (payload.eventType === 'DELETE') {
@@ -194,7 +205,12 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 export const subscribeProducts = (callback: (prods: Product[]) => void): (() => void) => {
   if (!supabase) return () => {};
-  callback(getLocal('products', DEFAULT_PRODUCTS));
+  // Fetch current value first (Realtime only pushes changes, not the initial state)
+  supabase.from('products').select('*').then(({ data, error }) => {
+    if (!error && data?.length) {
+      const prods = data.map(mapProduct); setLocal('products', prods); callback(prods);
+    }
+  }, () => {});
   const channel = supabase.channel('products');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
     const { data } = await supabase!.from('products').select('*');
