@@ -1,7 +1,11 @@
 -- Supabase schema for Aura Cafe QR-Menu
 -- Run this in Supabase SQL Editor after creating the project.
 
+-- ============================================================
 -- 1. Tables
+-- ============================================================
+
+-- Cafe info (single row)
 create table public.cafe_info (
   id integer primary key default 1,
   name text not null default '',
@@ -18,13 +22,7 @@ create table public.cafe_info (
   updated_at timestamptz not null default now()
 );
 
--- Ensure only one row
-alter table public.cafe_info enable row level security;
-create policy "cafe_info read: public" on public.cafe_info for select using (true);
-create policy "cafe_info write: admin" on public.cafe_info for all
-  using (auth.jwt() ->> 'role' = 'admin')
-  with check (auth.jwt() ->> 'role' = 'admin');
-
+-- Categories
 create table public.categories (
   id text primary key,
   name_uk text not null,
@@ -33,12 +31,8 @@ create table public.categories (
   photo text not null default '',
   created_at timestamptz not null default now()
 );
-alter table public.categories enable row level security;
-create policy "categories read: public" on public.categories for select using (true);
-create policy "categories write: admin" on public.categories for all
-  using (auth.jwt() ->> 'role' = 'admin')
-  with check (auth.jwt() ->> 'role' = 'admin');
 
+-- Products
 create table public.products (
   id text primary key,
   category_id text not null references public.categories(id) on delete cascade,
@@ -55,40 +49,92 @@ create table public.products (
   photo text not null default '',
   created_at timestamptz not null default now()
 );
-alter table public.products enable row level security;
-create policy "products read: public" on public.products for select using (true);
-create policy "products write: admin" on public.products for all
-  using (auth.jwt() ->> 'role' = 'admin')
-  with check (auth.jwt() ->> 'role' = 'admin');
 
--- 2. Admin role function
--- Create a function to set admin role for a user (callable by service role)
-create or replace function public.set_admin(uid uuid, is_admin boolean)
-returns void
-language plpgsql
-security definer
-as $$
-begin
-  update auth.users
-  set raw_app_meta_data = 
-    case when is_admin 
-      then jsonb_set(coalesce(raw_app_meta_data, '{}'), '{role}', '"admin"')
-      else raw_app_meta_data - 'role'
-    end
-  where id = uid;
-end;
-$$;
-
--- Or simpler: use a profiles table
+-- Profiles (admin roles live here, NOT in JWT)
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- ============================================================
+-- 2. Row Level Security
+-- ============================================================
+
+-- cafe_info: public read, admin write (via profiles)
+alter table public.cafe_info enable row level security;
+create policy "cafe_info read: public" on public.cafe_info for select using (true);
+create policy "cafe_info write: admin" on public.cafe_info for all
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- categories: public read, admin write
+alter table public.categories enable row level security;
+create policy "categories read: public" on public.categories for select using (true);
+create policy "categories write: admin" on public.categories for all
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- products: public read, admin write
+alter table public.products enable row level security;
+create policy "products read: public" on public.products for select using (true);
+create policy "products write: admin" on public.products for all
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- profiles: user reads own, admin updates
 alter table public.profiles enable row level security;
 create policy "profiles read: own" on public.profiles for select
-  using (auth.uid() = id or auth.jwt() ->> 'role' = 'admin');
+  using (auth.uid() = id or is_admin_true());
 create policy "profiles update: admin" on public.profiles for update
-  using (auth.jwt() ->> 'role' = 'admin')
-  with check (auth.jwt() ->> 'role' = 'admin');
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- Helper: is the current user an admin?
+create or replace function public.is_admin_true()
+returns boolean
+language sql
+stable
+as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+$$;
+
+-- ============================================================
+-- 3. Auto-create profile on signup
+-- ============================================================
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, is_admin)
+  values (new.id, new.email, false)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ============================================================
+-- 4. Realtime (WebSocket postgres_changes)
+-- ============================================================
+begin;
+  drop publication if exists supabase_realtime;
+  create publication supabase_realtime;
+  alter publication supabase_realtime add table public.cafe_info;
+  alter publication supabase_realtime add table public.categories;
+  alter publication supabase_realtime add table public.products;
+commit;
+
+-- ============================================================
+-- 5. Make the first admin
+-- Replace 'ADMIN_EMAIL' with your admin email and run once:
+-- ============================================================
+-- update public.profiles set is_admin = true where email = 'svitkavyvisk@gmail.com';
+-- (If the user already signed up, the trigger created a profile row above.)
