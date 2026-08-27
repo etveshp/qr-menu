@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -94,29 +94,52 @@ export default function AdminPage() {
     return false;
   });
 
+  // Marks an in-flight email/password sign-in so the auto-detected (e.g.
+  // Google) non-admin path does not override the password-flow modal.
+  const isEmailAuthRef = useRef(false);
+
+  // Shared auth handling. Admins open the cabinet; non-admins are signed out.
+  // Non-admins who arrive via OAuth (e.g. Google) are silently bounced back
+  // to the menu, while the email/password flow shows its own modal.
+  const handleAuthUser = useCallback(async (user: User | null) => {
+    setCurrentUser(user);
+    const admin = user && (await hasAdminAccess(user));
+    if (admin) {
+      setIsAuthenticated(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('aura_admin_auth', 'true');
+        localStorage.setItem('aura_admin_auth', 'true');
+      }
+      isEmailAuthRef.current = false;
+    } else {
+      setIsAuthenticated(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('aura_admin_auth');
+        localStorage.removeItem('aura_admin_auth');
+      }
+      // Non-admins must not keep a session: sign them out immediately.
+      if (user) {
+        await logoutUser();
+        if (!isEmailAuthRef.current) router.replace('/');
+      }
+    }
+  }, [router]);
+
   // Subscribe to Supabase Auth
   useEffect(() => {
-    const unsubscribe = subscribeToAuth(async (user) => {
-      setCurrentUser(user);
-      const admin = user && await hasAdminAccess(user);
-      if (admin) {
-        setIsAuthenticated(true);
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('aura_admin_auth', 'true');
-          localStorage.setItem('aura_admin_auth', 'true');
-        }
-      } else {
-        setIsAuthenticated(false);
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('aura_admin_auth');
-          localStorage.removeItem('aura_admin_auth');
-        }
-        // Non-admins must not keep a session: sign them out immediately.
-        if (user) await logoutUser();
-      }
-    });
+    const unsubscribe = subscribeToAuth(handleAuthUser);
     return () => unsubscribe();
-  }, []);
+  }, [handleAuthUser]);
+
+  // On first load (e.g. a fresh Google OAuth redirect) recover the session
+  // explicitly so admins land in the cabinet and non-admins are dropped back
+  // to the menu, even if the auth subscription does not emit initially.
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      void handleAuthUser(data.session?.user ?? null);
+    });
+  }, [handleAuthUser]);
 
   // Password recovery: when the admin arrives via the reset link, show the
   // change-password form instead of the login/cabinet screen.
@@ -455,6 +478,7 @@ export default function AdminPage() {
 
     // Sign in
     try {
+      isEmailAuthRef.current = true;
       setAuthLoading(true);
       const user = await loginWithEmail(emailInput, passwordInput);
       setCurrentUser(user);
@@ -493,6 +517,7 @@ export default function AdminPage() {
         showToast(friendly, 'error');
       }
     } finally {
+      isEmailAuthRef.current = false;
       setAuthLoading(false);
     }
   };
