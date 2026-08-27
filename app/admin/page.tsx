@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -94,46 +94,29 @@ export default function AdminPage() {
     return false;
   });
 
-  // Shared auth handling: admin -> open cabinet; non-admin -> sign out + notice.
-  const handleAuthUser = useCallback(async (user: User | null) => {
-    setCurrentUser(user);
-    const admin = user && (await hasAdminAccess(user));
-    if (admin) {
-      setIsAuthenticated(true);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('aura_admin_auth', 'true');
-        localStorage.setItem('aura_admin_auth', 'true');
-      }
-    } else {
-      setIsAuthenticated(false);
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('aura_admin_auth');
-        localStorage.removeItem('aura_admin_auth');
-      }
-      // Non-admins must not keep a session: sign them out immediately
-      // and show the "not an administrator" notice (email + Google).
-      if (user) {
-        await logoutUser();
-        setShowNotAdminPopup(true);
-      }
-    }
-  }, []);
-
   // Subscribe to Supabase Auth
   useEffect(() => {
-    const unsubscribe = subscribeToAuth(handleAuthUser);
-    return () => unsubscribe();
-  }, [handleAuthUser]);
-
-  // On first load (e.g. a fresh OAuth redirect) recover the current session
-  // explicitly so a non-admin is detected even if the auth subscription does
-  // not emit an initial event.
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      void handleAuthUser(data.session?.user ?? null);
+    const unsubscribe = subscribeToAuth(async (user) => {
+      setCurrentUser(user);
+      const admin = user && await hasAdminAccess(user);
+      if (admin) {
+        setIsAuthenticated(true);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('aura_admin_auth', 'true');
+          localStorage.setItem('aura_admin_auth', 'true');
+        }
+      } else {
+        setIsAuthenticated(false);
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('aura_admin_auth');
+          localStorage.removeItem('aura_admin_auth');
+        }
+        // Non-admins must not keep a session: sign them out immediately.
+        if (user) await logoutUser();
+      }
     });
-  }, [handleAuthUser]);
+    return () => unsubscribe();
+  }, []);
 
   // Password recovery: when the admin arrives via the reset link, show the
   // change-password form instead of the login/cabinet screen.

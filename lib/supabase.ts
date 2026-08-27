@@ -51,7 +51,7 @@ export const loginWithEmail = async (email: string, pass: string): Promise<User>
 };
 export const loginWithGoogle = async (): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } });
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
   if (error) throw error;
   // OAuth redirects; the session is handled by onAuthStateChange
 };
