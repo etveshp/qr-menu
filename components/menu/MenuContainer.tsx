@@ -9,6 +9,7 @@ import {
   playStepperSound,
   triggerStepperHaptic,
   triggerAddToCartHaptic,
+  triggerHapticFeedback,
 } from '@/lib/sound';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -42,6 +43,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
   const handleTouchStart = () => {
     longPressTimerRef.current = setTimeout(() => {
+      triggerHapticFeedback();
       router.push('/admin');
     }, 3000);
   };
@@ -463,7 +465,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
           onMouseLeave={handleTouchEnd}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="text-xs sm:text-sm text-[#8E7A68] tracking-widest uppercase font-medium cursor-default select-none"
+          className="text-xs sm:text-sm text-[#8E7A68] tracking-widest uppercase font-medium cursor-default select-none [-webkit-touch-callout:none] touch-manipulation"
         >
           &copy; {new Date().getFullYear()} {cafeInfo?.name || t('appName')}
         </p>

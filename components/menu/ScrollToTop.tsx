@@ -22,13 +22,10 @@ export function ScrollToTop({ visible, label, onClick }: ScrollToTopProps) {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.94 }}
-          className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-1.5 px-3.5 py-2.5 bg-[#3E2F26]/95 hover:bg-[#231913] text-[#FAF6EE] backdrop-blur-md rounded-full shadow-xl border border-[#C09E6D]/50 hover:border-[#C09E6D] transition-all cursor-pointer group select-none active:shadow-md"
+          className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center justify-center w-11 h-11 bg-[#3E2F26]/95 hover:bg-[#231913] text-[#FAF6EE] backdrop-blur-md rounded-full shadow-xl border border-[#C09E6D]/50 hover:border-[#C09E6D] transition-all cursor-pointer group select-none active:shadow-md"
           aria-label={label}
         >
-          <ChevronUp className="w-4 h-4 text-[#C09E6D] group-hover:text-white transition-colors stroke-[2.5]" />
-          <span className="text-xs font-semibold uppercase tracking-wider pr-0.5">
-            {label}
-          </span>
+          <ChevronUp className="w-5 h-5 text-[#C09E6D] group-hover:text-white transition-colors stroke-[2.5]" />
         </motion.button>
       )}
     </AnimatePresence>
