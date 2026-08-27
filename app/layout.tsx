@@ -23,17 +23,17 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'Aura Cafe — Premium QR Menu',
-  description: 'Вишукане цифрове меню Aura Cafe. Обирайте найкращі напої та десерти за вашим столиком.',
+  title: 'Світ Кави QR Меню',
+  description: 'Вишукане цифрове меню Світ Кави. Обирайте найкращі напої та десерти за вашим столиком.',
   openGraph: {
-    title: 'Aura Cafe — Premium QR Menu',
-    description: 'Вишукане цифрове меню Aura Cafe. Обирайте найкращі напої та десерти за вашим столиком.',
+    title: 'Світ Кави QR Меню',
+    description: 'Вишукане цифрове меню Світ Кави. Обирайте найкращі напої та десерти за вашим столиком.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aura Cafe — Premium QR Menu',
-    description: 'Вишукане цифрове меню Aura Cafe.',
+    title: 'Світ Кави QR Меню',
+    description: 'Вишукане цифрове меню Світ Кави.',
   },
 };
 

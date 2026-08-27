@@ -40,7 +40,7 @@ export default async function MenuPage() {
       fallback={
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] text-[#4A3B32]">
           <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="font-display tracking-widest text-sm uppercase">Aura Premium Menu</p>
+          <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
         </div>
       }
     >

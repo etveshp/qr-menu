@@ -1,4 +1,4 @@
--- Supabase schema for Aura Cafe QR-Menu
+-- Supabase schema for Svit Kavy (Світ Кави) QR Menu
 -- Run this in Supabase SQL Editor after creating the project.
 
 -- ============================================================
@@ -92,10 +92,13 @@ create policy "profiles update: admin" on public.profiles for update
   with check (auth.uid() in (select id from public.profiles where is_admin = true));
 
 -- Helper: is the current user an admin?
+-- SECURITY DEFINER required: the function reads profiles while RLS
+-- policies on profiles also use it — otherwise infinite recursion (54001).
 create or replace function public.is_admin_true()
 returns boolean
 language sql
 stable
+security definer set search_path = public
 as $$
   select exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
 $$;
@@ -124,13 +127,24 @@ create trigger on_auth_user_created
 -- ============================================================
 -- 4. Realtime (WebSocket postgres_changes)
 -- ============================================================
-begin;
-  drop publication if exists supabase_realtime;
-  create publication supabase_realtime;
-  alter publication supabase_realtime add table public.cafe_info;
-  alter publication supabase_realtime add table public.categories;
-  alter publication supabase_realtime add table public.products;
-commit;
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    create publication supabase_realtime;
+  end if;
+end $$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['public.cafe_info', 'public.categories', 'public.products'] loop
+    begin
+      execute format('alter publication supabase_realtime add table %s', t);
+    exception when duplicate_object then
+      null; -- вже є в публікації
+    end;
+  end loop;
+end $$;
 
 -- ============================================================
 -- 5. Make the first admin

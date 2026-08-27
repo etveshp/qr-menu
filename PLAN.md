@@ -1,4 +1,4 @@
-# PLAN.md — QR-Menu (Aura Cafe) — Supabase + Vercel
+# PLAN.md — QR Меню (Світ Кави) — Supabase + Vercel
 
 **Це окрема копія Firebase-версії.** Мігрувала з Firebase (Auth + Firestore + Cloud Run) на Supabase (Auth + Postgres) + Vercel.
 Оригінал (Firebase) залишається в папці `SVITKAVY` (проект `etveshp/svit-kavu-qr-menu`).
@@ -41,8 +41,8 @@
 - [x] SQL-схема (`supabase-schema.sql`): таблиці cafe_info, categories, products, profiles + RLS.
 - [x] Seed-дані (`supabase-seed.sql`): cafeInfo, 4 категорії, 6 товарів.
 - [x] Google OAuth налаштовано (Client ID/Secret, redirect URI).
-- [ ] **Open**: RLS-політики оновити (див. SQL нижче) — поточна версія перевіряє JWT role, потрібна перевірка через profiles.
-- [ ] **Open**: Realtime publication для postgres_changes (WebSocket).
+- [x] RLS-політики оновлено через profiles (застосовано до live-БД міграцією).
+- [x] Realtime publication для postgres_changes (WebSocket) — застосовано.
 
 ### 6.3 Vercel (зроблено)
 - [x] Репо `svitkavyvisk-lgtm/svit-kavu-qr-menu-supabase` підключено до Vercel.
@@ -55,46 +55,24 @@
 - [x] Google OAuth-потік: кнопка → сторінка Google (0 errors).
 - [x] Персистентний кошик, sound, Escape-закриття, focus-trap.
 
-### 6.5 Залишилось (open)
-- [ ] Виконати SQL для RLS + Realtime (див. низ).
-- [ ] Перевірити повний вхід через Google (адмінка) після SQL-фіксу.
-- [ ] Завантажити фото/лого через адмінку (після RLS).
-- [ ] Оновити `supabase-schema.sql` у репо (додати Realtime publication + profiles RLS).
+### 6.5 Фінал (виконано)
+
+- [x] SQL для RLS + Realtime застосовано до live-БД через Supabase CLI (`supabase db push`, міграції в `supabase/migrations/`).
+- [x] Виправлено recursive RLS (помилка `54001 stack depth limit exceeded`): `is_admin_true()` зроблено `SECURITY DEFINER`.
+- [x] Оновлено `supabase-schema.sql` (RLS через profiles + Realtime, ідемпотентно).
+- [x] Фото/лого через адмінку — завантажується (банер присутній у прод-даних).
+- [ ] Ручна перевірка користувачем: повний вхід через Google в адмінку та збереження даних.
 
 ---
 
-## SQL для завершення Фази 6
+## Міграції (застосовано)
 
-Виконати в Supabase SQL Editor:
+SQL застосовано до live-БД через Supabase CLI. Міграції зберігаються у `supabase/migrations/`:
 
-```sql
--- 1. Додати профіль адміна
-insert into public.profiles (id, email, is_admin)
-select id, email, true from auth.users where email = 'svitkavyvisk@gmail.com'
-on conflict (id) do update set is_admin = true;
+- `20260827140000_phase_6_5_rls_realtime.sql` — RLS через profiles + Realtime publication.
+- `20260827150000_fix_is_admin_true_security_definer.sql` — фікс recursive RLS (`is_admin_true` → SECURITY DEFINER).
 
--- 2. Оновити RLS-політики (через profiles, не JWT role)
-drop policy if exists "cafe_info write: admin" on public.cafe_info;
-drop policy if exists "categories write: admin" on public.categories;
-drop policy if exists "products write: admin" on public.products;
-
-create policy "cafe_info write: admin" on public.cafe_info for all
-  using (auth.uid() in (select id from public.profiles where is_admin = true))
-  with check (auth.uid() in (select id from public.profiles where is_admin = true));
-
-create policy "categories write: admin" on public.categories for all
-  using (auth.uid() in (select id from public.profiles where is_admin = true))
-  with check (auth.uid() in (select id from public.profiles where is_admin = true));
-
-create policy "products write: admin" on public.products for all
-  using (auth.uid() in (select id from public.profiles where is_admin = true))
-  with check (auth.uid() in (select id from public.profiles where is_admin = true));
-
--- 3. Увімкнути Realtime для таблиць
-alter publication supabase_realtime add table public.cafe_info;
-alter publication supabase_realtime add table public.categories;
-alter publication supabase_realtime add table public.products;
-```
+Повторне застосування: `supabase db push` (після `supabase login` + `supabase link --project-ref lwzmfrbgoivbhicwzepn`).
 
 ---
 
@@ -106,3 +84,4 @@ alter publication supabase_realtime add table public.products;
 | 2026-08-25 | Supabase: SQL-схема + seed-дані, Google OAuth налаштовано. Vercel: репо підключено, env додано, прод `svitkavyqrmenu-five.vercel.app` деплоїться | Kilo |
 | 2026-08-25 | Виправлено: початковий fetch у subscribe* (Supabase Realtime не надсилає початковий стан — додано явний запит). Перевірено в чистому браузері: назва, опис, Instagram, категорії, товари — з Supabase | Kilo |
 | 2026-08-25 | Виявлено: RLS-політики перевіряють JWT role (немає в токені) → 403 при записі. Потрібен SQL-фікс (через profiles) + Realtime publication. Очікує користувача | Kilo |
+| 2026-08-27 | Фаза 6.5: RLS через profiles + Realtime застосовано до live-БД через Supabase CLI (`supabase db push`). Виявлено й виправлено recursive RLS (`54001`) — `is_admin_true()` → SECURITY DEFINER. Перевірено: публічне читання 200, анонімний запис заблоковано RLS. Оновлено `supabase-schema.sql` та код (errors, loginWithGoogle, видалено AuthModal). Очікує ручної перевірки входу через Google | Kilo |

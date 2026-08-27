@@ -1,6 +1,7 @@
 import type { Language } from './translations';
 
 const MESSAGES: Record<string, Record<Language, string>> = {
+  // Firebase error codes (legacy, harmless to keep)
   'auth/invalid-email': {
     uk: 'Некоректна адреса електронної пошти',
     hu: 'Érvénytelen e-mail cím',
@@ -16,16 +17,6 @@ const MESSAGES: Record<string, Record<Language, string>> = {
     hu: 'Nem található felhasználó ezzel az e-mail címmel',
     en: 'No user found with this email address',
   },
-  'auth/wrong-password': {
-    uk: 'Неправильний пароль',
-    hu: 'Hibás jelszó',
-    en: 'Incorrect password',
-  },
-  'auth/invalid-credential': {
-    uk: 'Неправильна електронна адреса або пароль',
-    hu: 'Helytelen e-mail cím vagy jelszó',
-    en: 'Invalid email or password',
-  },
   'auth/email-already-in-use': {
     uk: 'Ця електронна адреса вже використовується',
     hu: 'Ez az e-mail cím már használatban van',
@@ -35,6 +26,70 @@ const MESSAGES: Record<string, Record<Language, string>> = {
     uk: 'Пароль занадто слабкий (мінімум 6 символів)',
     hu: 'A jelszó túl gyenge (minimum 6 karakter)',
     en: 'Password is too weak (minimum 6 characters)',
+  },
+  'auth/network-request-failed': {
+    uk: 'Помилка мережі. Перевірте з\'єднання',
+    hu: 'Hálózati hiba. Ellenőrizze a kapcsolatot',
+    en: 'Network error. Please check your connection',
+  },
+
+  // Supabase auth error codes
+  'invalid_credentials': {
+    uk: 'Неправильна електронна адреса або пароль',
+    hu: 'Helytelen e-mail cím vagy jelszó',
+    en: 'Invalid email or password',
+  },
+  'email_not_confirmed': {
+    uk: 'Email не підтверджено. Перевірте пошту',
+    hu: 'Az e-mail nincs megerősítve. Ellenőrizze a postaládáját',
+    en: 'Email not confirmed. Please check your inbox',
+  },
+  'email_exists': {
+    uk: 'Ця електронна адреса вже використовується',
+    hu: 'Ez az e-mail cím már használatban van',
+    en: 'This email is already in use',
+  },
+  'user_already_exists': {
+    uk: 'Користувач з таким email вже існує',
+    hu: 'Már létezik felhasználó ezzel az e-mail címmel',
+    en: 'A user with this email already exists',
+  },
+  'weak_password': {
+    uk: 'Пароль занадто слабкий (мінімум 6 символів)',
+    hu: 'A jelszó túl gyenge (minimum 6 karakter)',
+    en: 'Password is too weak (minimum 6 characters)',
+  },
+  'over_email_send_rate_limit': {
+    uk: 'Забагато запитів. Спробуйте пізніше',
+    hu: 'Túl sok próbálkozás. Próbálja újra később',
+    en: 'Too many requests. Please try again later',
+  },
+  'signup_disabled': {
+    uk: 'Реєстрація вимкнена адміністратором',
+    hu: 'A regisztráció le van tiltva',
+    en: 'Sign-up is disabled by the administrator',
+  },
+  'session_not_found': {
+    uk: 'Сесію не знайдено. Увійдіть знову',
+    hu: 'A munkamenet nem található. Jelentkezzen be újra',
+    en: 'Session not found. Please sign in again',
+  },
+  'user_not_found': {
+    uk: 'Користувача не знайдено',
+    hu: 'Felhasználó nem található',
+    en: 'User not found',
+  },
+  'refresh_token_not_found': {
+    uk: 'Токен оновлення не знайдено. Увійдіть знову',
+    hu: 'Frissítő token nem található. Jelentkezzen be újra',
+    en: 'Refresh token not found. Please sign in again',
+  },
+
+  // Shared codes
+  'auth/invalid-credential': {
+    uk: 'Неправильна електронна адреса або пароль',
+    hu: 'Helytelen e-mail cím vagy jelszó',
+    en: 'Invalid email or password',
   },
   'auth/popup-closed-by-user': {
     uk: 'Вхід через Google було скасовано',
@@ -50,11 +105,6 @@ const MESSAGES: Record<string, Record<Language, string>> = {
     uk: 'Забагато невдалих спроб. Спробуйте пізніше',
     hu: 'Túl sok próbálkozás. Próbálja újra később',
     en: 'Too many attempts. Please try again later',
-  },
-  'auth/network-request-failed': {
-    uk: 'Помилка мережі. Перевірте з\'єднання',
-    hu: 'Hálózati hiba. Ellenőrizze a kapcsolatot',
-    en: 'Network error. Please check your connection',
   },
   'permission-denied': {
     uk: 'Недостатньо прав для виконання операції',

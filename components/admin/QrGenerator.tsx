@@ -62,7 +62,7 @@ export function QrGenerator({ tableNumber, qrCodeDataUrl, t, onTableNumberChange
           <div className="flex flex-wrap gap-3 pt-4 border-t border-[#E6DFD5]">
             <a
               href={qrCodeDataUrl}
-              download={`aura_menu_table_${tableNumber}.png`}
+              download={`svit_kavy_menu_table_${tableNumber}.png`}
               className="inline-flex items-center gap-2 px-5 py-3 bg-[#3E2F26] text-[#FAF6EE] text-xs uppercase tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl"
             >
               <Download className="w-4 h-4" />
@@ -86,7 +86,7 @@ export function QrGenerator({ tableNumber, qrCodeDataUrl, t, onTableNumberChange
                         </style>
                       </head>
                       <body>
-                        <h1>Aura Premium Cafe</h1>
+                        <h1>Світ Кави QR Меню</h1>
                         <h2>Table ${tableNumber}</h2>
                         <img src="${qrCodeDataUrl}" />
                         <p>Scan for beautiful interactive digital menu</p>

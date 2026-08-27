@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Cropper from 'react-easy-crop';
-import { 
+import {
   getCafeInfo, 
   updateCafeInfo, 
   getCategories, 
@@ -20,6 +21,9 @@ import {
   logoutUser,
   isUserAdmin,
   hasAdminAccess,
+  handleRecoveryToken,
+  supabase,
+  PENDING_ADMIN_REDIRECT_KEY,
   CafeInfo,
   Category,
   Product
@@ -59,10 +63,19 @@ import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
+import { NotAdminModal } from '@/components/NotAdminModal';
 
 export default function AdminPage() {
   const { showToast } = useToast();
   const { lang, changeLanguage, t } = useLanguage();
+  const router = useRouter();
+
+  const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [changePassLoading, setChangePassLoading] = useState(false);
+  const [changePassError, setChangePassError] = useState('');
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'reset'>('signin');
@@ -98,9 +111,19 @@ export default function AdminPage() {
           sessionStorage.removeItem('aura_admin_auth');
           localStorage.removeItem('aura_admin_auth');
         }
+        // Non-admins must not keep a session: sign them out immediately.
+        if (user) await logoutUser();
       }
     });
     return () => unsubscribe();
+  }, []);
+
+  // Password recovery: when the admin arrives via the reset link, show the
+  // change-password form instead of the login/cabinet screen.
+  useEffect(() => {
+    handleRecoveryToken().then((isRecovery) => {
+      if (isRecovery) setShowChangePassword(true);
+    });
   }, []);
 
   // App Data State
@@ -382,24 +405,17 @@ export default function AdminPage() {
   }, [qrTableNumber]);
 
   // Google Sign-In Handler
+  // After redirect, auth state is handled by subscribeToAuth (useEffect above).
+  // The pending flag lets the landing page forward the admin to /admin.
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthSuccess('');
     try {
       setGoogleLoading(true);
-      const user = await loginWithGoogle();
-      setCurrentUser(user);
-      if (await hasAdminAccess(user)) {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('aura_admin_auth', 'true');
-        localStorage.setItem('aura_admin_auth', 'true');
-        showToast(t('loginSuccess'), 'success');
-      } else {
-        await logoutUser();
-        setAuthError(t('noAdminAccess'));
-        showToast(t('noAdminAccess'), 'error');
-      }
+      sessionStorage.setItem(PENDING_ADMIN_REDIRECT_KEY, '1');
+      await loginWithGoogle();
     } catch (err: any) {
+      sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
       setAuthError(getFriendlyErrorMessage(err, lang));
       showToast(getFriendlyErrorMessage(err, lang), 'error');
     } finally {
@@ -449,14 +465,64 @@ export default function AdminPage() {
         showToast(t('loginSuccess'), 'success');
       } else {
         await logoutUser();
-        setAuthError(t('noAdminAccess'));
-        showToast(t('noAdminAccess'), 'error');
+        setShowNotAdminPopup(true);
       }
     } catch (err: any) {
-      setAuthError(getFriendlyErrorMessage(err, lang));
-      showToast(getFriendlyErrorMessage(err, lang), 'error');
+      if (err?.code === 'invalid_credentials') {
+        // Distinguish a wrong password (email is registered) from an
+        // unregistered email. Supabase hides this by default, so we ask
+        // the server-side RPC for the answer.
+        let registered: boolean | null = null;
+        if (supabase) {
+          const res = await supabase.rpc('email_registered', { p_email: emailInput });
+          registered = res.data ?? null;
+        }
+        if (registered === true) {
+          setAuthError(t('wrongPassword'));
+          showToast(t('wrongPassword'), 'error');
+        } else if (registered === false) {
+          setShowNotAdminPopup(true);
+        } else {
+          const friendly = getFriendlyErrorMessage(err, lang);
+          setAuthError(friendly);
+          showToast(friendly, 'error');
+        }
+      } else {
+        const friendly = getFriendlyErrorMessage(err, lang);
+        setAuthError(friendly);
+        showToast(friendly, 'error');
+      }
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePassError('');
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      setChangePassError(t('passwordTooShort'));
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      setChangePassError(t('passwordsDoNotMatch'));
+      return;
+    }
+    if (!supabase) {
+      setChangePassError(getFriendlyErrorMessage({ message: 'Supabase not configured' }, lang));
+      return;
+    }
+    try {
+      setChangePassLoading(true);
+      await supabase.auth.updateUser({ password: newPasswordInput });
+      showToast(t('passwordUpdatedSuccess'), 'success');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+      setShowChangePassword(false);
+    } catch (err: any) {
+      setChangePassError(getFriendlyErrorMessage(err, lang));
+    } finally {
+      setChangePassLoading(false);
     }
   };
 
@@ -534,7 +600,7 @@ export default function AdminPage() {
     // Reset input value so re-selecting same file triggers onChange
     e.target.value = '';
 
-    // Define compression settings depending on image purpose to optimize space in Firestore
+    // Define compression settings depending on image purpose to optimize storage size
     let maxWidth = 800;
     let maxHeight = 800;
     let quality = 0.8;
@@ -742,6 +808,85 @@ export default function AdminPage() {
     }
   };
 
+  if (showChangePassword) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] px-4 py-12 font-sans text-[#4A3B32]">
+        <div className="w-full max-w-md p-6 sm:p-8 bg-[#FDFBF7] rounded-3xl border border-[#E6DFD5] shadow-xl text-center">
+          <div className="w-14 h-14 bg-[#3E2F26] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <Lock className="w-7 h-7 text-[#FAF6EE]" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-display font-medium tracking-wide mb-1 text-[#231913]">
+            {t('changePasswordTitle')}
+          </h2>
+          <p className="text-[11px] sm:text-xs text-[#8E7A68] tracking-widest uppercase mb-4 font-semibold">
+            {t('adminCabinet')}
+          </p>
+          <p className="text-xs text-[#7A6B63] mb-5 leading-relaxed text-left">{t('changePasswordDesc')}</p>
+
+          {changePassError && (
+            <div className="mb-4 p-3 bg-red-50/90 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2 text-left">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{changePassError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="space-y-4 text-left">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
+                {t('newPasswordLabel')}
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#A09084] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder={t('newPasswordPlaceholder')}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
+                {t('confirmNewPasswordLabel')}
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#A09084] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  placeholder={t('confirmNewPasswordPlaceholder')}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={changePassLoading}
+              className="w-full py-3 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+            >
+              {changePassLoading && <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />}
+              <span>{t('updatePasswordBtn')}</span>
+            </button>
+          </form>
+
+          <div className="mt-6 pt-5 border-t border-[#E6DFD5] flex items-center justify-between">
+            <Link href="/" className="inline-flex items-center gap-2 text-xs text-[#C09E6D] hover:text-[#3E2F26] tracking-wider uppercase font-semibold">
+              <ArrowLeft className="w-4 h-4" />
+              {t('backToMenu')}
+            </Link>
+            <LanguageSelector currentLang={lang} onChange={changeLanguage} />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] px-4 py-12 font-sans text-[#4A3B32]">
@@ -926,6 +1071,18 @@ export default function AdminPage() {
             <LanguageSelector currentLang={lang} onChange={changeLanguage} />
           </div>
         </div>
+
+        <NotAdminModal
+          isOpen={showNotAdminPopup}
+          logo={cafeInfo?.logo ?? null}
+          title={t('notAdminPopupTitle')}
+          text={t('notAdminPopupText')}
+          okLabel={t('notAdminOk')}
+          onOk={() => {
+            setShowNotAdminPopup(false);
+            router.replace('/');
+          }}
+        />
       </main>
     );
   }

@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { subscribeToAuth, hasAdminAccess } from '@/lib/supabase';
+import { subscribeToAuth, hasAdminAccess, logoutUser } from '@/lib/supabase';
 
-export function useAuth() {
+export function useAuth(onNonAdmin?: () => void) {
+  const onNonAdminRef = useRef(onNonAdmin);
+
+  useEffect(() => {
+    onNonAdminRef.current = onNonAdmin;
+  }, [onNonAdmin]);
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -30,6 +36,9 @@ export function useAuth() {
           } else {
             sessionStorage.removeItem('aura_admin_auth');
             localStorage.removeItem('aura_admin_auth');
+            // Non-admins must not keep a session: sign them out immediately.
+            await logoutUser();
+            onNonAdminRef.current?.();
           }
         }
       }

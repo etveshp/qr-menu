@@ -5,11 +5,13 @@ import { useAuth } from '../use-auth';
 const mocks = vi.hoisted(() => ({
   subscribeToAuth: vi.fn(),
   hasAdminAccess: vi.fn(),
+  logoutUser: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase', () => ({
   subscribeToAuth: mocks.subscribeToAuth,
   hasAdminAccess: mocks.hasAdminAccess,
+  logoutUser: mocks.logoutUser,
 }));
 
 afterEach(() => {
@@ -56,17 +58,20 @@ describe('useAuth', () => {
     expect(localStorage.getItem('aura_admin_auth')).toBe('true');
   });
 
-  it('does not grant admin for non-admin user', async () => {
+  it('does not grant admin for non-admin user, signs them out and notifies', async () => {
     const user = { uid: 'u2', email: 'guest@x.com' };
     mocks.subscribeToAuth.mockImplementation((cb: (u: unknown) => void) => {
       cb(user);
       return vi.fn();
     });
     mocks.hasAdminAccess.mockResolvedValue(false);
+    const onNonAdmin = vi.fn();
 
-    const { result } = renderHook(() => useAuth());
+    const { result } = renderHook(() => useAuth(onNonAdmin));
     await waitFor(() => expect(result.current.currentUser).toEqual(user));
     await waitFor(() => expect(result.current.isAdmin).toBe(false));
+    expect(mocks.logoutUser).toHaveBeenCalled();
+    expect(onNonAdmin).toHaveBeenCalled();
   });
 
   it('unsubscribes on unmount', () => {

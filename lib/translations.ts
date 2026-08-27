@@ -2,8 +2,8 @@ export type Language = 'uk' | 'hu' | 'en';
 
 export const TRANSLATIONS = {
   uk: {
-    appName: "Aura Premium Cafe",
-    welcome: "Ласкаво просимо до Aura Cafe",
+    appName: "Світ Кави QR Меню",
+    welcome: "Ласкаво просимо до Світ Кави",
     tableGreeting: "Вітаємо за столиком №{number}!",
     welcomeDesc: "Простір витонченого смаку та затишку. Кожна чашка — це історія, зварена з любов'ю.",
     categories: "Категорії",
@@ -101,6 +101,10 @@ export const TRANSLATIONS = {
     loginSuccess: "Ви успішно увійшли!",
     logoutSuccess: "Ви вийшли з акаунта",
     noAdminAccess: "Цей акаунт не має доступу до кабінету адміністратора",
+    notAdminPopupTitle: "Ви - не адміністратор",
+    notAdminPopupText: "Колись у вас обов'язково буде власне кафе, і ви зможете з гордістю увійти в його меню як Адміністратор. А поки ви можете відпочити і насолодитись меню, яке ми створили для вас",
+    notAdminOk: "В меню",
+    wrongPassword: "Невірний пароль",
     userProfile: "Профіль користувача",
     signedInAs: "Ви увійшли як",
     roleAdmin: "Адміністратор",
@@ -176,8 +180,8 @@ export const TRANSLATIONS = {
     deleteProductError: "Помилка видалення товару"
   },
   hu: {
-    appName: "Aura Premium Cafe",
-    welcome: "Üdvözöljük az Aura Cafe-ban",
+    appName: "Світ Кави QR Меню",
+    welcome: "Üdvözöljük a Svit Kavy kávézóban",
     tableGreeting: "Üdvözöljük a(z) {number}. asztalnál!",
     welcomeDesc: "A kifinomult ízlés és a hangulat tere. Minden csésze szeretettel főzött történet.",
     categories: "Kategóriák",
@@ -275,6 +279,10 @@ export const TRANSLATIONS = {
     loginSuccess: "Sikeres bejelentkezés!",
     logoutSuccess: "Sikeresen kijelentkezett",
     noAdminAccess: "Ennek a fióknak nincs hozzáférése az adminisztrációs fiókhoz",
+    notAdminPopupTitle: "Ön nem adminisztrátor",
+    notAdminPopupText: "Egyszer biztosan lesz saját kávézója, és büszkén jelentkezhet be a menüjébe adminisztrátorként. Addig is pihenjen, és élvezze az Önnek készített menüt.",
+    notAdminOk: "A menübe",
+    wrongPassword: "Hibás jelszó",
     userProfile: "Felhasználói profil",
     signedInAs: "Bejelentkezve mint",
     roleAdmin: "Adminisztrátor",
@@ -350,8 +358,8 @@ export const TRANSLATIONS = {
     deleteProductError: "Hiba a termék törlésekor"
   },
   en: {
-    appName: "Aura Premium Cafe",
-    welcome: "Welcome to Aura Cafe",
+    appName: "Світ Кави QR Меню",
+    welcome: "Welcome to Svit Kavy",
     tableGreeting: "Welcome to Table #{number}!",
     welcomeDesc: "A space of refined taste and warmth. Every cup is a story brewed with devotion.",
     categories: "Categories",
@@ -449,6 +457,10 @@ export const TRANSLATIONS = {
     loginSuccess: "Signed in successfully!",
     logoutSuccess: "You have signed out",
     noAdminAccess: "This account does not have access to the admin dashboard",
+    notAdminPopupTitle: "You are not an administrator",
+    notAdminPopupText: "One day you'll surely have your own café, and you'll proudly sign into its menu as an Administrator. For now, relax and enjoy the menu we've created for you.",
+    notAdminOk: "To the menu",
+    wrongPassword: "Incorrect password",
     userProfile: "User Profile",
     signedInAs: "Signed in as",
     roleAdmin: "Administrator",

@@ -32,6 +32,13 @@
 
 ### Changed
 
+- **Назва додатку**: «Aura Cafe / Aura Premium» замінено на **«Світ Кави QR Меню»** — metadata (`app/layout.tsx`), loading-екрани, QR-друк/ім'я файлу, `appName`/`welcome` у перекладах (uk/hu/en), AGENTS.md, PLAN.md, `supabase-schema.sql`. npm-пакет перейменовано `ai-studio-applet` → `svit-kavy-qr-menu`.
+- **Supabase (Фаза 6.5)**: RLS-політики через `profiles` + Realtime publication застосовано до live-БД через Supabase CLI (`supabase db push`, міграції в `supabase/migrations/`). `supabase-schema.sql` синхронізовано (ідемпотентний Realtime).
+- **Auth-помилки**: `lib/errors.ts` адаптовано під Supabase-коди (`invalid_credentials`, `email_not_confirmed`, `weak_password`, `over_email_send_rate_limit` тощо) — локалізовані повідомлення тепер коректно з'являються.
+- **Google OAuth**: `loginWithGoogle` більше не повертає фейковий `User` (повертає `void`; сесія обробляється через `onAuthStateChange`).
+- **Попап для не-адмінів**: замість тоста при спробі входу не-адміна (email/пароль на `/admin` і Google-вхід) показується анімований попап «Ще не адміністратор» з кнопкою «ОК» — на адмінці ОК перенаправляє в меню, на публічній сторінці закриває. Переклади uk/hu/en.
+- **Вхід email/пароль**: розрізнено «невірний пароль» (пошта зареєстрована → тост «Невірний пароль» + посилання відновлення) і «пошта не зареєстрована» (→ попап «Ще не адміністратор») через серверну RPC `email_registered` (security definer, міграція).
+- **Скидання пароля**: додано обробку recovery-посилання (`handleRecoveryToken`, PKCE `verifyOtp`) — після переходу з листа показується форма «Зміна пароля» (`updateUser`).
 - **Безпека (Фаза 0)**:
   - Переписані `firestore.rules`: default-deny, `isAdmin()` (custom claim `admin` OR verified email allow-list), валідація типів/розмірів полів, `settings/security` повністю закритий.
   - Firebase-конфіг винесено в env (`NEXT_PUBLIC_FIREBASE_*`), `firebase-applet-config.json` — шаблон без реальних значень.
@@ -50,10 +57,14 @@
 - Зникнення карток категорій: `subscribeCategories`/`subscribeProducts` не перезаписують кеш порожнім масивом з Firestore; `getLocalArray` повертає дефолт при порожньому кеші.
 - Hydration mismatch (React error #418) на `/` та `/admin`.
 - ESLint: 0 errors / 0 warnings.
+- Recursive RLS (`54001 stack depth limit exceeded`): `is_admin_true()` → `SECURITY DEFINER`. Після фіксу анонімний запис коректно блокується RLS (401/42501), без помилки стеку.
+- Після входу через Google адмін тепер потрапляє в свій кабінет: `loginWithGoogle` встановлює прапорець (`PENDING_ADMIN_REDIRECT_KEY`), і меню-сторінка після повернення з OAuth перенаправляє адміна на `/admin` (прапорець очищується одразу).
+- Прибрано dead code: `AuthModal` (не використовувався), застарілі коментарі «Firestore», `firebasestorage.googleapis.com` з `next.config.ts`, `firebase-debug.log`.
 
 ### Security
 
 - Прибрано хардкод паролів (`ADMIN_MASTER_PASS`, passcode-бекдор `admin`/`Aura2026`), пароль більше не зберігається у Firestore/localStorage.
+- **Не-адміни більше не можуть авторизуватись**: після Google-входу (або будь-якої іншої спроби) не-адміністративний користувач негайно розлогінюється (`logoutUser`). Сесія не зберігається — меню доступне без авторизації. Перевірка додана в `useAuth` (публічна сторінка) та в `subscribeToAuth` адмінки.
 - `settings/security` закритий для всіх.
 - Секрети винесено в `.env.local` (gitignored).
 

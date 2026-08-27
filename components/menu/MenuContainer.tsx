@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product } from '@/lib/supabase';
-import AuthModal from '@/components/AuthModal';
+import { Category, Product, PENDING_ADMIN_REDIRECT_KEY } from '@/lib/supabase';
 import {
   playAddToCartChime,
   playStepperSound,
@@ -25,6 +24,7 @@ import { ProductCard } from '@/components/menu/ProductCard';
 import { ProductModal } from '@/components/menu/ProductModal';
 import { CartDrawer } from '@/components/menu/CartDrawer';
 import { ScrollToTop } from '@/components/menu/ScrollToTop';
+import { NotAdminModal } from '@/components/NotAdminModal';
 
 export interface MenuContainerProps {
   initialData?: {
@@ -54,9 +54,22 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   };
 
   const { lang, changeLanguage, t } = useLanguage();
-  const { currentUser, isAdmin: isAdminLoggedIn } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [authModalMode, setAuthModalMode] = useState<'signin' | 'reset'>('signin');
+  const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
+  const { currentUser, isAdmin: isAdminLoggedIn } = useAuth(() => setShowNotAdminPopup(true));
+
+  // Forward an admin back to the cabinet right after Google sign-in:
+  // Supabase redirects to the site root, so the menu page detects the
+  // pending flag and completes the journey to /admin.
+  useEffect(() => {
+    if (
+      isAdminLoggedIn &&
+      typeof window !== 'undefined' &&
+      sessionStorage.getItem(PENDING_ADMIN_REDIRECT_KEY)
+    ) {
+      sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+      router.replace('/admin');
+    }
+  }, [isAdminLoggedIn, router]);
 
   const { cafeInfo, categories, products, loading } = useMenuData(initialData ?? undefined);
 
@@ -286,7 +299,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] text-[#4A3B32]">
         <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-display tracking-widest text-sm uppercase">Aura Premium Menu</p>
+        <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
       </div>
     );
   }
@@ -458,12 +471,13 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
       <ScrollToTop visible={showScrollTop} label={t('scrollToTop')} onClick={scrollToTop} />
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        lang={lang}
-        initialMode={authModalMode}
-        onSuccess={() => setIsAuthModalOpen(false)}
+      <NotAdminModal
+        isOpen={showNotAdminPopup}
+        logo={cafeInfo?.logo ?? null}
+        title={t('notAdminPopupTitle')}
+        text={t('notAdminPopupText')}
+        okLabel={t('notAdminOk')}
+        onOk={() => setShowNotAdminPopup(false)}
       />
     </div>
   );

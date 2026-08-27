@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { validateCafeInfo, validateCategory, validateProduct } from './validation';
 
-// Types (same as firebase.ts for compatibility)
+// Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
   name: string; description: string; banner: string; logo: string; instagram: string;
   bannerScale?: number; bannerX?: number; bannerY?: number;
@@ -16,7 +16,7 @@ export interface Product {
   price: number; photo: string;
 }
 
-// Default data (same as firebase.ts)
+// Default data (same as the original lib)
 const DEFAULT_CAFE_INFO: CafeInfo = { name: "", description: "", banner: "", logo: "", instagram: "" };
 const DEFAULT_CATEGORIES: Category[] = [];
 const DEFAULT_PRODUCTS: Product[] = [];
@@ -28,7 +28,11 @@ export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey) : null;
 export const useSupabase = !!supabase;
 
-// Local storage helpers (same as firebase.ts)
+// Marks that a Google sign-in was just initiated so the landing page
+// can forward the authenticated admin straight to the admin cabinet.
+export const PENDING_ADMIN_REDIRECT_KEY = 'svk_pending_admin';
+
+// Local storage helpers
 const getLocal = (key: string, def: any) => {
   if (typeof window === 'undefined') return def;
   try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : def; } catch { return def; }
@@ -45,12 +49,11 @@ export const loginWithEmail = async (email: string, pass: string): Promise<User>
   if (error) throw error;
   return data.user as User;
 };
-export const loginWithGoogle = async (): Promise<User> => {
+export const loginWithGoogle = async (): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
   const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
   if (error) throw error;
   // OAuth redirects; the session is handled by onAuthStateChange
-  return data as unknown as User;
 };
 export const resetUserPassword = async (email: string): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
@@ -71,6 +74,20 @@ export const subscribeToAuth = (callback: (user: User | null) => void): (() => v
     callback(session?.user ?? null);
   });
   return () => subscription.unsubscribe();
+};
+// Handles the password-recovery link (PKCE): verifies the token_hash from the
+// URL and establishes the recovery session. Returns true when a recovery flow
+// was processed so the caller can show a change-password form.
+export const handleRecoveryToken = async (): Promise<boolean> => {
+  if (!supabase || typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  const tokenHash = params.get('token_hash');
+  const type = params.get('type');
+  if (!tokenHash || type !== 'recovery') return false;
+  const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
+  if (error) return false;
+  window.history.replaceState({}, '', window.location.pathname);
+  return true;
 };
 export const ADMIN_EMAILS = ['svitkavyvisk@gmail.com'];
 export const isUserAdmin = (user: User | null): boolean => {

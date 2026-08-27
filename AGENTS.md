@@ -1,6 +1,6 @@
 # AGENTS.md — Правила роботи в цьому репозиторії
 
-Проект: **Aura Cafe QR-Menu (Supabase + Vercel)** — Next.js 15 (App Router) + Supabase (Auth + Postgres).
+Проект: **Світ Кави QR Меню (Supabase + Vercel)** — Next.js 15 (App Router) + Supabase (Auth + Postgres).
 Тип: прототип, функціонал доробляється.
 
 **Це окрема копія Firebase-версії.** Все акаунти (GitHub, Google, Supabase, Vercel) — окремі, не пов'язані з особистими.
