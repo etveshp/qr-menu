@@ -41,9 +41,12 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const tableNumber = searchParams ? searchParams.get('table') : null;
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    // Suppress the OS long-press haptic / text-selection gesture so the only
+    // vibration is the one we fire at the moment of navigation.
+    e.preventDefault();
     longPressTimerRef.current = setTimeout(() => {
-      triggerHapticFeedback();
+      triggerHapticFeedback([20, 40, 30]);
       router.push('/admin');
     }, 3000);
   };
@@ -465,6 +468,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
           onMouseLeave={handleTouchEnd}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onContextMenu={(e) => e.preventDefault()}
           className="text-xs sm:text-sm text-[#8E7A68] tracking-widest uppercase font-medium cursor-default select-none [-webkit-touch-callout:none] touch-manipulation"
         >
           &copy; {new Date().getFullYear()} {cafeInfo?.name || t('appName')}
