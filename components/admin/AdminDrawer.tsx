@@ -8,7 +8,7 @@ interface AdminDrawerProps {
   isOpen: boolean;
   title: string;
   subtitle?: string;
-  icon?: React.ReactNode;
+  headerAction?: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -17,7 +17,7 @@ export function AdminDrawer({
   isOpen,
   title,
   subtitle,
-  icon,
+  headerAction,
   onClose,
   children,
 }: AdminDrawerProps) {
@@ -74,27 +74,23 @@ export function AdminDrawer({
           >
             {/* Header */}
             <div className="p-4 sm:p-5 border-b border-[#E6DFD5] bg-[#FDFBF7] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                {icon && (
-                  <div className="w-9 h-9 rounded-full bg-[#C09E6D]/15 flex items-center justify-center text-[#C09E6D]">
-                    {icon}
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-display font-bold text-xl text-[#231913] uppercase tracking-wide leading-tight">
-                    {title}
-                  </h3>
-                  {subtitle && <p className="text-[11px] text-[#8E7A68]">{subtitle}</p>}
-                </div>
+              <div>
+                <h3 className="font-display font-bold text-xl text-[#231913] uppercase tracking-wide leading-tight">
+                  {title}
+                </h3>
+                {subtitle && <p className="text-[11px] text-[#8E7A68]">{subtitle}</p>}
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 text-[#8E7A68] hover:text-[#3E2F26] transition-colors rounded-full cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {headerAction}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-1.5 text-[#8E7A68] hover:text-[#3E2F26] transition-colors rounded-full cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             {/* Body */}

@@ -1737,29 +1737,29 @@ export default function AdminPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {categories.map((cat) => (
-                      <div key={cat.id} className="flex items-center justify-between p-3 border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-16 aspect-[4/3] overflow-hidden border border-[#E6DFD5] rounded-xl shrink-0">
-                            <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
-                          </div>
+                      <div key={cat.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
+                        <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden">
+                          <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                        <div className="flex flex-1 items-center justify-between gap-3 p-3">
                           <div>
                             <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
                             <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
                           </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => handleEditCategory(cat)}
-                            className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteCategory(cat.id)}
-                            className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => handleEditCategory(cat)}
+                              className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2183,7 +2183,7 @@ export default function AdminPage() {
         isOpen={isCatDrawerOpen}
         title={editingCategory ? `${t('edit')} ${t('categories').toLowerCase()}` : t('addCategory')}
         subtitle={t('categorySubtitle')}
-        icon={<Grid className="w-5 h-5" />}
+        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
         onClose={resetCatForm}
       >
         <form onSubmit={handleSaveCategory} className="space-y-5">
