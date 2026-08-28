@@ -226,6 +226,7 @@ export default function AdminPage() {
 
   // Form states - Product
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isProdDrawerOpen, setIsProdDrawerOpen] = useState<boolean>(false);
   const [prodForm, setProdForm] = useState<{
     id: string;
     categoryId: string;
@@ -912,6 +913,48 @@ export default function AdminPage() {
   };
 
   // Product Actions
+  const resetProdForm = () => {
+    setEditingProduct(null);
+    setProdForm({
+      id: '',
+      categoryId: categories[0]?.id || '',
+      nameUk: '',
+      nameHu: '',
+      nameEn: '',
+      descriptionUk: '',
+      descriptionHu: '',
+      descriptionEn: '',
+      ingredientsUk: '',
+      ingredientsHu: '',
+      ingredientsEn: '',
+      price: 0,
+      photo: ''
+    });
+    setProdSaveStatus('idle');
+    setIsProdDrawerOpen(false);
+  };
+
+  const openAddProductDrawer = () => {
+    setEditingProduct(null);
+    setProdForm({
+      id: '',
+      categoryId: categories[0]?.id || '',
+      nameUk: '',
+      nameHu: '',
+      nameEn: '',
+      descriptionUk: '',
+      descriptionHu: '',
+      descriptionEn: '',
+      ingredientsUk: '',
+      ingredientsHu: '',
+      ingredientsEn: '',
+      price: 0,
+      photo: ''
+    });
+    setProdSaveStatus('idle');
+    setIsProdDrawerOpen(true);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodForm.nameUk || !prodForm.categoryId || !prodForm.photo) {
@@ -942,23 +985,7 @@ export default function AdminPage() {
       setProdSaveStatus('saved');
       showToast(editingProduct ? t('productUpdatedSuccess') : t('addSuccess'), 'success');
       setTimeout(() => {
-        setEditingProduct(null);
-        setProdForm({
-          id: '',
-          categoryId: categories[0]?.id || '',
-          nameUk: '',
-          nameHu: '',
-          nameEn: '',
-          descriptionUk: '',
-          descriptionHu: '',
-          descriptionEn: '',
-          ingredientsUk: '',
-          ingredientsHu: '',
-          ingredientsEn: '',
-          price: 0,
-          photo: ''
-        });
-        setProdSaveStatus('idle');
+        resetProdForm();
       }, 1200);
       await fetchData();
     } catch (err: any) {
@@ -984,6 +1011,8 @@ export default function AdminPage() {
       price: prod.price,
       photo: prod.photo
     });
+    setProdSaveStatus('idle');
+    setIsProdDrawerOpen(true);
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -1772,307 +1801,65 @@ export default function AdminPage() {
           {/* TAB 3: PRODUCTS */}
           {activeTab === 'products' && (
             <div className="space-y-6">
-              {/* Add New Product form */}
+              {/* Products list with Add button */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-6 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {editingProduct ? `${t('edit')} ${t('menu').toLowerCase()}` : t('addProduct')}
-                </h2>
-
-                <form onSubmit={handleSaveProduct} className="space-y-4">
-                  {/* Category, Names & Price */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('productCategory')} *</label>
-                      <select 
-                        value={prodForm.categoryId}
-                        onChange={(e) => setProdForm({...prodForm, categoryId: e.target.value})}
-                        className="w-full px-3 py-2 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm outline-none rounded-xl"
-                        required
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('productPrice')} *</label>
-                      <input 
-                        type="number"
-                        value={prodForm.price || ''}
-                        onChange={(e) => setProdForm({...prodForm, price: Number(e.target.value)})}
-                        className="w-full px-3 py-2 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Product Name for active lang */}
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                        {t('productNameMain')}
-                      </label>
-                      <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        {LANG_CODE[lang] ?? lang.toUpperCase()}
-                      </span>
-                    </div>
-
-                    {lang === 'uk' && (
-                      <input 
-                        type="text"
-                        value={prodForm.nameUk}
-                        onChange={(e) => setProdForm({...prodForm, nameUk: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder={t('productNamePlaceholder')}
-                        required
-                      />
-                    )}
-
-                    {lang === 'hu' && (
-                      <input 
-                        type="text"
-                        value={prodForm.nameHu}
-                        onChange={(e) => setProdForm({...prodForm, nameHu: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder="Írja be a termék nevét magyarul"
-                      />
-                    )}
-
-                    {lang === 'en' && (
-                      <input 
-                        type="text"
-                        value={prodForm.nameEn}
-                        onChange={(e) => setProdForm({...prodForm, nameEn: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder="Enter product name in English"
-                      />
-                    )}
-                  </div>
-
-                  {/* Descriptions for active lang */}
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                        {t('productDescMain')}
-                      </label>
-                    </div>
-
-                    {lang === 'uk' && (
-                      <textarea 
-                        value={prodForm.descriptionUk}
-                        onChange={(e) => setProdForm({...prodForm, descriptionUk: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                        placeholder={t('productDescPlaceholder')}
-                      />
-                    )}
-
-                    {lang === 'hu' && (
-                      <textarea 
-                        value={prodForm.descriptionHu}
-                        onChange={(e) => setProdForm({...prodForm, descriptionHu: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                        placeholder="Termék leírása magyarul"
-                      />
-                    )}
-
-                    {lang === 'en' && (
-                      <textarea 
-                        value={prodForm.descriptionEn}
-                        onChange={(e) => setProdForm({...prodForm, descriptionEn: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                        placeholder="Product description in English"
-                      />
-                    )}
-                  </div>
-
-                  {/* Ingredients for active lang */}
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                        {t('productIngredientsMain')}
-                      </label>
-                    </div>
-
-                    {lang === 'uk' && (
-                      <input 
-                        type="text"
-                        value={prodForm.ingredientsUk}
-                        onChange={(e) => setProdForm({...prodForm, ingredientsUk: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
-                        placeholder={t('productIngredientsPlaceholder')}
-                      />
-                    )}
-
-                    {lang === 'hu' && (
-                      <input 
-                        type="text"
-                        value={prodForm.ingredientsHu}
-                        onChange={(e) => setProdForm({...prodForm, ingredientsHu: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
-                        placeholder="pl. kávé, tej, cukor"
-                      />
-                    )}
-
-                    {lang === 'en' && (
-                      <input 
-                        type="text"
-                        value={prodForm.ingredientsEn}
-                        onChange={(e) => setProdForm({...prodForm, ingredientsEn: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
-                        placeholder="e.g. coffee, milk, sugar"
-                      />
-                    )}
-                  </div>
-
-                  {/* Photo upload */}
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('productPhoto')} *</label>
-                    <input 
-                      ref={prodFileInputRef}
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, 'product')}
-                      className="hidden"
-                    />
-                    <div className="flex flex-col md:flex-row gap-4 items-start">
-                      <button
-                        type="button"
-                        onClick={() => prodFileInputRef.current?.click()}
-                        className="border border-[#E6DFD5] hover:border-[#C09E6D] bg-white hover:bg-[#FAF6EE] px-4 py-6 text-center w-full md:w-64 rounded-2xl transition-colors cursor-pointer active:scale-98 flex flex-col items-center justify-center shadow-2xs"
-                      >
-                        <Upload className="w-5 h-5 text-[#C09E6D] mx-auto mb-1.5" />
-                        <span className="text-xs text-[#3E2F26] font-medium block">
-                          {prodForm.photo ? t('changeImage') : t('chooseProductImage')}
-                        </span>
-                        <span className="text-[10px] text-[#8E7A68] block mt-0.5">JPG, PNG, WebP</span>
-                      </button>
-                      {prodForm.photo && (
-                        <div className="relative w-36 aspect-[16/9] border border-[#E6DFD5] bg-white rounded-xl overflow-hidden shadow-xs">
-                          <Image src={prodForm.photo} alt="Product preview" fill className="object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <button 
-                      type="submit" 
-                      disabled={prodSaveStatus === 'saving'}
-                      className={`relative overflow-hidden px-6 py-2.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] cursor-pointer ${
-                        prodSaveStatus === 'saving'
-                          ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
-                          : prodSaveStatus === 'saved'
-                          ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
-                          : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
-                      }`}
-                    >
-                      {prodSaveStatus === 'saving' && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
-                      )}
-                      {prodSaveStatus === 'saving' ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
-                          <span>{t('saving')}</span>
-                        </>
-                      ) : prodSaveStatus === 'saved' ? (
-                        <>
-                          <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
-                          <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
-                        </>
-                      ) : (
-                        <>
-                          {editingProduct ? <Save className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
-                          <span>{editingProduct ? t('saveBtn') : t('addProduct')}</span>
-                        </>
-                      )}
-                    </button>
-                    {editingProduct && (
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          setEditingProduct(null);
-                          setProdForm({
-                            id: '',
-                            categoryId: categories[0]?.id || '',
-                            nameUk: '',
-                            nameHu: '',
-                            nameEn: '',
-                            descriptionUk: '',
-                            descriptionHu: '',
-                            descriptionEn: '',
-                            ingredientsUk: '',
-                            ingredientsHu: '',
-                            ingredientsEn: '',
-                            price: 0,
-                            photo: ''
-                          });
-                        }}
-                        className="px-5 py-2.5 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
-                      >
-                        {t('cancel')}
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-
-              {/* Products list table */}
-              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h3 className="text-lg font-display font-medium text-[#231913] mb-4 uppercase tracking-wide">{t('existingProducts')}</h3>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-[#E6DFD5] text-xs uppercase tracking-wider text-[#8E7A68]">
-                        <th className="py-3 px-4">{t('photo')}</th>
-                        <th className="py-3 px-4">{t('name')}</th>
-                        <th className="py-3 px-4">{t('productCategory')}</th>
-                        <th className="py-3 px-4">{t('price')}</th>
-                        <th className="py-3 px-4 text-right">{t('actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#FAF6EE]">
-                      {products.map((p) => {
-                        const cat = categories.find(c => c.id === p.categoryId);
-                        return (
-                          <tr key={p.id} className="hover:bg-[#FDFBF7]">
-                            <td className="py-3 px-4">
-                              <div className="relative w-16 aspect-[16/9] border border-[#E6DFD5] rounded-xl overflow-hidden shrink-0">
-                                <Image src={p.photo} alt={p.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 font-semibold text-[#231913]">
-                              {p.nameUk}
-                              <div className="text-[10px] text-[#8E7A68] font-normal">{p.nameEn} • {p.nameHu}</div>
-                            </td>
-                            <td className="py-3 px-4 text-[#8E7A68] text-xs">
-                              {cat ? cat.nameUk : t('noCategory')}
-                            </td>
-                            <td className="py-3 px-4 font-bold text-[#3E2F26]">
-                              {p.price} ₴
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="inline-flex gap-1">
-                                <button 
-                                  onClick={() => handleEditProduct(p)}
-                                  className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
-                                >
-                                  <Edit2 className="w-4.5 h-4.5" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteProduct(p.id)}
-                                  className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
-                                >
-                                  <Trash2 className="w-4.5 h-4.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="flex items-center justify-between gap-4 mb-6">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('menu')}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={openAddProductDrawer}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#3E2F26] hover:bg-[#231913] text-[#FAF6EE] text-xs uppercase tracking-widest font-semibold rounded-xl transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-[#C09E6D]" />
+                    <span>{t('addProduct')}</span>
+                  </button>
                 </div>
+
+                {products.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-[#8E7A68] space-y-2">
+                    <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
+                    <p className="text-base">{t('noProducts')}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {products.map((p) => {
+                      const cat = categories.find(c => c.id === p.categoryId);
+                      return (
+                        <div key={p.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
+                          <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden">
+                            <Image src={p.photo} alt={p.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                          <div className="flex flex-1 items-center justify-between gap-3 p-3">
+                            <div>
+                              <p className="font-semibold text-sm text-[#231913]">
+                                {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
+                              </p>
+                              <p className="text-xs font-semibold text-[#3E2F26]">
+                                {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')} • {p.price} ₴
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={() => handleEditProduct(p)}
+                                className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteProduct(p.id)}
+                                className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2345,6 +2132,261 @@ export default function AdminPage() {
               <button 
                 type="button" 
                 onClick={resetCatForm}
+                className="px-5 py-3 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
+              >
+                {t('cancel')}
+              </button>
+            )}
+          </div>
+        </form>
+      </AdminDrawer>
+
+      {/* PRODUCT FORM DRAWER */}
+      <AdminDrawer
+        isOpen={isProdDrawerOpen}
+        title={editingProduct ? `${t('edit')} ${t('menu').toLowerCase()}` : t('addProduct')}
+        subtitle={t('productSubtitle')}
+        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
+        onClose={resetProdForm}
+      >
+        <form onSubmit={handleSaveProduct} className="space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productCategory')} *</label>
+              <select 
+                value={prodForm.categoryId}
+                onChange={(e) => setProdForm({...prodForm, categoryId: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                required
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPrice')} *</label>
+              <input 
+                type="number"
+                value={prodForm.price || ''}
+                onChange={(e) => setProdForm({...prodForm, price: Number(e.target.value)})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
+                {t('productNameMain')}
+              </label>
+              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {LANG_CODE[lang] ?? lang.toUpperCase()}
+              </span>
+            </div>
+
+            {lang === 'uk' && (
+              <input 
+                type="text"
+                value={prodForm.nameUk}
+                onChange={(e) => setProdForm({...prodForm, nameUk: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder={t('productNamePlaceholder')}
+                required
+              />
+            )}
+
+            {lang === 'hu' && (
+              <input 
+                type="text"
+                value={prodForm.nameHu}
+                onChange={(e) => setProdForm({...prodForm, nameHu: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder="Írja be a termék nevét magyarul"
+              />
+            )}
+
+            {lang === 'en' && (
+              <input 
+                type="text"
+                value={prodForm.nameEn}
+                onChange={(e) => setProdForm({...prodForm, nameEn: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder="Enter product name in English"
+              />
+            )}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
+                {t('productDescMain')}
+              </label>
+              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {LANG_CODE[lang] ?? lang.toUpperCase()}
+              </span>
+            </div>
+
+            {lang === 'uk' && (
+              <textarea 
+                value={prodForm.descriptionUk}
+                onChange={(e) => setProdForm({...prodForm, descriptionUk: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
+                placeholder={t('productDescPlaceholder')}
+              />
+            )}
+
+            {lang === 'hu' && (
+              <textarea 
+                value={prodForm.descriptionHu}
+                onChange={(e) => setProdForm({...prodForm, descriptionHu: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
+                placeholder="Termék leírása magyarul"
+              />
+            )}
+
+            {lang === 'en' && (
+              <textarea 
+                value={prodForm.descriptionEn}
+                onChange={(e) => setProdForm({...prodForm, descriptionEn: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
+                placeholder="Product description in English"
+              />
+            )}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
+                {t('productIngredientsMain')}
+              </label>
+              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {LANG_CODE[lang] ?? lang.toUpperCase()}
+              </span>
+            </div>
+
+            {lang === 'uk' && (
+              <input 
+                type="text"
+                value={prodForm.ingredientsUk}
+                onChange={(e) => setProdForm({...prodForm, ingredientsUk: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                placeholder={t('productIngredientsPlaceholder')}
+              />
+            )}
+
+            {lang === 'hu' && (
+              <input 
+                type="text"
+                value={prodForm.ingredientsHu}
+                onChange={(e) => setProdForm({...prodForm, ingredientsHu: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                placeholder="pl. kávé, tej, cukor"
+              />
+            )}
+
+            {lang === 'en' && (
+              <input 
+                type="text"
+                value={prodForm.ingredientsEn}
+                onChange={(e) => setProdForm({...prodForm, ingredientsEn: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                placeholder="e.g. coffee, milk, sugar"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPhoto')} *</label>
+            <input 
+              ref={prodFileInputRef}
+              id="product-photo-file-input"
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleImageUpload(e, 'product')}
+              className="hidden"
+            />
+            <div 
+              onClick={() => prodFileInputRef.current?.click()}
+              className="group relative w-full aspect-[16/9] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+              style={{ aspectRatio: '16 / 9' }}
+            >
+              {prodForm.photo ? (
+                <>
+                  <Image 
+                    src={prodForm.photo} 
+                    alt="Product Photo Preview" 
+                    fill 
+                    className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                    referrerPolicy="no-referrer"
+                    unoptimized={prodForm.photo.startsWith('data:')}
+                  />
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
+                      <Camera className="w-7 h-7 text-white drop-shadow-sm" />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProdForm(prev => ({ ...prev, photo: '' }));
+                    }}
+                    title={t('deletePhoto')}
+                    className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white">
+                  <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#E6DFD5] flex items-center justify-center mb-3">
+                    <Upload className="w-7 h-7 text-[#C09E6D]" />
+                  </div>
+                  <span className="text-sm text-[#3E2F26] font-semibold mb-1">{t('chooseProductImage')}</span>
+                  <span className="text-xs text-[#8E7A68]">JPG, PNG, WebP</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button 
+              type="submit" 
+              disabled={prodSaveStatus === 'saving'}
+              className={`flex-1 relative overflow-hidden px-6 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] cursor-pointer ${
+                prodSaveStatus === 'saving'
+                  ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                  : prodSaveStatus === 'saved'
+                  ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                  : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
+              }`}
+            >
+              {prodSaveStatus === 'saving' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+              )}
+              {prodSaveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                  <span>{t('saving')}</span>
+                </>
+              ) : prodSaveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                  <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                </>
+              ) : (
+                <>
+                  {editingProduct ? <Save className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
+                  <span>{editingProduct ? t('saveBtn') : t('addProduct')}</span>
+                </>
+              )}
+            </button>
+            {editingProduct && (
+              <button 
+                type="button" 
+                onClick={resetProdForm}
                 className="px-5 py-3 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
               >
                 {t('cancel')}
