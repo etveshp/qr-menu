@@ -188,7 +188,9 @@ export const TRANSLATIONS = {
     saveCategoryError: "Помилка збереження категорії",
     deleteCategoryError: "Помилка видалення категорії",
     saveProductError: "Помилка збереження товару",
-    deleteProductError: "Помилка видалення товару"
+    deleteProductError: "Помилка видалення товару",
+    deleteConfirmTitle: "Видалити?",
+    deleteConfirmMessage: "Ви впевнені, що хочете видалити"
   },
   hu: {
     appName: "Світ Кави QR Меню",
@@ -377,7 +379,9 @@ export const TRANSLATIONS = {
     saveCategoryError: "Hiba a kategória mentésekor",
     deleteCategoryError: "Hiba a kategória törlésekor",
     saveProductError: "Hiba a termék mentésekor",
-    deleteProductError: "Hiba a termék törlésekor"
+    deleteProductError: "Hiba a termék törlésekor",
+    deleteConfirmTitle: "Törlés?",
+    deleteConfirmMessage: "Biztosan törölni szeretné"
   },
   en: {
     appName: "Світ Кави QR Меню",
@@ -566,6 +570,8 @@ export const TRANSLATIONS = {
     saveCategoryError: "Error saving category",
     deleteCategoryError: "Error deleting category",
     saveProductError: "Error saving product",
-    deleteProductError: "Error deleting product"
+    deleteProductError: "Error deleting product",
+    deleteConfirmTitle: "Delete?",
+    deleteConfirmMessage: "Are you sure you want to delete"
   }
 };

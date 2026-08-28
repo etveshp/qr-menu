@@ -54,7 +54,8 @@ import {
   EyeOff,
   CheckCircle2,
   Check,
-  Loader2
+  Loader2,
+  MoreVertical
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -62,6 +63,7 @@ import { ImageCropModal } from '@/components/admin/ImageCropModal';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
+import { ActionCard } from '@/components/admin/ActionCard';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
@@ -227,6 +229,10 @@ export default function AdminPage() {
   // Form states - Product
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProdDrawerOpen, setIsProdDrawerOpen] = useState<boolean>(false);
+
+  // Kebab card actions
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'category' | 'product'; id: string; name: string } | null>(null);
   const [prodForm, setProdForm] = useState<{
     id: string;
     categoryId: string;
@@ -895,20 +901,18 @@ export default function AdminPage() {
     setIsCatDrawerOpen(true);
   };
 
-  const handleDeleteCategory = async (id: string) => {
+  const performDeleteCategory = async (id: string) => {
     const productsInCategory = products.filter(p => p.categoryId === id);
     if (productsInCategory.length > 0) {
       showToast(t('categoryHasProducts'), 'error');
       return;
     }
-    if (confirm(t('delete') + '?')) {
-      try {
-        await deleteCategory(id);
-        await fetchData();
-        showToast(t('categoryDeletedSuccess'), 'success');
-      } catch (err: any) {
-        showToast(err?.message || t('deleteCategoryError'), 'error');
-      }
+    try {
+      await deleteCategory(id);
+      await fetchData();
+      showToast(t('categoryDeletedSuccess'), 'success');
+    } catch (err: any) {
+      showToast(err?.message || t('deleteCategoryError'), 'error');
     }
   };
 
@@ -1015,15 +1019,13 @@ export default function AdminPage() {
     setIsProdDrawerOpen(true);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm(t('delete') + '?')) {
-      try {
-        await deleteProduct(id);
-        await fetchData();
-        showToast(t('productDeletedSuccess'), 'success');
-      } catch (err: any) {
-        showToast(err?.message || t('deleteProductError'), 'error');
-      }
+  const performDeleteProduct = async (id: string) => {
+    try {
+      await deleteProduct(id);
+      await fetchData();
+      showToast(t('productDeletedSuccess'), 'success');
+    } catch (err: any) {
+      showToast(err?.message || t('deleteProductError'), 'error');
     }
   };
 
@@ -1766,31 +1768,21 @@ export default function AdminPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {categories.map((cat) => (
-                      <div key={cat.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-                        <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden">
-                          <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                        <div className="flex flex-1 items-center justify-between gap-3 p-3">
-                          <div>
-                            <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
-                            <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <button 
-                              onClick={() => handleEditCategory(cat)}
-                              className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteCategory(cat.id)}
-                              className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <ActionCard
+                        key={cat.id}
+                        photo={cat.photo}
+                        alt={cat.nameUk}
+                        isOpen={openActionsId === cat.id}
+                        onToggle={() => setOpenActionsId(openActionsId === cat.id ? null : cat.id)}
+                        onEdit={() => {
+                          setOpenActionsId(null);
+                          handleEditCategory(cat);
+                        }}
+                        onDelete={() => setDeleteTarget({ kind: 'category', id: cat.id, name: cat.nameUk })}
+                      >
+                        <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
+                        <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
+                      </ActionCard>
                     ))}
                   </div>
                 )}
@@ -1827,35 +1819,25 @@ export default function AdminPage() {
                     {products.map((p) => {
                       const cat = categories.find(c => c.id === p.categoryId);
                       return (
-                        <div key={p.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-                          <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden">
-                            <Image src={p.photo} alt={p.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
-                          </div>
-                          <div className="flex flex-1 items-center justify-between gap-3 p-3">
-                            <div>
-                              <p className="font-semibold text-sm text-[#231913]">
-                                {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
-                              </p>
-                              <p className="text-xs font-semibold text-[#3E2F26]">
-                                {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')} • {p.price} ₴
-                              </p>
-                            </div>
-                            <div className="flex gap-1">
-                              <button 
-                                onClick={() => handleEditProduct(p)}
-                                className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteProduct(p.id)}
-                                className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <ActionCard
+                          key={p.id}
+                          photo={p.photo}
+                          alt={p.nameUk}
+                          isOpen={openActionsId === p.id}
+                          onToggle={() => setOpenActionsId(openActionsId === p.id ? null : p.id)}
+                          onEdit={() => {
+                            setOpenActionsId(null);
+                            handleEditProduct(p);
+                          }}
+                          onDelete={() => setDeleteTarget({ kind: 'product', id: p.id, name: lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk })}
+                        >
+                          <p className="font-semibold text-sm text-[#231913]">
+                            {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
+                          </p>
+                          <p className="text-xs font-semibold text-[#3E2F26]">
+                            {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')} • {p.price} ₴
+                          </p>
+                        </ActionCard>
                       );
                     })}
                   </div>
@@ -2415,6 +2397,24 @@ export default function AdminPage() {
           }
           setIsDeleteCatPhotoModalOpen(false);
           showToast(t('categoryPhotoDeletedToast'));
+        }}
+      />
+
+      {/* DELETE CATEGORY / PRODUCT CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title={t('deleteConfirmTitle')}
+        message={deleteTarget ? `${t('deleteConfirmMessage')} "${deleteTarget.name}"?` : ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          const target = deleteTarget;
+          setDeleteTarget(null);
+          if (!target) return;
+          if (target.kind === 'category') {
+            performDeleteCategory(target.id);
+          } else {
+            performDeleteProduct(target.id);
+          }
         }}
       />
 
