@@ -36,6 +36,7 @@ const baseProduct: Product = {
   ingredientsEn: 'coffee, water',
   price: 65,
   photo: 'data:image/webp;base64,...',
+  recommendedIds: [],
 };
 
 describe('validateCafeInfo', () => {

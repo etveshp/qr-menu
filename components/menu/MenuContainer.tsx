@@ -131,6 +131,13 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const recommendedProducts = useMemo(() => {
     if (!selectedProductModal) return [];
     const others = products.filter(p => p.id !== selectedProductModal.id);
+    const storedIds = selectedProductModal.recommendedIds ?? [];
+    if (storedIds.length > 0) {
+      const byStored = storedIds
+        .map(id => others.find(p => p.id === id))
+        .filter((p): p is Product => Boolean(p));
+      if (byStored.length > 0) return byStored.slice(0, 8);
+    }
     const fromOtherCategories = others.filter(p => p.categoryId !== selectedProductModal.categoryId);
     const fromSameCategory = others.filter(p => p.categoryId === selectedProductModal.categoryId);
     return [...fromOtherCategories, ...fromSameCategory].slice(0, 5);

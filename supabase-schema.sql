@@ -50,6 +50,7 @@ create table public.products (
   ingredients_en text not null default '',
   price numeric not null check (price >= 0),
   photo text not null default '',
+  recommended_ids text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 

@@ -22,6 +22,7 @@ const products: Product[] = [
     ingredientsEn: '',
     price: 65,
     photo: '/img.png',
+    recommendedIds: [],
   },
   {
     id: 'p2',
@@ -37,6 +38,7 @@ const products: Product[] = [
     ingredientsEn: '',
     price: 95,
     photo: '/img2.png',
+    recommendedIds: [],
   },
 ];
 

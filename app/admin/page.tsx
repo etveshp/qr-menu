@@ -64,6 +64,7 @@ import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { ActionCard } from '@/components/admin/ActionCard';
+import { RecommendedProductsPicker } from '@/components/admin/RecommendedProductsPicker';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
@@ -231,10 +232,18 @@ export default function AdminPage() {
 
   // Category filter for the Menu (products) tab
   const [menuFilterCategoryId, setMenuFilterCategoryId] = useState<string>('all');
-
   const filteredMenuProducts = menuFilterCategoryId === 'all'
     ? products
     : products.filter((p) => p.categoryId === menuFilterCategoryId);
+
+  // Recommended products picker (drawer for choosing products for "Ідеально смакує разом")
+  const [isRecPickerOpen, setIsRecPickerOpen] = useState<boolean>(false);
+  const [recPickerSession, setRecPickerSession] = useState<number>(0);
+
+  const openRecPicker = () => {
+    setRecPickerSession(s => s + 1);
+    setIsRecPickerOpen(true);
+  };
 
   // Drag-to-scroll state for the category filter pills (mouse drag; touch uses native swipe)
   const pillsScrollRef = useRef<HTMLDivElement>(null);
@@ -281,6 +290,7 @@ export default function AdminPage() {
     ingredientsEn: string;
     price: number;
     photo: string;
+    recommendedIds: string[];
   }>({
     id: '',
     categoryId: '',
@@ -294,7 +304,8 @@ export default function AdminPage() {
     ingredientsHu: '',
     ingredientsEn: '',
     price: 0,
-    photo: ''
+    photo: '',
+    recommendedIds: []
   });
 
   // QR Code generator states
@@ -966,7 +977,8 @@ export default function AdminPage() {
       ingredientsHu: '',
       ingredientsEn: '',
       price: 0,
-      photo: ''
+      photo: '',
+      recommendedIds: []
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(false);
@@ -987,7 +999,8 @@ export default function AdminPage() {
       ingredientsHu: '',
       ingredientsEn: '',
       price: 0,
-      photo: ''
+      photo: '',
+      recommendedIds: []
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -1014,7 +1027,8 @@ export default function AdminPage() {
       ingredientsHu: prodForm.ingredientsHu || prodForm.ingredientsUk,
       ingredientsEn: prodForm.ingredientsEn || prodForm.ingredientsUk,
       price: Number(prodForm.price) || 0,
-      photo: prodForm.photo
+      photo: prodForm.photo,
+      recommendedIds: prodForm.recommendedIds
     };
 
     setProdSaveStatus('saving');
@@ -1047,7 +1061,8 @@ export default function AdminPage() {
       ingredientsHu: prod.ingredientsHu,
       ingredientsEn: prod.ingredientsEn,
       price: prod.price,
-      photo: prod.photo
+      photo: prod.photo,
+      recommendedIds: prod.recommendedIds ?? []
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -2406,6 +2421,51 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Recommended products (Ідеально смакує разом) */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">
+              {t('recommendedWith')}
+            </label>
+
+            {products.filter((p) => prodForm.recommendedIds.includes(p.id)).length > 0 && (
+              <div className="space-y-2 mb-2">
+                {products
+                  .filter((p) => prodForm.recommendedIds.includes(p.id))
+                  .map((rp) => (
+                    <div key={rp.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
+                      <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
+                        <img src={rp.photo} alt={rp.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+                      <div className="flex flex-1 items-center justify-between gap-2 p-3 min-w-0">
+                        <p className="font-semibold text-sm text-[#231913] truncate">
+                          {lang === 'hu' ? rp.nameHu : lang === 'en' ? rp.nameEn : rp.nameUk}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setProdForm(prev => ({ ...prev, recommendedIds: prev.recommendedIds.filter(id => id !== rp.id) }))}
+                          className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full shrink-0 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {products.filter((p) => prodForm.recommendedIds.includes(p.id)).length < 5 && (
+              <button
+                type="button"
+                onClick={openRecPicker}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#3E2F26] text-xs uppercase tracking-widest font-semibold rounded-xl border border-[#E6DFD5] transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#C09E6D]" />
+                <span>{t('add')}</span>
+              </button>
+            )}
+          </div>
+
           <div className="pt-2 flex gap-3">
             <button 
               type="submit" 
@@ -2450,6 +2510,27 @@ export default function AdminPage() {
           </div>
         </form>
       </AdminDrawer>
+
+      {/* RECOMMENDED PRODUCTS PICKER */}
+      <RecommendedProductsPicker
+        key={recPickerSession}
+        isOpen={isRecPickerOpen}
+        categories={categories}
+        products={products}
+        selectedIds={prodForm.recommendedIds}
+        lang={lang}
+        excludeId={editingProduct?.id ?? ''}
+        max={5}
+        onClose={() => setIsRecPickerOpen(false)}
+        onConfirm={(ids) => {
+          setProdForm(prev => ({
+            ...prev,
+            recommendedIds: [...prev.recommendedIds, ...ids.filter(id => !prev.recommendedIds.includes(id))].slice(0, 5)
+          }));
+          setIsRecPickerOpen(false);
+        }}
+        t={t}
+      />
 
       {/* DELETE CATEGORY PHOTO CONFIRMATION MODAL */}
       <ConfirmModal
