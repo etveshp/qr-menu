@@ -166,8 +166,7 @@ export default function AdminPage() {
   // App Data State
   const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>([]);  const [loading, setLoading] = useState<boolean>(true);
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr'>('cafe');
@@ -229,6 +228,41 @@ export default function AdminPage() {
   // Form states - Product
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProdDrawerOpen, setIsProdDrawerOpen] = useState<boolean>(false);
+
+  // Category filter for the Menu (products) tab
+  const [menuFilterCategoryId, setMenuFilterCategoryId] = useState<string>('all');
+
+  const filteredMenuProducts = menuFilterCategoryId === 'all'
+    ? products
+    : products.filter((p) => p.categoryId === menuFilterCategoryId);
+
+  // Drag-to-scroll state for the category filter pills (mouse drag; touch uses native swipe)
+  const pillsScrollRef = useRef<HTMLDivElement>(null);
+  const [pillsIsMouseDown, setPillsIsMouseDown] = useState(false);
+  const [pillsStartX, setPillsStartX] = useState(0);
+  const [pillsScrollLeft, setPillsScrollLeft] = useState(0);
+  const [pillsIsDragging, setPillsIsDragging] = useState(false);
+
+  const handlePillsPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'touch' || !pillsScrollRef.current) return;
+    setPillsIsMouseDown(true);
+    setPillsIsDragging(false);
+    setPillsStartX(e.clientX - pillsScrollRef.current.offsetLeft);
+    setPillsScrollLeft(pillsScrollRef.current.scrollLeft);
+  };
+
+  const handlePillsPointerUp = () => {
+    setPillsIsMouseDown(false);
+    setTimeout(() => setPillsIsDragging(false), 50);
+  };
+
+  const handlePillsPointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType === 'touch' || !pillsIsMouseDown || !pillsScrollRef.current) return;
+    const x = e.clientX - pillsScrollRef.current.offsetLeft;
+    const walk = (x - pillsStartX) * 1.5;
+    if (Math.abs(x - pillsStartX) > 5) setPillsIsDragging(true);
+    pillsScrollRef.current.scrollLeft = pillsScrollLeft - walk;
+  };
 
   // Kebab card actions
   const [openActionsId, setOpenActionsId] = useState<string | null>(null);
@@ -1809,14 +1843,54 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {products.length === 0 ? (
+                {/* Category filter pills */}
+                <div
+                  ref={pillsScrollRef}
+                  onPointerDown={handlePillsPointerDown}
+                  onPointerLeave={handlePillsPointerUp}
+                  onPointerUp={handlePillsPointerUp}
+                  onPointerMove={handlePillsPointerMove}
+                  className="mb-6 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 no-scrollbar touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!pillsIsDragging) setMenuFilterCategoryId('all');
+                    }}
+                    className={`shrink-0 px-4 py-2 text-xs uppercase tracking-wider font-semibold rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
+                      menuFilterCategoryId === 'all'
+                        ? 'bg-[#3E2F26] text-[#FAF6EE] border-[#3E2F26]'
+                        : 'bg-white text-[#3E2F26] border-[#E6DFD5] hover:border-[#C09E6D]'
+                    }`}
+                  >
+                    {t('all')}
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        if (!pillsIsDragging) setMenuFilterCategoryId(cat.id);
+                      }}
+                      className={`shrink-0 px-4 py-2 text-xs uppercase tracking-wider font-semibold rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
+                        menuFilterCategoryId === cat.id
+                          ? 'bg-[#3E2F26] text-[#FAF6EE] border-[#3E2F26]'
+                          : 'bg-white text-[#3E2F26] border-[#E6DFD5] hover:border-[#C09E6D]'
+                      }`}
+                    >
+                      {lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk}
+                    </button>
+                  ))}
+                </div>
+
+                {filteredMenuProducts.length === 0 ? (
                   <div className="py-10 text-center text-sm text-[#8E7A68] space-y-2">
                     <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
-                    <p className="text-base">{t('noProducts')}</p>
+                    <p className="text-base">{products.length === 0 ? t('noProducts') : t('noCategoryProducts')}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.map((p) => {
+                    {filteredMenuProducts.map((p) => {
                       const cat = categories.find(c => c.id === p.categoryId);
                       return (
                         <ActionCard
