@@ -13,18 +13,13 @@ interface HeroBannerProps {
 
 export function HeroBanner({ cafeInfo, tableNumber, t }: HeroBannerProps) {
   return (
-    <section className="max-w-4xl mx-auto relative w-full aspect-[16/9] max-h-80 overflow-hidden border-b border-[#E6DFD5] bg-[#3E2F26] rounded-b-3xl shadow-md">
+    <section className="max-w-4xl mx-auto relative w-full aspect-[16/9] max-h-80 overflow-hidden border-b border-[#E6DFD5] bg-[#3E2F26] rounded-b-3xl shadow-md" style={{ aspectRatio: '16 / 9' }}>
       {cafeInfo?.banner && (
         <Image
           src={cafeInfo.banner}
           alt="Cafe Banner"
           fill
           className="object-cover opacity-100"
-          style={{
-            objectPosition: `${cafeInfo.bannerX !== undefined ? cafeInfo.bannerX : 50}% ${cafeInfo.bannerY !== undefined ? cafeInfo.bannerY : 50}%`,
-            transform: `scale(${cafeInfo.bannerScale || 1})`,
-            transformOrigin: 'center center'
-          }}
           priority
           referrerPolicy="no-referrer"
         />

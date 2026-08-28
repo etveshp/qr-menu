@@ -65,6 +65,8 @@ import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
 
+const LANG_CODE: Record<string, string> = { uk: 'UA', hu: 'HU', en: 'EN' };
+
 export default function AdminPage() {
   const { showToast } = useToast();
   const { lang, changeLanguage, t } = useLanguage();
@@ -72,6 +74,7 @@ export default function AdminPage() {
 
   const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [changePassLoading, setChangePassLoading] = useState(false);
@@ -87,12 +90,20 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState<string>('');
   const [authSuccess, setAuthSuccess] = useState<string>('');
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('aura_admin_auth') === 'true' || localStorage.getItem('aura_admin_auth') === 'true';
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Restore the persisted "admin session" flag only after mount to avoid
+  // server/client hydration mismatch (server always renders the login view).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored =
+      sessionStorage.getItem('aura_admin_auth') === 'true' ||
+      localStorage.getItem('aura_admin_auth') === 'true';
+    if (stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsAuthenticated(true);
     }
-    return false;
-  });
+  }, []);
 
   // Marks an in-flight email/password sign-in so the auto-detected (e.g.
   // Google) non-admin path does not override the password-flow modal.
@@ -197,12 +208,18 @@ export default function AdminPage() {
     nameHu: string;
     nameEn: string;
     photo: string;
+    photoX: number;
+    photoY: number;
+    photoScale: number;
   }>({
     id: '',
     nameUk: '',
     nameHu: '',
     nameEn: '',
-    photo: ''
+    photo: '',
+    photoX: 50,
+    photoY: 50,
+    photoScale: 1
   });
 
   // Form states - Product
@@ -260,7 +277,7 @@ export default function AdminPage() {
   const [tempBannerImg, setTempBannerImg] = useState<string | null>(null);
   const [isBannerCropModalOpen, setIsBannerCropModalOpen] = useState<boolean>(false);
   const [isDeleteBannerModalOpen, setIsDeleteBannerModalOpen] = useState<boolean>(false);
-  const [pendingCropData, setPendingCropData] = useState<{ x: number; y: number; scale: number }>({ x: 50, y: 50, scale: 1 });
+  const [pendingCropData, setPendingCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
 
   // react-easy-crop states for Logo
   const [logoCrop, setLogoCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -268,7 +285,15 @@ export default function AdminPage() {
   const [tempLogoImg, setTempLogoImg] = useState<string | null>(null);
   const [isLogoCropModalOpen, setIsLogoCropModalOpen] = useState<boolean>(false);
   const [isDeleteLogoModalOpen, setIsDeleteLogoModalOpen] = useState<boolean>(false);
-  const [pendingLogoCropData, setPendingLogoCropData] = useState<{ x: number; y: number; scale: number }>({ x: 50, y: 50, scale: 1 });
+  const [pendingLogoCropData, setPendingLogoCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
+
+  // react-easy-crop states for Category photo (4:3)
+  const [catCrop, setCatCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [catZoom, setCatZoom] = useState<number>(1);
+  const [tempCatImg, setTempCatImg] = useState<string | null>(null);
+  const [isCatCropModalOpen, setIsCatCropModalOpen] = useState<boolean>(false);
+  const [isDeleteCatPhotoModalOpen, setIsDeleteCatPhotoModalOpen] = useState<boolean>(false);
+  const [pendingCatCropData, setPendingCatCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
 
   const onCropChange = (newCrop: { x: number; y: number }) => {
     setCrop(newCrop);
@@ -276,21 +301,12 @@ export default function AdminPage() {
 
   const onZoomChange = (newZoom: number) => {
     setZoom(newZoom);
-    setPendingCropData(prev => ({
-      ...prev,
-      scale: parseFloat(newZoom.toFixed(2))
-    }));
   };
 
   const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    const centerX = Math.round(croppedArea.x + croppedArea.width / 2);
-    const centerY = Math.round(croppedArea.y + croppedArea.height / 2);
-    setPendingCropData(prev => ({
-      ...prev,
-      x: centerX,
-      y: centerY,
-      scale: parseFloat(zoom.toFixed(2))
-    }));
+    if (croppedAreaPixels) {
+      setPendingCropData({ pixels: croppedAreaPixels });
+    }
   };
 
   const openBannerCropModal = (imageSrc?: string) => {
@@ -299,23 +315,22 @@ export default function AdminPage() {
     setTempBannerImg(srcToUse);
     setCrop({ x: 0, y: 0 });
     setZoom(cafeForm.bannerScale || 1);
-    setPendingCropData({
-      x: cafeForm.bannerX !== undefined ? cafeForm.bannerX : 50,
-      y: cafeForm.bannerY !== undefined ? cafeForm.bannerY : 50,
-      scale: cafeForm.bannerScale || 1
-    });
+    setPendingCropData({ pixels: null });
     setIsBannerCropModalOpen(true);
   };
 
-  const applyBannerCrop = () => {
-    if (tempBannerImg) {
-      setCafeForm(prev => ({
-        ...prev,
-        banner: tempBannerImg,
-        bannerX: pendingCropData.x,
-        bannerY: pendingCropData.y,
-        bannerScale: pendingCropData.scale
-      }));
+  const applyBannerCrop = async () => {
+    if (tempBannerImg && pendingCropData.pixels) {
+      const cropped = await cropImageToWebP(tempBannerImg, pendingCropData.pixels, 16 / 9, 0.75);
+      if (cropped) {
+        setCafeForm(prev => ({
+          ...prev,
+          banner: cropped,
+          bannerX: 50,
+          bannerY: 50,
+          bannerScale: 1
+        }));
+      }
     }
     setIsBannerCropModalOpen(false);
   };
@@ -326,21 +341,12 @@ export default function AdminPage() {
 
   const onLogoZoomChange = (newZoom: number) => {
     setLogoZoom(newZoom);
-    setPendingLogoCropData(prev => ({
-      ...prev,
-      scale: parseFloat(newZoom.toFixed(2))
-    }));
   };
 
   const onLogoCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    const centerX = Math.round(croppedArea.x + croppedArea.width / 2);
-    const centerY = Math.round(croppedArea.y + croppedArea.height / 2);
-    setPendingLogoCropData(prev => ({
-      ...prev,
-      x: centerX,
-      y: centerY,
-      scale: parseFloat(logoZoom.toFixed(2))
-    }));
+    if (croppedAreaPixels) {
+      setPendingLogoCropData({ pixels: croppedAreaPixels });
+    }
   };
 
   const openLogoCropModal = (imageSrc?: string) => {
@@ -349,25 +355,65 @@ export default function AdminPage() {
     setTempLogoImg(srcToUse);
     setLogoCrop({ x: 0, y: 0 });
     setLogoZoom(cafeForm.logoScale || 1);
-    setPendingLogoCropData({
-      x: cafeForm.logoX !== undefined ? cafeForm.logoX : 50,
-      y: cafeForm.logoY !== undefined ? cafeForm.logoY : 50,
-      scale: cafeForm.logoScale || 1
-    });
+    setPendingLogoCropData({ pixels: null });
     setIsLogoCropModalOpen(true);
   };
 
-  const applyLogoCrop = () => {
-    if (tempLogoImg) {
-      setCafeForm(prev => ({
-        ...prev,
-        logo: tempLogoImg,
-        logoX: pendingLogoCropData.x,
-        logoY: pendingLogoCropData.y,
-        logoScale: pendingLogoCropData.scale
-      }));
+  const applyLogoCrop = async () => {
+    if (tempLogoImg && pendingLogoCropData.pixels) {
+      const cropped = await cropImageToWebP(tempLogoImg, pendingLogoCropData.pixels, 16 / 9, 0.85);
+      if (cropped) {
+        setCafeForm(prev => ({
+          ...prev,
+          logo: cropped,
+          logoX: 50,
+          logoY: 50,
+          logoScale: 1
+        }));
+      }
     }
     setIsLogoCropModalOpen(false);
+  };
+
+  // Category photo crop handlers
+  const onCatCropChange = (newCrop: { x: number; y: number }) => {
+    setCatCrop(newCrop);
+  };
+
+  const onCatZoomChange = (newZoom: number) => {
+    setCatZoom(newZoom);
+  };
+
+  const onCatCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    if (croppedAreaPixels) {
+      setPendingCatCropData({ pixels: croppedAreaPixels });
+    }
+  };
+
+  const openCatCropModal = (imageSrc?: string) => {
+    const srcToUse = imageSrc || catForm.photo;
+    if (!srcToUse) return;
+    setTempCatImg(srcToUse);
+    setCatCrop({ x: 0, y: 0 });
+    setCatZoom(catForm.photoScale || 1);
+    setPendingCatCropData({ pixels: null });
+    setIsCatCropModalOpen(true);
+  };
+
+  const applyCatCrop = async () => {
+    if (tempCatImg && pendingCatCropData.pixels) {
+      const cropped = await cropImageToWebP(tempCatImg, pendingCatCropData.pixels, 4 / 3, 0.75);
+      if (cropped) {
+        setCatForm(prev => ({
+          ...prev,
+          photo: cropped,
+          photoX: 50,
+          photoY: 50,
+          photoScale: 1
+        }));
+      }
+    }
+    setIsCatCropModalOpen(false);
   };
 
   // Declared as classic hoisted function to avoid access-before-declaration issues
@@ -551,6 +597,50 @@ export default function AdminPage() {
     }
   };
 
+  const handleChangePasswordSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePassError('');
+    if (!currentPasswordInput) {
+      setChangePassError(t('currentPasswordIncorrect'));
+      return;
+    }
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      setChangePassError(t('passwordTooShort'));
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      setChangePassError(t('passwordsDoNotMatch'));
+      return;
+    }
+    if (!supabase) {
+      setChangePassError(getFriendlyErrorMessage({ message: 'Supabase not configured' }, lang));
+      return;
+    }
+    try {
+      setChangePassLoading(true);
+      // Verify the current password by re-authenticating before allowing a change.
+      const email = currentUser?.email;
+      if (!email) {
+        setChangePassError(t('currentPasswordIncorrect'));
+        return;
+      }
+      const { error: verr } = await supabase.auth.signInWithPassword({ email, password: currentPasswordInput });
+      if (verr) {
+        setChangePassError(t('currentPasswordIncorrect'));
+        return;
+      }
+      await supabase.auth.updateUser({ password: newPasswordInput });
+      showToast(t('passwordUpdatedSuccess'), 'success');
+      setCurrentPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch (err: any) {
+      setChangePassError(getFriendlyErrorMessage(err, lang));
+    } finally {
+      setChangePassLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logoutUser();
     setCurrentUser(null);
@@ -617,6 +707,59 @@ export default function AdminPage() {
     });
   };
 
+  // Crop the given image to a specific pixel area and return a WebP data URL.
+  // `aspect` (width / height) is enforced on the output so the result always
+  // has the exact ratio used in the crop modal (identical on every screen).
+  const cropImageToWebP = (
+    imageSrc: string,
+    pixels: { x: number; y: number; width: number; height: number },
+    aspect: number,
+    quality: number = 0.8
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+
+        // Derive the crop rect so its ratio matches `aspect` exactly
+        let srcX = pixels.x;
+        let srcY = pixels.y;
+        let srcW = pixels.width;
+        let srcH = pixels.height;
+
+        if (srcW / srcH > aspect) {
+          srcW = Math.round(srcH * aspect);
+        } else {
+          srcH = Math.round(srcW / aspect);
+        }
+        // Center the crop rect within the given pixels area
+        srcX += Math.round((pixels.width - srcW) / 2);
+        srcY += Math.round((pixels.height - srcH) / 2);
+
+        // Clamp to the source image bounds
+        srcW = Math.max(1, Math.min(srcW, img.width - srcX));
+        srcH = Math.max(1, Math.min(srcH, img.height - srcY));
+
+        const outW = Math.max(1, Math.round(srcW));
+        const outH = Math.max(1, Math.round(outW / aspect));
+        canvas.width = outW;
+        canvas.height = outH;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(imageSrc);
+          return;
+        }
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+        resolve(canvas.toDataURL('image/webp', quality));
+      };
+      img.onerror = () => {
+        resolve(imageSrc);
+      };
+      img.src = imageSrc;
+    });
+  };
+
   // Image base64 conversion & compression utility
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cafeBanner' | 'cafeLogo' | 'category' | 'product') => {
     const file = e.target.files?.[0];
@@ -639,8 +782,8 @@ export default function AdminPage() {
       maxHeight = 250;
       quality = 0.85;
     } else if (target === 'category') {
-      maxWidth = 500;
-      maxHeight = 350;
+      maxWidth = 600;
+      maxHeight = 450; // 4:3 ratio
       quality = 0.75;
     } else if (target === 'product') {
       maxWidth = 600;
@@ -657,7 +800,7 @@ export default function AdminPage() {
       } else if (target === 'cafeLogo') {
         openLogoCropModal(compressedBase64);
       } else if (target === 'category') {
-        setCatForm(prev => ({ ...prev, photo: compressedBase64 }));
+        openCatCropModal(compressedBase64);
       } else if (target === 'product') {
         setProdForm(prev => ({ ...prev, photo: compressedBase64 }));
       }
@@ -698,7 +841,10 @@ export default function AdminPage() {
       nameUk: catForm.nameUk,
       nameHu: catForm.nameHu || catForm.nameUk,
       nameEn: catForm.nameEn || catForm.nameUk,
-      photo: catForm.photo
+      photo: catForm.photo,
+      photoX: catForm.photoX,
+      photoY: catForm.photoY,
+      photoScale: catForm.photoScale
     };
 
     setCatSaveStatus('saving');
@@ -708,7 +854,7 @@ export default function AdminPage() {
       showToast(editingCategory ? t('categoryUpdatedSuccess') : t('addSuccess'), 'success');
       setTimeout(() => {
         setEditingCategory(null);
-        setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '' });
+        setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
         setCatSaveStatus('idle');
       }, 1200);
       await fetchData();
@@ -725,7 +871,10 @@ export default function AdminPage() {
       nameUk: cat.nameUk,
       nameHu: cat.nameHu,
       nameEn: cat.nameEn,
-      photo: cat.photo
+      photo: cat.photo,
+      photoX: cat.photoX ?? 50,
+      photoY: cat.photoY ?? 50,
+      photoScale: cat.photoScale ?? 1
     });
   };
 
@@ -1286,22 +1435,18 @@ export default function AdminPage() {
                      <div 
                        onClick={() => bannerFileInputRef.current?.click()}
                        className="group relative w-full aspect-[16/9] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+                       style={{ aspectRatio: '16 / 9' }}
                      >
                        {cafeForm.banner ? (
                          <>
-                           <Image 
-                             src={cafeForm.banner} 
-                             alt="Cafe Banner Preview" 
-                             fill 
-                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
-                             style={{
-                               objectPosition: `${cafeForm.bannerX !== undefined ? cafeForm.bannerX : 50}% ${cafeForm.bannerY !== undefined ? cafeForm.bannerY : 50}%`,
-                               transform: `scale(${cafeForm.bannerScale || 1})`,
-                               transformOrigin: 'center center'
-                             }}
-                             referrerPolicy="no-referrer"
-                             unoptimized={cafeForm.banner.startsWith('data:')}
-                           />
+                          <Image 
+                            src={cafeForm.banner} 
+                            alt="Cafe Banner Preview" 
+                            fill 
+                            className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                            referrerPolicy="no-referrer"
+                            unoptimized={cafeForm.banner.startsWith('data:')}
+                          />
 
                            {/* Semi-transparent replace photo overlay icon */}
                            <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
@@ -1321,6 +1466,19 @@ export default function AdminPage() {
                              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
                            >
                              <Trash2 className="w-4.5 h-4.5" />
+                           </button>
+
+                           {/* Edit banner button in bottom right corner */}
+                           <button
+                             type="button"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               openBannerCropModal();
+                             }}
+                             title={t('editPhoto')}
+                             className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                           >
+                             <Edit2 className="w-4.5 h-4.5" />
                            </button>
                          </>
                        ) : (
@@ -1357,8 +1515,9 @@ export default function AdminPage() {
                     {/* Logo rectangular tap card */}
                     <div 
                       onClick={() => logoFileInputRef.current?.click()}
-                      className="group relative w-full aspect-[16/9] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
-                    >
+                       className="group relative w-full aspect-[16/9] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+                       style={{ aspectRatio: '16 / 9' }}
+                     >
                       {cafeForm.logo ? (
                         <>
                           <Image 
@@ -1366,11 +1525,6 @@ export default function AdminPage() {
                             alt="Cafe Logo Preview" 
                             fill 
                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
-                            style={{
-                              objectPosition: `${cafeForm.logoX !== undefined ? cafeForm.logoX : 50}% ${cafeForm.logoY !== undefined ? cafeForm.logoY : 50}%`,
-                              transform: `scale(${cafeForm.logoScale || 1})`,
-                              transformOrigin: 'center center'
-                            }}
                             referrerPolicy="no-referrer"
                             unoptimized={cafeForm.logo.startsWith('data:')}
                           />
@@ -1393,6 +1547,19 @@ export default function AdminPage() {
                             className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
                           >
                             <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+
+                          {/* Edit logo button in bottom right corner */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openLogoCropModal();
+                            }}
+                            title={t('editPhoto')}
+                            className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                          >
+                            <Edit2 className="w-4.5 h-4.5" />
                           </button>
                         </>
                       ) : (
@@ -1447,6 +1614,83 @@ export default function AdminPage() {
                   </div>
                 </form>
               </div>
+
+              {/* Change Login Password */}
+              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
+                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                  {t('changePasswordTitle')}
+                </h2>
+                <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('changePasswordDesc')}</p>
+
+                {changePassError && (
+                  <div className="mb-4 p-3 bg-red-50/90 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2 text-left">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{changePassError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePasswordSettings} className="space-y-4 text-left">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
+                        {t('currentPasswordLabel')}
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-[#A09084] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="password"
+                          value={currentPasswordInput}
+                          onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                          placeholder={t('currentPasswordPlaceholder')}
+                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
+                        {t('newPasswordLabel')}
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-[#A09084] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="password"
+                          value={newPasswordInput}
+                          onChange={(e) => setNewPasswordInput(e.target.value)}
+                          placeholder={t('newPasswordPlaceholder')}
+                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
+                        {t('confirmNewPasswordLabel')}
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-[#A09084] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="password"
+                          value={confirmPasswordInput}
+                          onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                          placeholder={t('confirmNewPasswordPlaceholder')}
+                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={changePassLoading}
+                    className="w-full md:w-auto px-8 py-3 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    {changePassLoading && <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />}
+                    <span>{t('updatePasswordBtn')}</span>
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 
@@ -1466,7 +1710,7 @@ export default function AdminPage() {
                         {t('categoryNameMain')}
                       </label>
                       <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        {t('categoryNameMainShort')}
+                        {LANG_CODE[lang] ?? lang.toUpperCase()}
                       </span>
                     </div>
 
@@ -1504,31 +1748,82 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')} *</label>
+
+                    {/* Hidden File Input for Category Photo */}
                     <input 
                       ref={catFileInputRef}
+                      id="category-photo-file-input"
                       type="file" 
                       accept="image/*" 
                       onChange={(e) => handleImageUpload(e, 'category')}
                       className="hidden"
                     />
-                    <div className="flex flex-col md:flex-row gap-4 items-start">
-                      <button
-                        type="button"
-                        onClick={() => catFileInputRef.current?.click()}
-                        className="border border-[#E6DFD5] hover:border-[#C09E6D] bg-white hover:bg-[#FAF6EE] px-4 py-6 text-center w-full md:w-64 rounded-2xl transition-colors cursor-pointer active:scale-98 flex flex-col items-center justify-center shadow-2xs"
-                      >
-                        <Upload className="w-5 h-5 text-[#C09E6D] mx-auto mb-1.5" />
-                        <span className="text-xs text-[#3E2F26] font-medium block">
-                          {catForm.photo ? t('changeImage') : t('chooseImage')}
-                        </span>
-                        <span className="text-[10px] text-[#8E7A68] block mt-0.5">JPG, PNG, WebP</span>
-                      </button>
-                      {catForm.photo && (
-                        <div className="relative w-32 aspect-[16/9] border border-[#E6DFD5] bg-white rounded-xl overflow-hidden shadow-xs">
-                          <Image src={catForm.photo} alt="Cat preview" fill className="object-cover" referrerPolicy="no-referrer" />
+
+                    {/* Category photo tap card */}
+                    <div 
+                      onClick={() => catFileInputRef.current?.click()}
+                      className="group relative w-full aspect-[4/3] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+                      style={{ aspectRatio: '4 / 3' }}
+                    >
+                      {catForm.photo ? (
+                        <>
+                          <Image 
+                            src={catForm.photo} 
+                            alt="Category Photo Preview" 
+                            fill 
+                            className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                            referrerPolicy="no-referrer"
+                            unoptimized={catForm.photo.startsWith('data:')}
+                          />
+
+                          {/* Semi-transparent replace photo overlay icon */}
+                          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                            <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
+                              <Camera className="w-7 h-7 text-white drop-shadow-sm" />
+                            </div>
+                          </div>
+
+                          {/* Delete category photo button in top right corner */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsDeleteCatPhotoModalOpen(true);
+                            }}
+                            title={t('deletePhoto')}
+                            className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                          >
+                            <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+
+                          {/* Edit category photo button in bottom right corner */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCatCropModal();
+                            }}
+                            title={t('editPhoto')}
+                            className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                          >
+                            <Edit2 className="w-4.5 h-4.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white">
+                          <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#E6DFD5] flex items-center justify-center mb-3">
+                            <Upload className="w-7 h-7 text-[#C09E6D]" />
+                          </div>
+                          <span className="text-sm text-[#3E2F26] font-semibold mb-1">{t('categoryPhotoClick')}</span>
+                          <span className="text-xs text-[#8E7A68]">{t('categoryPhotoRatio')}</span>
                         </div>
                       )}
                     </div>
+                    {catForm.photo && (
+                      <p className="text-xs text-[#8E7A68] mt-2">
+                        {t('categoryPhotoHint')}
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-2 flex gap-3">
@@ -1568,7 +1863,7 @@ export default function AdminPage() {
                         type="button" 
                         onClick={() => {
                           setEditingCategory(null);
-                          setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '' });
+                          setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
                         }}
                         className="px-5 py-2.5 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
                       >
@@ -1586,7 +1881,7 @@ export default function AdminPage() {
                   {categories.map((cat) => (
                     <div key={cat.id} className="flex items-center justify-between p-3 border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-16 aspect-[16/9] overflow-hidden border border-[#E6DFD5] rounded-xl shrink-0">
+                        <div className="relative w-16 aspect-[4/3] overflow-hidden border border-[#E6DFD5] rounded-xl shrink-0">
                           <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
                         </div>
                         <div>
@@ -1659,7 +1954,7 @@ export default function AdminPage() {
                         {t('productNameMain')}
                       </label>
                       <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        {t('productNameMainShort')}
+                        {LANG_CODE[lang] ?? lang.toUpperCase()}
                       </span>
                     </div>
 
@@ -2022,6 +2317,50 @@ export default function AdminPage() {
         onCropComplete={onLogoCropComplete}
         onClose={() => setIsLogoCropModalOpen(false)}
         onApply={applyLogoCrop}
+      />
+
+      {/* DELETE CATEGORY PHOTO CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isDeleteCatPhotoModalOpen}
+        title={t('deleteCategoryPhotoTitle')}
+        message={t('deleteCategoryPhotoMessage')}
+        onCancel={() => setIsDeleteCatPhotoModalOpen(false)}
+        onConfirm={() => {
+          setCatForm(prev => ({
+            ...prev,
+            photo: '',
+            photoX: 50,
+            photoY: 50,
+            photoScale: 1
+          }));
+          if (catFileInputRef.current) {
+            catFileInputRef.current.value = '';
+          }
+          setIsDeleteCatPhotoModalOpen(false);
+          showToast(t('categoryPhotoDeletedToast'));
+        }}
+      />
+
+      {/* CATEGORY PHOTO CROP & POSITIONING POPUP MODAL */}
+      <ImageCropModal
+        isOpen={isCatCropModalOpen}
+        image={tempCatImg}
+        title={t('categoryCropTitle')}
+        subtitle={t('categoryCropSubtitle')}
+        labels={{
+          dragHint: t('cropDragHint'),
+          zoom: t('cropZoom'),
+          reset: t('cropReset'),
+          cancel: t('cancel'),
+          apply: t('cropApply'),
+        }}
+        crop={{ crop: catCrop, zoom: catZoom }}
+        aspect={4 / 3}
+        onCropChange={onCatCropChange}
+        onZoomChange={onCatZoomChange}
+        onCropComplete={onCatCropComplete}
+        onClose={() => setIsCatCropModalOpen(false)}
+        onApply={applyCatCrop}
       />
     </main>
   );

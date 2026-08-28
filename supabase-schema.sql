@@ -29,6 +29,9 @@ create table public.categories (
   name_hu text not null default '',
   name_en text not null default '',
   photo text not null default '',
+  photo_x integer not null default 50,
+  photo_y integer not null default 50,
+  photo_scale real not null default 1,
   created_at timestamptz not null default now()
 );
 

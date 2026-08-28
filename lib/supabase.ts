@@ -7,7 +7,7 @@ export interface CafeInfo {
   bannerScale?: number; bannerX?: number; bannerY?: number;
   logoScale?: number; logoX?: number; logoY?: number;
 }
-export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; }
+export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; }
 export interface Product {
   id: string; categoryId: string;
   nameUk: string; nameHu: string; nameEn: string;
@@ -107,6 +107,7 @@ export const hasAdminAccess = async (user: User | null): Promise<boolean> => {
 // Data helpers
 const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
+  photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
 });
 const mapProduct = (row: any): Product => ({
   id: row.id, categoryId: row.category_id,
@@ -199,7 +200,7 @@ export const saveCategory = async (category: Category): Promise<void> => {
   if (idx >= 0) current[idx] = category; else current.push(category);
   setLocal('categories', current);
   if (supabase) {
-    const { error } = await supabase.from('categories').upsert({ id: category.id, name_uk: category.nameUk, name_hu: category.nameHu, name_en: category.nameEn, photo: category.photo });
+    const { error } = await supabase.from('categories').upsert({ id: category.id, name_uk: category.nameUk, name_hu: category.nameHu, name_en: category.nameEn, photo: category.photo, photo_x: category.photoX ?? 50, photo_y: category.photoY ?? 50, photo_scale: category.photoScale ?? 1 });
     if (error) { console.error('Supabase error saving category', error); throw new Error('Помилка збереження категорії'); }
   }
 };

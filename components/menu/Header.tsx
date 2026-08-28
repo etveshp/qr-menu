@@ -54,11 +54,6 @@ export function Header({
                 alt={cafeInfo?.name || 'Logo'}
                 fill
                 className="object-contain !object-left"
-                style={{
-                  objectPosition: cafeInfo.logoX !== undefined ? `${cafeInfo.logoX}% ${cafeInfo.logoY ?? 50}%` : 'left center',
-                  transform: `scale(${cafeInfo.logoScale || 1})`,
-                  transformOrigin: 'left center'
-                }}
                 referrerPolicy="no-referrer"
               />
             </div>

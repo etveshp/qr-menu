@@ -26,14 +26,17 @@ export function CategoryCard({ category, index, name, onSelect }: CategoryCardPr
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.97 }}
       className="relative aspect-[4/3] w-full flex flex-col justify-end p-4 overflow-hidden border border-[#E6DFD5] transition-shadow text-left group rounded-2xl premium-shadow hover:border-[#C09E6D] hover:shadow-lg cursor-pointer"
+      style={{ aspectRatio: '4 / 3' }}
     >
-      <Image
-        src={category.photo}
-        alt={category.nameUk}
-        fill
-        className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
-        referrerPolicy="no-referrer"
-      />
+      <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
+        <Image
+          src={category.photo}
+          alt={category.nameUk}
+          fill
+          className="object-cover opacity-60"
+          referrerPolicy="no-referrer"
+        />
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-[#231913]/90 via-[#231913]/30 to-transparent" />
 
       <span className="relative z-10 text-base sm:text-lg font-display font-semibold tracking-wide uppercase text-white">
