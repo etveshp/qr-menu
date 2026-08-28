@@ -1835,8 +1835,9 @@ export default function AdminPage() {
                             {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
                           </p>
                           <p className="text-xs font-semibold text-[#3E2F26]">
-                            {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')} • {p.price} ₴
+                            {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')}
                           </p>
+                          <p className="text-xs font-bold text-[#3E2F26]">{p.price} ₴</p>
                         </ActionCard>
                       );
                     })}
@@ -2019,13 +2020,12 @@ export default function AdminPage() {
             >
               {catForm.photo ? (
                 <>
-                  <Image 
+                  {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
+                  <img 
                     src={catForm.photo} 
                     alt="Category Photo Preview" 
-                    fill 
-                    className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                     referrerPolicy="no-referrer"
-                    unoptimized={catForm.photo.startsWith('data:')}
                   />
 
                   {/* Semi-transparent replace photo overlay icon */}
@@ -2296,13 +2296,12 @@ export default function AdminPage() {
             >
               {prodForm.photo ? (
                 <>
-                  <Image 
+                  {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
+                  <img 
                     src={prodForm.photo} 
                     alt="Product Photo Preview" 
-                    fill 
-                    className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                     referrerPolicy="no-referrer"
-                    unoptimized={prodForm.photo.startsWith('data:')}
                   />
                   <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
                     <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
