@@ -61,6 +61,7 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
@@ -202,6 +203,7 @@ export default function AdminPage() {
 
   // Form states - Category
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isCatDrawerOpen, setIsCatDrawerOpen] = useState<boolean>(false);
   const [catForm, setCatForm] = useState<{
     id: string;
     nameUk: string;
@@ -828,6 +830,20 @@ export default function AdminPage() {
   };
 
   // Category Actions
+  const resetCatForm = () => {
+    setEditingCategory(null);
+    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
+    setCatSaveStatus('idle');
+    setIsCatDrawerOpen(false);
+  };
+
+  const openAddCategoryDrawer = () => {
+    setEditingCategory(null);
+    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
+    setCatSaveStatus('idle');
+    setIsCatDrawerOpen(true);
+  };
+
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catForm.nameUk || !catForm.photo) {
@@ -853,9 +869,7 @@ export default function AdminPage() {
       setCatSaveStatus('saved');
       showToast(editingCategory ? t('categoryUpdatedSuccess') : t('addSuccess'), 'success');
       setTimeout(() => {
-        setEditingCategory(null);
-        setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
-        setCatSaveStatus('idle');
+        resetCatForm();
       }, 1200);
       await fetchData();
     } catch (err: any) {
@@ -876,6 +890,8 @@ export default function AdminPage() {
       photoY: cat.photoY ?? 50,
       photoScale: cat.photoScale ?? 1
     });
+    setCatSaveStatus('idle');
+    setIsCatDrawerOpen(true);
   };
 
   const handleDeleteCategory = async (id: string) => {
@@ -1697,215 +1713,58 @@ export default function AdminPage() {
           {/* TAB 2: CATEGORIES */}
           {activeTab === 'categories' && (
             <div className="space-y-6">
-              {/* Add New Category form */}
+              {/* Categories list with Add button */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-6 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {editingCategory ? `${t('edit')} ${t('categories').toLowerCase()}` : t('addCategory')}
-                </h2>
-
-                <form onSubmit={handleSaveCategory} className="space-y-4">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                        {t('categoryNameMain')}
-                      </label>
-                      <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        {LANG_CODE[lang] ?? lang.toUpperCase()}
-                      </span>
-                    </div>
-
-                    {lang === 'uk' && (
-                      <input 
-                        type="text"
-                        value={catForm.nameUk}
-                        onChange={(e) => setCatForm({...catForm, nameUk: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder={t('categoryNamePlaceholder')}
-                        required
-                      />
-                    )}
-
-                    {lang === 'hu' && (
-                      <input 
-                        type="text"
-                        value={catForm.nameHu}
-                        onChange={(e) => setCatForm({...catForm, nameHu: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder="Írja be a kategória nevét magyarul"
-                      />
-                    )}
-
-                    {lang === 'en' && (
-                      <input 
-                        type="text"
-                        value={catForm.nameEn}
-                        onChange={(e) => setCatForm({...catForm, nameEn: e.target.value})}
-                        className="w-full px-3 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                        placeholder="Enter category name in English"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')} *</label>
-
-                    {/* Hidden File Input for Category Photo */}
-                    <input 
-                      ref={catFileInputRef}
-                      id="category-photo-file-input"
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, 'category')}
-                      className="hidden"
-                    />
-
-                    {/* Category photo tap card */}
-                    <div 
-                      onClick={() => catFileInputRef.current?.click()}
-                      className="group relative w-full aspect-[4/3] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
-                      style={{ aspectRatio: '4 / 3' }}
-                    >
-                      {catForm.photo ? (
-                        <>
-                          <Image 
-                            src={catForm.photo} 
-                            alt="Category Photo Preview" 
-                            fill 
-                            className="object-cover transition-transform duration-300 group-hover:scale-105" 
-                            referrerPolicy="no-referrer"
-                            unoptimized={catForm.photo.startsWith('data:')}
-                          />
-
-                          {/* Semi-transparent replace photo overlay icon */}
-                          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
-                            <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
-                              <Camera className="w-7 h-7 text-white drop-shadow-sm" />
-                            </div>
-                          </div>
-
-                          {/* Delete category photo button in top right corner */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsDeleteCatPhotoModalOpen(true);
-                            }}
-                            title={t('deletePhoto')}
-                            className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
-                          >
-                            <Trash2 className="w-4.5 h-4.5" />
-                          </button>
-
-                          {/* Edit category photo button in bottom right corner */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openCatCropModal();
-                            }}
-                            title={t('editPhoto')}
-                            className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
-                          >
-                            <Edit2 className="w-4.5 h-4.5" />
-                          </button>
-                        </>
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white">
-                          <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#E6DFD5] flex items-center justify-center mb-3">
-                            <Upload className="w-7 h-7 text-[#C09E6D]" />
-                          </div>
-                          <span className="text-sm text-[#3E2F26] font-semibold mb-1">{t('categoryPhotoClick')}</span>
-                          <span className="text-xs text-[#8E7A68]">{t('categoryPhotoRatio')}</span>
-                        </div>
-                      )}
-                    </div>
-                    {catForm.photo && (
-                      <p className="text-xs text-[#8E7A68] mt-2">
-                        {t('categoryPhotoHint')}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <button 
-                      type="submit" 
-                      disabled={catSaveStatus === 'saving'}
-                      className={`relative overflow-hidden px-6 py-2.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] cursor-pointer ${
-                        catSaveStatus === 'saving'
-                          ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
-                          : catSaveStatus === 'saved'
-                          ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
-                          : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
-                      }`}
-                    >
-                      {catSaveStatus === 'saving' && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
-                      )}
-                      {catSaveStatus === 'saving' ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
-                          <span>{t('saving')}</span>
-                        </>
-                      ) : catSaveStatus === 'saved' ? (
-                        <>
-                          <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
-                          <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
-                        </>
-                      ) : (
-                        <>
-                          {editingCategory ? <Save className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
-                          <span>{editingCategory ? t('saveBtn') : t('addCategory')}</span>
-                        </>
-                      )}
-                    </button>
-                    {editingCategory && (
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          setEditingCategory(null);
-                          setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
-                        }}
-                        className="px-5 py-2.5 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
-                      >
-                        {t('cancel')}
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-
-              {/* Categories list grid */}
-              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h3 className="text-lg font-display font-medium text-[#231913] mb-4 uppercase tracking-wide">{t('existingCategories')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categories.map((cat) => (
-                    <div key={cat.id} className="flex items-center justify-between p-3 border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-16 aspect-[4/3] overflow-hidden border border-[#E6DFD5] rounded-xl shrink-0">
-                          <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
-                          <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={() => handleEditCategory(cat)}
-                          className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteCategory(cat.id)}
-                          className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between gap-4 mb-6">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('categories')}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={openAddCategoryDrawer}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#3E2F26] hover:bg-[#231913] text-[#FAF6EE] text-xs uppercase tracking-widest font-semibold rounded-xl transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-[#C09E6D]" />
+                    <span>{t('addCategory')}</span>
+                  </button>
                 </div>
+
+                {categories.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-[#8E7A68] space-y-2">
+                    <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
+                    <p className="text-base">{t('noCategories')}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between p-3 border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-16 aspect-[4/3] overflow-hidden border border-[#E6DFD5] rounded-xl shrink-0">
+                            <Image src={cat.photo} alt={cat.nameUk} fill className="object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
+                            <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => handleEditCategory(cat)}
+                            className="p-1.5 text-[#C09E6D] hover:bg-[#F1ECE3] transition-all rounded-full"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteCategory(cat.id)}
+                            className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2318,6 +2177,182 @@ export default function AdminPage() {
         onClose={() => setIsLogoCropModalOpen(false)}
         onApply={applyLogoCrop}
       />
+
+      {/* CATEGORY FORM DRAWER */}
+      <AdminDrawer
+        isOpen={isCatDrawerOpen}
+        title={editingCategory ? `${t('edit')} ${t('categories').toLowerCase()}` : t('addCategory')}
+        subtitle={t('categorySubtitle')}
+        icon={<Grid className="w-5 h-5" />}
+        onClose={resetCatForm}
+      >
+        <form onSubmit={handleSaveCategory} className="space-y-5">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
+                {t('categoryNameMain')}
+              </label>
+              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {LANG_CODE[lang] ?? lang.toUpperCase()}
+              </span>
+            </div>
+
+            {lang === 'uk' && (
+              <input 
+                type="text"
+                value={catForm.nameUk}
+                onChange={(e) => setCatForm({...catForm, nameUk: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder={t('categoryNamePlaceholder')}
+                required
+              />
+            )}
+
+            {lang === 'hu' && (
+              <input 
+                type="text"
+                value={catForm.nameHu}
+                onChange={(e) => setCatForm({...catForm, nameHu: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder="Írja be a kategória nevét magyarul"
+              />
+            )}
+
+            {lang === 'en' && (
+              <input 
+                type="text"
+                value={catForm.nameEn}
+                onChange={(e) => setCatForm({...catForm, nameEn: e.target.value})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                placeholder="Enter category name in English"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')} *</label>
+
+            {/* Hidden File Input for Category Photo */}
+            <input 
+              ref={catFileInputRef}
+              id="category-photo-file-input"
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleImageUpload(e, 'category')}
+              className="hidden"
+            />
+
+            {/* Category photo tap card */}
+            <div 
+              onClick={() => catFileInputRef.current?.click()}
+              className="group relative w-full aspect-[4/3] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+              style={{ aspectRatio: '4 / 3' }}
+            >
+              {catForm.photo ? (
+                <>
+                  <Image 
+                    src={catForm.photo} 
+                    alt="Category Photo Preview" 
+                    fill 
+                    className="object-cover transition-transform duration-300 group-hover:scale-105" 
+                    referrerPolicy="no-referrer"
+                    unoptimized={catForm.photo.startsWith('data:')}
+                  />
+
+                  {/* Semi-transparent replace photo overlay icon */}
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
+                      <Camera className="w-7 h-7 text-white drop-shadow-sm" />
+                    </div>
+                  </div>
+
+                  {/* Delete category photo button in top right corner */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDeleteCatPhotoModalOpen(true);
+                    }}
+                    title={t('deletePhoto')}
+                    className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+
+                  {/* Edit category photo button in bottom right corner */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openCatCropModal();
+                    }}
+                    title={t('editPhoto')}
+                    className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Edit2 className="w-4.5 h-4.5" />
+                  </button>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white">
+                  <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#E6DFD5] flex items-center justify-center mb-3">
+                    <Upload className="w-7 h-7 text-[#C09E6D]" />
+                  </div>
+                  <span className="text-sm text-[#3E2F26] font-semibold mb-1">{t('categoryPhotoClick')}</span>
+                  <span className="text-xs text-[#8E7A68]">{t('categoryPhotoRatio')}</span>
+                </div>
+              )}
+            </div>
+            {catForm.photo && (
+              <p className="text-xs text-[#8E7A68] mt-2">
+                {t('categoryPhotoHint')}
+              </p>
+            )}
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button 
+              type="submit" 
+              disabled={catSaveStatus === 'saving'}
+              className={`flex-1 relative overflow-hidden px-6 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] cursor-pointer ${
+                catSaveStatus === 'saving'
+                  ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                  : catSaveStatus === 'saved'
+                  ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                  : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
+              }`}
+            >
+              {catSaveStatus === 'saving' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+              )}
+              {catSaveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                  <span>{t('saving')}</span>
+                </>
+              ) : catSaveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                  <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                </>
+              ) : (
+                <>
+                  {editingCategory ? <Save className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
+                  <span>{editingCategory ? t('saveBtn') : t('addCategory')}</span>
+                </>
+              )}
+            </button>
+            {editingCategory && (
+              <button 
+                type="button" 
+                onClick={resetCatForm}
+                className="px-5 py-3 bg-[#E6DFD5] text-[#4A3B32] text-xs uppercase tracking-widest font-semibold hover:bg-[#FAF6EE] transition-colors rounded-xl"
+              >
+                {t('cancel')}
+              </button>
+            )}
+          </div>
+        </form>
+      </AdminDrawer>
 
       {/* DELETE CATEGORY PHOTO CONFIRMATION MODAL */}
       <ConfirmModal
