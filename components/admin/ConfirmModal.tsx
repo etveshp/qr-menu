@@ -24,7 +24,7 @@ export function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
       <div className="relative w-full max-w-md bg-[#FDFBF7] rounded-3xl border border-[#E6DFD5] shadow-2xl p-6 sm:p-7 text-center">
         <div className="w-14 h-14 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-[#3E2F26] flex items-center justify-center mx-auto mb-4 shadow-xs">
           <Trash2 className="w-7 h-7" />

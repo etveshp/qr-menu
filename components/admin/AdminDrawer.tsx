@@ -22,6 +22,15 @@ export function AdminDrawer({
   children,
 }: AdminDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Keep the latest onClose in a ref so the focus/trap effect below depends only
+  // on `isOpen`. Otherwise a new onClose identity on every parent render would
+  // re-run the effect and steal focus back to the first focusable element after
+  // each keystroke (making controlled inputs accept only one character).
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen || !panelRef.current) return;
@@ -43,7 +52,7 @@ export function AdminDrawer({
     document.addEventListener('keydown', handleTab);
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handleKey);
 
@@ -51,7 +60,7 @@ export function AdminDrawer({
       document.removeEventListener('keydown', handleTab);
       document.removeEventListener('keydown', handleKey);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return (
     <AnimatePresence>

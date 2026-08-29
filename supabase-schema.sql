@@ -26,6 +26,8 @@ create table public.cafe_info (
   logo_x integer not null default 50,
   logo_y integer not null default 50,
   logo_scale real not null default 1,
+  banner_original text not null default '',
+  logo_original text not null default '',
   updated_at timestamptz not null default now()
 );
 
@@ -39,6 +41,7 @@ create table public.categories (
   photo_x integer not null default 50,
   photo_y integer not null default 50,
   photo_scale real not null default 1,
+  photo_original text not null default '',
   created_at timestamptz not null default now()
 );
 
@@ -55,8 +58,9 @@ create table public.products (
   ingredients_uk text not null default '',
   ingredients_hu text not null default '',
   ingredients_en text not null default '',
-  price numeric not null check (price >= 0),
+  price numeric not null default 0,
   photo text not null default '',
+  photo_original text not null default '',
   recommended_ids text[] not null default '{}',
   created_at timestamptz not null default now()
 );
@@ -67,6 +71,27 @@ create table public.profiles (
   email text not null,
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
+);
+
+-- Advertising popup (single row)
+create table public.advertising (
+  id integer primary key default 1,
+  photo text not null default '',
+  photo_original text not null default '',
+  delay_seconds integer not null default 5 check (delay_seconds >= 0),
+  enabled boolean not null default false,
+  show_until date,
+  updated_at timestamptz not null default now()
+);
+
+-- Text banner (single row): sticky bar under the menu header
+create table public.text_banner (
+  id integer primary key default 1,
+  text text not null default '',
+  category_id text,
+  product_id text,
+  enabled boolean not null default false,
+  updated_at timestamptz not null default now()
 );
 
 -- ============================================================
@@ -91,6 +116,20 @@ create policy "categories write: admin" on public.categories for all
 alter table public.products enable row level security;
 create policy "products read: public" on public.products for select using (true);
 create policy "products write: admin" on public.products for all
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- advertising: public read, admin write
+alter table public.advertising enable row level security;
+create policy "advertising read: public" on public.advertising for select using (true);
+create policy "advertising write: admin" on public.advertising for all
+  using (auth.uid() in (select id from public.profiles where is_admin = true))
+  with check (auth.uid() in (select id from public.profiles where is_admin = true));
+
+-- text_banner: public read, admin write
+alter table public.text_banner enable row level security;
+create policy "text_banner read: public" on public.text_banner for select using (true);
+create policy "text_banner write: admin" on public.text_banner for all
   using (auth.uid() in (select id from public.profiles where is_admin = true))
   with check (auth.uid() in (select id from public.profiles where is_admin = true));
 
@@ -148,7 +187,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['public.cafe_info', 'public.categories', 'public.products'] loop
+  foreach t in array array['public.cafe_info', 'public.categories', 'public.products', 'public.advertising', 'public.text_banner'] loop
     begin
       execute format('alter publication supabase_realtime add table %s', t);
     exception when duplicate_object then

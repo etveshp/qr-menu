@@ -1,0 +1,105 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import { X } from 'lucide-react';
+import { motion } from 'motion/react';
+import { subscribeAdvertising, type Advertising } from '@/lib/supabase';
+import type { Translator } from '@/lib/translator';
+
+const DEFAULT_AD: Advertising = { photo: '', delaySeconds: 5, enabled: false };
+
+// The popup shows while `showUntil` is empty (no limit) or today <= showUntil.
+const isWithinShowWindow = (ad: Advertising): boolean => {
+  if (!ad.showUntil) return true;
+  if (typeof window === 'undefined') return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const limit = new Date(`${ad.showUntil}T00:00:00`);
+  if (Number.isNaN(limit.getTime())) return true;
+  return today.getTime() <= limit.getTime();
+};
+
+interface AdPopupProps {
+  t: Translator;
+}
+
+export function AdPopup({ t }: AdPopupProps) {
+  const [ad, setAd] = useState<Advertising>(DEFAULT_AD);
+  const [visible, setVisible] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const wasShownRef = useRef(false);
+
+  // Show the popup once per page load, after the configured delay, once the ad
+  // is enabled and has a photo (and is still within its "show until" window).
+  // Realtime updates refresh the settings, but the popup is never re-shown
+  // after it was already displayed.
+  useEffect(() => {
+    let cancelled = false;
+
+    const schedule = (next: Advertising) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (!next.enabled || !next.photo || !isWithinShowWindow(next) || wasShownRef.current || cancelled) return;
+      timerRef.current = setTimeout(() => {
+        if (cancelled || wasShownRef.current) return;
+        wasShownRef.current = true;
+        setVisible(true);
+      }, Math.max(0, (next.delaySeconds ?? 5) * 1000));
+    };
+
+    subscribeAdvertising((next) => {
+      setAd(next);
+      schedule(next);
+    });
+
+    return () => {
+      cancelled = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const close = () => setVisible(false);
+
+  return (
+    <>
+      {visible && ad.photo && (
+        <motion.div
+          key="ad-popup"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('advertising')}
+        >
+          {/* 9:16 popup with small outer margins (not full screen) */}
+          <motion.div
+            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20"
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+          >
+            <Image
+              src={ad.photo}
+              alt={t('advertising')}
+              fill
+              className="object-cover"
+              referrerPolicy="no-referrer"
+              unoptimized={ad.photo.startsWith('data:')}
+            />
+
+            {/* Close button in the top right corner */}
+            <button
+              type="button"
+              onClick={close}
+              aria-label={t('adClose')}
+              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </>
+  );
+}

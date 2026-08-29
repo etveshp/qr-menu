@@ -48,7 +48,7 @@ export function ImageCropModal({
   if (!isOpen || !image) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md">
       <div className="relative w-full max-w-2xl bg-[#FDFBF7] rounded-3xl border border-[#E6DFD5] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E6DFD5] flex items-center justify-between bg-[#FAF6EE]">
@@ -71,7 +71,10 @@ export function ImageCropModal({
         </div>
 
         {/* Cropper View Area */}
-        <div className="relative w-full aspect-[16/9] max-h-[52vh] bg-white select-none shrink-0 border-y border-[#E6DFD5]">
+        <div
+          className="relative bg-white select-none shrink-0 border-y border-[#E6DFD5] mx-auto"
+          style={{ width: `min(100%, calc(52vh * ${aspect}))`, aspectRatio: `${aspect}` }}
+        >
           <Cropper
             image={image}
             crop={crop.crop}

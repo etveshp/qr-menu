@@ -1,4 +1,4 @@
-import type { CafeInfo, Category, Product } from './supabase';
+import type { Advertising, CafeInfo, Category, Product, TextBanner } from './supabase';
 
 export type ValidationResult = { ok: true } | { ok: false; error: string };
 
@@ -30,6 +30,8 @@ export const validateCafeInfo = (info: CafeInfo): ValidationResult => {
   if (!isOptionalString(info.instagram, 500)) return { ok: false, error: 'Instagram занадто довгий' };
   if (!isOptionalString(info.banner, MAX_PHOTO)) return { ok: false, error: 'Банер занадто великий' };
   if (!isOptionalString(info.logo, MAX_PHOTO)) return { ok: false, error: 'Логотип занадто великий' };
+  if (!isOptionalString(info.bannerOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал банеру занадто великий' };
+  if (!isOptionalString(info.logoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал логотипу занадто великий' };
   return { ok: true };
 };
 
@@ -40,6 +42,7 @@ export const validateCategory = (category: Category): ValidationResult => {
   if (!isBoundedString(category.nameEn, MAX_NAME)) return { ok: false, error: 'Назва категорії (EN) занадто довга' };
   if (!isNonEmptyString(category.photo)) return { ok: false, error: 'Додайте фото категорії' };
   if (!isBoundedString(category.photo, MAX_PHOTO)) return { ok: false, error: 'Фото категорії занадто велике' };
+  if (!isOptionalString(category.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото категорії занадто великий' };
   return { ok: true };
 };
 
@@ -60,5 +63,25 @@ export const validateProduct = (product: Product): ValidationResult => {
   if (!isBoundedString(product.ingredientsEn, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (EN) занадто довгі' };
   if (!isNonEmptyString(product.photo)) return { ok: false, error: 'Додайте фото товару' };
   if (!isBoundedString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото товару занадто велике' };
+  if (!isOptionalString(product.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото товару занадто великий' };
+  return { ok: true };
+};
+
+export const validateAdvertising = (ad: Advertising): ValidationResult => {
+  if (!isOptionalString(ad.photo, MAX_PHOTO)) return { ok: false, error: 'Фото реклами занадто велике' };
+  if (typeof ad.delaySeconds !== 'number' || !Number.isFinite(ad.delaySeconds) || ad.delaySeconds < 0 || ad.delaySeconds > 3600) {
+    return { ok: false, error: 'Затримка має бути від 0 до 3600 секунд' };
+  }
+  if (ad.showUntil && !/^\d{4}-\d{2}-\d{2}$/.test(ad.showUntil)) {
+    return { ok: false, error: 'Дата закінчення показу некоректна' };
+  }
+  return { ok: true };
+};
+
+export const validateTextBanner = (banner: TextBanner): ValidationResult => {
+  if (!isNonEmptyString(banner.text)) return { ok: false, error: 'Вкажіть текст банера' };
+  if (!isBoundedString(banner.text, 40)) return { ok: false, error: 'Текст банера занадто довгий (максимум 40 символів)' };
+  if (banner.categoryId && !isBoundedString(banner.categoryId, 100)) return { ok: false, error: 'Категорія некоректна' };
+  if (banner.productId && !isBoundedString(banner.productId, 100)) return { ok: false, error: 'Товар некоректний' };
   return { ok: true };
 };

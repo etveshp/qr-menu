@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName } from '@/lib/supabase';
+import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
 import {
   playStepperSound,
   triggerStepperHaptic,
@@ -23,6 +23,8 @@ import { ProductCard } from '@/components/menu/ProductCard';
 import { ProductModal } from '@/components/menu/ProductModal';
 import { CartDrawer } from '@/components/menu/CartDrawer';
 import { ScrollToTop } from '@/components/menu/ScrollToTop';
+import { AdPopup } from '@/components/menu/AdPopup';
+import { TextBanner } from '@/components/menu/TextBanner';
 import { NotAdminModal } from '@/components/NotAdminModal';
 
 export interface MenuContainerProps {
@@ -86,6 +88,13 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [selectedProductModal, setSelectedProductModal] = useState<Product | null>(null);
   const [modalQty, setModalQty] = useState<number>(1);
   const [isJustAdded, setIsJustAdded] = useState<boolean>(false);
+
+  // Text banner (sticky bar under the header)
+  const [textBanner, setTextBanner] = useState<TextBannerData>({ text: '', enabled: false });
+  useEffect(() => {
+    const unsubscribe = subscribeTextBanner((banner) => setTextBanner(banner));
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const updateHeaderHeight = () => {
@@ -344,6 +353,15 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         t={t}
       />
 
+      <TextBanner
+        banner={textBanner}
+        products={products}
+        headerHeight={headerHeight}
+        onOpenProduct={openProductModal}
+        getProductName={getProductName}
+        t={t}
+      />
+
       <HeroBanner cafeInfo={cafeInfo} tableNumber={tableNumber} lang={lang} t={t} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -483,6 +501,8 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
       </footer>
 
       <ScrollToTop visible={showScrollTop} label={t('scrollToTop')} onClick={scrollToTop} />
+
+      <AdPopup t={t} />
 
       <NotAdminModal
         isOpen={showNotAdminPopup}

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-import { validateCafeInfo, validateCategory, validateProduct } from './validation';
+import { validateCafeInfo, validateCategory, validateProduct, validateTextBanner } from './validation';
 
 // Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
@@ -9,6 +9,7 @@ export interface CafeInfo {
   banner: string; logo: string; instagram: string;
   bannerScale?: number; bannerX?: number; bannerY?: number;
   logoScale?: number; logoX?: number; logoY?: number;
+  bannerOriginal?: string; logoOriginal?: string;
 }
 
 export const getCafeName = (info: CafeInfo | null, lang: string): string => {
@@ -25,13 +26,27 @@ export const getCafeOwnerName = (info: CafeInfo | null, lang: string): string =>
   if (!info) return '';
   return lang === 'hu' ? info.ownerNameHu : lang === 'en' ? info.ownerNameEn : info.ownerNameUk;
 };
-export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; }
+export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; photoOriginal?: string; }
 export interface Product {
   id: string; categoryId: string;
   nameUk: string; nameHu: string; nameEn: string;
   descriptionUk: string; descriptionHu: string; descriptionEn: string;
   ingredientsUk: string; ingredientsHu: string; ingredientsEn: string;
   price: number; photo: string; recommendedIds: string[];
+  photoOriginal?: string;
+}
+export interface Advertising {
+  photo: string;
+  photoOriginal?: string;
+  delaySeconds: number;
+  enabled: boolean;
+  showUntil?: string;
+}
+export interface TextBanner {
+  text: string;
+  categoryId?: string;
+  productId?: string;
+  enabled: boolean;
 }
 
 // Default data (same as the original lib)
@@ -126,6 +141,7 @@ export const hasAdminAccess = async (user: User | null): Promise<boolean> => {
 const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
   photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
+  photoOriginal: row.photo_original ?? '',
 });
 const mapProduct = (row: any): Product => ({
   id: row.id, categoryId: row.category_id,
@@ -134,6 +150,7 @@ const mapProduct = (row: any): Product => ({
   ingredientsUk: row.ingredients_uk, ingredientsHu: row.ingredients_hu, ingredientsEn: row.ingredients_en,
   price: Number(row.price), photo: row.photo,
   recommendedIds: Array.isArray(row.recommended_ids) ? row.recommended_ids : [],
+  photoOriginal: row.photo_original ?? '',
 });
 
 // 1. Cafe Info
@@ -141,7 +158,7 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   if (supabase) {
     const { data, error } = await supabase.from('cafe_info').select('*').eq('id', 1).single();
     if (!error && data) {
-      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
+      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale, bannerOriginal: data.banner_original ?? '', logoOriginal: data.logo_original ?? '' };
       setLocal('cafeInfo', info); return info;
     }
   }
@@ -152,7 +169,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   // Fetch current value first (Realtime only pushes changes, not the initial state)
   supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
     if (!error && data) {
-      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
+      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale, bannerOriginal: data.banner_original ?? '', logoOriginal: data.logo_original ?? '' };
       setLocal('cafeInfo', info); callback(info);
     }
   }, () => {});
@@ -160,7 +177,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
     if (row) {
-      const info: CafeInfo = { ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '', nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '', descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '', banner: row.banner, logo: row.logo, instagram: row.instagram, bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale, logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale };
+      const info: CafeInfo = { ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '', nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '', descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '', banner: row.banner, logo: row.logo, instagram: row.instagram, bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale, logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale, bannerOriginal: row.banner_original ?? '', logoOriginal: row.logo_original ?? '' };
       setLocal('cafeInfo', info); callback(info);
     }
   }).subscribe();
@@ -179,7 +196,8 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       banner: info.banner, logo: info.logo,
       instagram: info.instagram, banner_x: info.bannerX ?? 50, banner_y: info.bannerY ?? 50,
       banner_scale: info.bannerScale ?? 1, logo_x: info.logoX ?? 50, logo_y: info.logoY ?? 50,
-      logo_scale: info.logoScale ?? 1, updated_at: new Date().toISOString(),
+      logo_scale: info.logoScale ?? 1, banner_original: info.bannerOriginal ?? '', logo_original: info.logoOriginal ?? '',
+      updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
   }
@@ -223,7 +241,7 @@ export const saveCategory = async (category: Category): Promise<void> => {
   if (idx >= 0) current[idx] = category; else current.push(category);
   setLocal('categories', current);
   if (supabase) {
-    const { error } = await supabase.from('categories').upsert({ id: category.id, name_uk: category.nameUk, name_hu: category.nameHu, name_en: category.nameEn, photo: category.photo, photo_x: category.photoX ?? 50, photo_y: category.photoY ?? 50, photo_scale: category.photoScale ?? 1 });
+    const { error } = await supabase.from('categories').upsert({ id: category.id, name_uk: category.nameUk, name_hu: category.nameHu, name_en: category.nameEn, photo: category.photo, photo_x: category.photoX ?? 50, photo_y: category.photoY ?? 50, photo_scale: category.photoScale ?? 1, photo_original: category.photoOriginal ?? '' });
     if (error) { console.error('Supabase error saving category', error); throw new Error('Помилка збереження категорії'); }
   }
 };
@@ -273,7 +291,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       name_uk: product.nameUk, name_hu: product.nameHu, name_en: product.nameEn,
       description_uk: product.descriptionUk, description_hu: product.descriptionHu, description_en: product.descriptionEn,
       ingredients_uk: product.ingredientsUk, ingredients_hu: product.ingredientsHu, ingredients_en: product.ingredientsEn,
-      price: Number(product.price), photo: product.photo,
+      price: Number(product.price), photo: product.photo, photo_original: product.photoOriginal ?? '',
       recommended_ids: product.recommendedIds ?? [],
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження товару'); }
@@ -285,5 +303,126 @@ export const deleteProduct = async (id: string): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) { console.error('Supabase error deleting product', error); throw new Error('Помилка видалення товару'); }
+  }
+};
+
+// 4. Advertising
+const DEFAULT_ADVERTISING: Advertising = { photo: '', delaySeconds: 5, enabled: false, showUntil: '' };
+
+export const getAdvertising = async (): Promise<Advertising> => {
+  if (supabase) {
+    const { data, error } = await supabase.from('advertising').select('*').eq('id', 1).single();
+    if (!error && data) {
+      const ad: Advertising = { photo: data.photo ?? '', photoOriginal: data.photo_original ?? '', delaySeconds: data.delay_seconds ?? 5, enabled: data.enabled ?? false, showUntil: data.show_until ?? '' };
+      setLocal('advertising', ad); return ad;
+    }
+  }
+  return getLocal('advertising', DEFAULT_ADVERTISING);
+};
+
+let advertisingSubId = 0;
+
+export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() => void) => {
+  if (!supabase) return () => {};
+  // Use a unique channel topic per subscription: `supabase.channel(topic)`
+  // reuses an existing channel with the same topic, which would already be
+  // subscribed (and .on() after subscribe() throws) when the effect re-runs
+  // (e.g. React StrictMode double-mount in dev) or when several subscribers
+  // are registered. A unique topic guarantees a fresh, unsubscribed channel.
+  const topic = `advertising-${advertisingSubId++}`;
+  supabase.from('advertising').select('*').eq('id', 1).single().then(({ data, error }) => {
+    if (!error && data) {
+      const ad: Advertising = { photo: data.photo ?? '', photoOriginal: data.photo_original ?? '', delaySeconds: data.delay_seconds ?? 5, enabled: data.enabled ?? false, showUntil: data.show_until ?? '' };
+      setLocal('advertising', ad); callback(ad);
+    }
+  }, () => {});
+  const channel = supabase.channel(topic);
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'advertising', filter: 'id=eq.1' }, (payload) => {
+    const row = payload.new as any;
+    if (row) {
+      const ad: Advertising = { photo: row.photo ?? '', photoOriginal: row.photo_original ?? '', delaySeconds: row.delay_seconds ?? 5, enabled: row.enabled ?? false, showUntil: row.show_until ?? '' };
+      setLocal('advertising', ad); callback(ad);
+    }
+  }).subscribe();
+  return () => { supabase.removeChannel(channel); };
+};
+
+export const saveAdvertising = async (ad: Advertising): Promise<void> => {
+  setLocal('advertising', ad);
+  if (supabase) {
+    const { error } = await supabase.from('advertising').upsert({
+      id: 1,
+      photo: ad.photo ?? '',
+      photo_original: ad.photoOriginal ?? '',
+      delay_seconds: ad.delaySeconds ?? 5,
+      enabled: ad.enabled ?? false,
+      show_until: ad.showUntil || null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) { console.error('Supabase error writing advertising', error); throw new Error('Помилка збереження реклами'); }
+  }
+};
+
+// 5. Text Banner
+const DEFAULT_TEXT_BANNER: TextBanner = { text: '', categoryId: '', productId: '', enabled: false };
+
+const mapTextBanner = (row: any): TextBanner => ({
+  text: row.text ?? '',
+  categoryId: row.category_id ?? '',
+  productId: row.product_id ?? '',
+  enabled: row.enabled ?? false,
+});
+
+export const getTextBanner = async (): Promise<TextBanner> => {
+  if (supabase) {
+    const { data, error } = await supabase.from('text_banner').select('*').eq('id', 1).single();
+    if (!error && data) {
+      const banner = mapTextBanner(data);
+      setLocal('textBanner', banner); return banner;
+    }
+  }
+  return getLocal('textBanner', DEFAULT_TEXT_BANNER);
+};
+
+let textBannerSubId = 0;
+
+export const subscribeTextBanner = (callback: (banner: TextBanner) => void): (() => void) => {
+  if (!supabase) return () => {};
+  // Unique topic per subscription: `supabase.channel(topic)` reuses an existing
+  // channel with the same topic, which would already be subscribed (and .on()
+  // after subscribe() throws) when the effect re-runs. A unique topic
+  // guarantees a fresh, unsubscribed channel.
+  const topic = `text-banner-${textBannerSubId++}`;
+  supabase.from('text_banner').select('*').eq('id', 1).single().then(({ data, error }) => {
+    if (!error && data) {
+      const banner = mapTextBanner(data);
+      setLocal('textBanner', banner); callback(banner);
+    }
+  }, () => {});
+  const channel = supabase.channel(topic);
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'text_banner', filter: 'id=eq.1' }, (payload) => {
+    const row = payload.new as any;
+    if (row) {
+      const banner = mapTextBanner(row);
+      setLocal('textBanner', banner); callback(banner);
+    }
+  }).subscribe();
+  return () => { supabase.removeChannel(channel); };
+};
+
+export const saveTextBanner = async (banner: TextBanner): Promise<void> => {
+  const validation = validateTextBanner(banner);
+  if (!validation.ok) throw new Error(validation.error);
+  setLocal('textBanner', banner);
+  if (supabase) {
+    const { error } = await supabase.from('text_banner').upsert({
+      id: 1,
+      text: banner.text,
+      category_id: banner.categoryId || null,
+      product_id: banner.productId || null,
+      enabled: banner.enabled ?? false,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) { console.error('Supabase error writing text banner', error); throw new Error('Помилка збереження текстового банера'); }
   }
 };

@@ -14,6 +14,10 @@ import {
   getProducts, 
   saveProduct, 
   deleteProduct,
+  getAdvertising,
+  saveAdvertising,
+  getTextBanner,
+  saveTextBanner,
   subscribeToAuth,
   loginWithEmail,
   loginWithGoogle,
@@ -27,11 +31,13 @@ import {
   CafeInfo,
   Category,
   Product,
+  Advertising,
+  TextBanner,
   getCafeName,
   getCafeOwnerName
 } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { TRANSLATIONS } from '@/lib/translations';
+import { TRANSLATIONS, ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
   Coffee, 
@@ -57,11 +63,13 @@ import {
   CheckCircle2,
   Check,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  Megaphone,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
+import { DatePicker } from '@/components/admin/DatePicker';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
@@ -196,7 +204,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);  const [loading, setLoading] = useState<boolean>(true);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr'>('cafe');
+  const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr' | 'advertising'>('cafe');
 
   // Form states - Cafe Info
   const [cafeForm, setCafeForm] = useState<CafeInfo>({
@@ -248,6 +256,7 @@ export default function AdminPage() {
     photoX: number;
     photoY: number;
     photoScale: number;
+    photoOriginal: string;
   }>({
     id: '',
     nameUk: '',
@@ -256,7 +265,8 @@ export default function AdminPage() {
     photo: '',
     photoX: 50,
     photoY: 50,
-    photoScale: 1
+    photoScale: 1,
+    photoOriginal: ''
   });
 
   // Form states - Product
@@ -323,6 +333,7 @@ export default function AdminPage() {
     ingredientsEn: string;
     price: number;
     photo: string;
+    photoOriginal: string;
     recommendedIds: string[];
   }>({
     id: '',
@@ -338,6 +349,7 @@ export default function AdminPage() {
     ingredientsEn: '',
     price: 0,
     photo: '',
+    photoOriginal: '',
     recommendedIds: []
   });
 
@@ -345,18 +357,29 @@ export default function AdminPage() {
   const [qrTableNumber, setQrTableNumber] = useState<string>('1');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
+  // Advertising form state
+  const [adForm, setAdForm] = useState<Advertising>({ photo: '', delaySeconds: 5, enabled: false });
+
   // Save button action animation states
   const [cafeSaveStatus, setCafeSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [catSaveStatus, setCatSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [prodSaveStatus, setProdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [cropBannerStatus, setCropBannerStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [cropLogoStatus, setCropLogoStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [adSaveStatus, setAdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [isAdDrawerOpen, setIsAdDrawerOpen] = useState<boolean>(false);
+
+  // Text banner form + drawer state
+  const [textBannerForm, setTextBannerForm] = useState<TextBanner>({ text: '', categoryId: '', productId: '', enabled: false });
+  const [textBannerSaveStatus, setTextBannerSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [isTextBannerDrawerOpen, setIsTextBannerDrawerOpen] = useState<boolean>(false);
 
   // Refs for hidden file inputs
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const catFileInputRef = useRef<HTMLInputElement>(null);
   const prodFileInputRef = useRef<HTMLInputElement>(null);
+  const adFileInputRef = useRef<HTMLInputElement>(null);
 
   // react-easy-crop states for Banner
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -382,6 +405,22 @@ export default function AdminPage() {
   const [isDeleteCatPhotoModalOpen, setIsDeleteCatPhotoModalOpen] = useState<boolean>(false);
   const [pendingCatCropData, setPendingCatCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
 
+  // react-easy-crop states for Advertising photo (9:16)
+  const [adCrop, setAdCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [adZoom, setAdZoom] = useState<number>(1);
+  const [tempAdImg, setTempAdImg] = useState<string | null>(null);
+  const [isAdCropModalOpen, setIsAdCropModalOpen] = useState<boolean>(false);
+  const [isDeleteAdPhotoModalOpen, setIsDeleteAdPhotoModalOpen] = useState<boolean>(false);
+  const [pendingAdCropData, setPendingAdCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
+
+  // react-easy-crop states for Product photo (4:3)
+  const [prodCrop, setProdCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [prodZoom, setProdZoom] = useState<number>(1);
+  const [tempProdImg, setTempProdImg] = useState<string | null>(null);
+  const [isProdCropModalOpen, setIsProdCropModalOpen] = useState<boolean>(false);
+  const [isDeleteProdPhotoModalOpen, setIsDeleteProdPhotoModalOpen] = useState<boolean>(false);
+  const [pendingProdCropData, setPendingProdCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
+
   const onCropChange = (newCrop: { x: number; y: number }) => {
     setCrop(newCrop);
   };
@@ -397,11 +436,13 @@ export default function AdminPage() {
   };
 
   const openBannerCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || cafeForm.banner;
+    // Re-open the full pre-crop image at default scale so the admin can adjust
+    // the crop again from the original, not from the already-cropped result.
+    const srcToUse = imageSrc || cafeForm.bannerOriginal || cafeForm.banner;
     if (!srcToUse) return;
     setTempBannerImg(srcToUse);
     setCrop({ x: 0, y: 0 });
-    setZoom(cafeForm.bannerScale || 1);
+    setZoom(1);
     setPendingCropData({ pixels: null });
     setIsBannerCropModalOpen(true);
   };
@@ -437,11 +478,11 @@ export default function AdminPage() {
   };
 
   const openLogoCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || cafeForm.logo;
+    const srcToUse = imageSrc || cafeForm.logoOriginal || cafeForm.logo;
     if (!srcToUse) return;
     setTempLogoImg(srcToUse);
     setLogoCrop({ x: 0, y: 0 });
-    setLogoZoom(cafeForm.logoScale || 1);
+    setLogoZoom(1);
     setPendingLogoCropData({ pixels: null });
     setIsLogoCropModalOpen(true);
   };
@@ -478,11 +519,11 @@ export default function AdminPage() {
   };
 
   const openCatCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || catForm.photo;
+    const srcToUse = imageSrc || catForm.photoOriginal || catForm.photo;
     if (!srcToUse) return;
     setTempCatImg(srcToUse);
     setCatCrop({ x: 0, y: 0 });
-    setCatZoom(catForm.photoScale || 1);
+    setCatZoom(1);
     setPendingCatCropData({ pixels: null });
     setIsCatCropModalOpen(true);
   };
@@ -503,6 +544,76 @@ export default function AdminPage() {
     setIsCatCropModalOpen(false);
   };
 
+  // Advertising photo crop handlers (9:16)
+  const onAdCropChange = (newCrop: { x: number; y: number }) => {
+    setAdCrop(newCrop);
+  };
+
+  const onAdZoomChange = (newZoom: number) => {
+    setAdZoom(newZoom);
+  };
+
+  const onAdCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    if (croppedAreaPixels) {
+      setPendingAdCropData({ pixels: croppedAreaPixels });
+    }
+  };
+
+  const openAdCropModal = (imageSrc?: string) => {
+    const srcToUse = imageSrc || adForm.photoOriginal || adForm.photo;
+    if (!srcToUse) return;
+    setTempAdImg(srcToUse);
+    setAdCrop({ x: 0, y: 0 });
+    setAdZoom(1);
+    setPendingAdCropData({ pixels: null });
+    setIsAdCropModalOpen(true);
+  };
+
+  const applyAdCrop = async () => {
+    if (tempAdImg && pendingAdCropData.pixels) {
+      const cropped = await cropImageToWebP(tempAdImg, pendingAdCropData.pixels, 9 / 16, 0.8);
+      if (cropped) {
+        setAdForm(prev => ({ ...prev, photo: cropped }));
+      }
+    }
+    setIsAdCropModalOpen(false);
+  };
+
+  // Product photo crop handlers (4:3)
+  const onProdCropChange = (newCrop: { x: number; y: number }) => {
+    setProdCrop(newCrop);
+  };
+
+  const onProdZoomChange = (newZoom: number) => {
+    setProdZoom(newZoom);
+  };
+
+  const onProdCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    if (croppedAreaPixels) {
+      setPendingProdCropData({ pixels: croppedAreaPixels });
+    }
+  };
+
+  const openProdCropModal = (imageSrc?: string) => {
+    const srcToUse = imageSrc || prodForm.photoOriginal || prodForm.photo;
+    if (!srcToUse) return;
+    setTempProdImg(srcToUse);
+    setProdCrop({ x: 0, y: 0 });
+    setProdZoom(1);
+    setPendingProdCropData({ pixels: null });
+    setIsProdCropModalOpen(true);
+  };
+
+  const applyProdCrop = async () => {
+    if (tempProdImg && pendingProdCropData.pixels) {
+      const cropped = await cropImageToWebP(tempProdImg, pendingProdCropData.pixels, 4 / 3, 0.75);
+      if (cropped) {
+        setProdForm(prev => ({ ...prev, photo: cropped }));
+      }
+    }
+    setIsProdCropModalOpen(false);
+  };
+
   // Declared as classic hoisted function to avoid access-before-declaration issues
   async function fetchData() {
     setLoading(true);
@@ -510,6 +621,8 @@ export default function AdminPage() {
       const info = await getCafeInfo();
       const cats = await getCategories();
       const prods = await getProducts();
+      const ad = await getAdvertising();
+      const banner = await getTextBanner();
       
       setCafeInfo(info);
       setCafeForm(info);
@@ -519,6 +632,8 @@ export default function AdminPage() {
       }
       setCategories(cats);
       setProducts(prods);
+      setAdForm(ad);
+      setTextBannerForm(banner);
 
       if (cats.length > 0 && !prodForm.categoryId) {
         setProdForm(prev => ({ ...prev, categoryId: cats[0].id }));
@@ -806,6 +921,14 @@ export default function AdminPage() {
   ): Promise<string> => {
     return new Promise((resolve) => {
       const img = new window.Image();
+      // Loading a cross-origin (non-data:) image without CORS taints the
+      // canvas, so export via toDataURL() is blocked. Request the image with
+      // anonymous CORS so remote photos (e.g. Supabase Storage URLs) can be
+      // re-drawn and exported; if the host does not allow CORS the image fails
+      // to load and we fall back to the original source below.
+      if (!imageSrc.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = () => {
         const canvas = document.createElement('canvas');
 
@@ -849,7 +972,7 @@ export default function AdminPage() {
   };
 
   // Image base64 conversion & compression utility
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cafeBanner' | 'cafeLogo' | 'category' | 'product') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cafeBanner' | 'cafeLogo' | 'category' | 'product' | 'advertising') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -877,6 +1000,10 @@ export default function AdminPage() {
       maxWidth = 600;
       maxHeight = 600;
       quality = 0.75;
+    } else if (target === 'advertising') {
+      maxWidth = 540;
+      maxHeight = 960; // 9:16 ratio
+      quality = 0.8;
     }
 
     try {
@@ -884,13 +1011,20 @@ export default function AdminPage() {
       if (!compressedBase64) return;
 
       if (target === 'cafeBanner') {
+        setCafeForm(prev => ({ ...prev, bannerOriginal: compressedBase64 }));
         openBannerCropModal(compressedBase64);
       } else if (target === 'cafeLogo') {
+        setCafeForm(prev => ({ ...prev, logoOriginal: compressedBase64 }));
         openLogoCropModal(compressedBase64);
       } else if (target === 'category') {
+        setCatForm(prev => ({ ...prev, photoOriginal: compressedBase64 }));
         openCatCropModal(compressedBase64);
       } else if (target === 'product') {
-        setProdForm(prev => ({ ...prev, photo: compressedBase64 }));
+        setProdForm(prev => ({ ...prev, photoOriginal: compressedBase64 }));
+        openProdCropModal(compressedBase64);
+      } else if (target === 'advertising') {
+        setAdForm(prev => ({ ...prev, photoOriginal: compressedBase64 }));
+        openAdCropModal(compressedBase64);
       }
     } catch (err) {
       console.error("Error compressing image:", err);
@@ -915,17 +1049,90 @@ export default function AdminPage() {
     }
   };
 
+  // Advertising Actions
+  const handleSaveAdvertising = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adForm.enabled && !adForm.photo) {
+      showToast(t('adRequiredPhoto'), 'error');
+      return;
+    }
+    setAdSaveStatus('saving');
+    try {
+      await saveAdvertising(adForm);
+      setAdSaveStatus('saved');
+      showToast(t('adSaveSuccess'), 'success');
+      setTimeout(() => {
+        setAdSaveStatus('idle');
+      }, 2200);
+    } catch (err: any) {
+      setAdSaveStatus('idle');
+      showToast(err?.message || t('adSaveError'), 'error');
+    }
+  };
+
+  // Advertising drawer open/close
+  const openAdDrawer = async () => {
+    setAdSaveStatus('idle');
+    try {
+      const ad = await getAdvertising();
+      setAdForm(ad);
+    } catch {
+      // keep current form
+    }
+    setIsAdDrawerOpen(true);
+  };
+
+  const closeAdDrawer = () => {
+    setIsAdDrawerOpen(false);
+  };
+
+  // Text banner drawer handlers
+  const openTextBannerDrawer = async () => {
+    setTextBannerSaveStatus('idle');
+    try {
+      const banner = await getTextBanner();
+      setTextBannerForm(banner);
+    } catch {
+      // keep current form
+    }
+    setIsTextBannerDrawerOpen(true);
+  };
+
+  const closeTextBannerDrawer = () => {
+    setIsTextBannerDrawerOpen(false);
+  };
+
+  const handleSaveTextBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!textBannerForm.text.trim()) {
+      showToast(t('textBannerRequiredText'), 'error');
+      return;
+    }
+    setTextBannerSaveStatus('saving');
+    try {
+      await saveTextBanner(textBannerForm);
+      setTextBannerSaveStatus('saved');
+      showToast(t('textBannerSaveSuccess'), 'success');
+      setTimeout(() => {
+        setTextBannerSaveStatus('idle');
+      }, 2200);
+    } catch (err: any) {
+      setTextBannerSaveStatus('idle');
+      showToast(err?.message || t('textBannerSaveError'), 'error');
+    }
+  };
+
   // Category Actions
   const resetCatForm = () => {
     setEditingCategory(null);
-    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
+    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1, photoOriginal: '' });
     setCatSaveStatus('idle');
     setIsCatDrawerOpen(false);
   };
 
   const openAddCategoryDrawer = () => {
     setEditingCategory(null);
-    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1 });
+    setCatForm({ id: '', nameUk: '', nameHu: '', nameEn: '', photo: '', photoX: 50, photoY: 50, photoScale: 1, photoOriginal: '' });
     setCatSaveStatus('idle');
     setIsCatDrawerOpen(true);
   };
@@ -946,7 +1153,8 @@ export default function AdminPage() {
       photo: catForm.photo,
       photoX: catForm.photoX,
       photoY: catForm.photoY,
-      photoScale: catForm.photoScale
+      photoScale: catForm.photoScale,
+      photoOriginal: catForm.photoOriginal
     };
 
     setCatSaveStatus('saving');
@@ -974,7 +1182,8 @@ export default function AdminPage() {
       photo: cat.photo,
       photoX: cat.photoX ?? 50,
       photoY: cat.photoY ?? 50,
-      photoScale: cat.photoScale ?? 1
+      photoScale: cat.photoScale ?? 1,
+      photoOriginal: cat.photoOriginal ?? ''
     });
     setCatSaveStatus('idle');
     setIsCatDrawerOpen(true);
@@ -1012,6 +1221,7 @@ export default function AdminPage() {
       ingredientsEn: '',
       price: 0,
       photo: '',
+      photoOriginal: '',
       recommendedIds: []
     });
     setProdSaveStatus('idle');
@@ -1034,6 +1244,7 @@ export default function AdminPage() {
       ingredientsEn: '',
       price: 0,
       photo: '',
+      photoOriginal: '',
       recommendedIds: []
     });
     setProdSaveStatus('idle');
@@ -1062,6 +1273,7 @@ export default function AdminPage() {
       ingredientsEn: prodForm.ingredientsEn || prodForm.ingredientsUk,
       price: Number(prodForm.price) || 0,
       photo: prodForm.photo,
+      photoOriginal: prodForm.photoOriginal,
       recommendedIds: prodForm.recommendedIds
     };
 
@@ -1096,6 +1308,7 @@ export default function AdminPage() {
       ingredientsEn: prod.ingredientsEn,
       price: prod.price,
       photo: prod.photo,
+      photoOriginal: prod.photoOriginal ?? '',
       recommendedIds: prod.recommendedIds ?? []
     });
     setProdSaveStatus('idle');
@@ -1490,6 +1703,13 @@ export default function AdminPage() {
               >
                 <QrCode className="w-4 h-4 shrink-0" />
                 {t('qrGenerator')}
+              </button>
+              <button 
+                onClick={() => setActiveTab('advertising')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-xs uppercase tracking-wider font-semibold transition-all rounded-xl ${activeTab === 'advertising' ? 'bg-[#3E2F26] text-[#FAF6EE]' : 'text-[#4A3B32] hover:bg-[#F1ECE3]'}`}
+              >
+                <Megaphone className="w-4 h-4 shrink-0" />
+                {t('advertisingNav')}
               </button>
             </div>
           </div>
@@ -2058,6 +2278,64 @@ export default function AdminPage() {
             />
           )}
 
+          {/* TAB 5: ADVERTISING */}
+          {activeTab === 'advertising' && (
+            <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
+              <h2 className="text-2xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                {t('advertising')}
+              </h2>
+
+              {/* Feature list */}
+              <ul className="space-y-2.5 mb-8">
+                {ADVERTISING_FEATURES[lang].map((f, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
+                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Add popup button */}
+              <div>
+                <button
+                  type="button"
+                  onClick={openAdDrawer}
+                  className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-[#C09E6D]" />
+                  {t('addAdPopup')}
+                </button>
+              </div>
+
+              {/* Text banner section */}
+              <div className="mt-10 pt-8 border-t border-[#E6DFD5]">
+                <h3 className="text-xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                  {t('textBanner')}
+                </h3>
+
+                <ul className="space-y-2.5 mb-8">
+                  {TEXT_BANNER_FEATURES[lang].map((f, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
+                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={openTextBannerDrawer}
+                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-[#C09E6D]" />
+                    {t('addTextBanner')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -2073,7 +2351,8 @@ export default function AdminPage() {
             banner: '',
             bannerX: 50,
             bannerY: 50,
-            bannerScale: 1
+            bannerScale: 1,
+            bannerOriginal: ''
           }));
           if (bannerFileInputRef.current) {
             bannerFileInputRef.current.value = '';
@@ -2117,7 +2396,8 @@ export default function AdminPage() {
             logo: '',
             logoX: 50,
             logoY: 50,
-            logoScale: 1
+            logoScale: 1,
+            logoOriginal: ''
           }));
           if (logoFileInputRef.current) {
             logoFileInputRef.current.value = '';
@@ -2339,7 +2619,7 @@ export default function AdminPage() {
               <select 
                 value={prodForm.categoryId}
                 onChange={(e) => setProdForm({...prodForm, categoryId: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
                 required
               >
                 {categories.map((cat) => (
@@ -2492,8 +2772,8 @@ export default function AdminPage() {
             />
             <div 
               onClick={() => prodFileInputRef.current?.click()}
-              className="group relative w-full aspect-[16/9] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
-              style={{ aspectRatio: '16 / 9' }}
+              className="group relative w-full aspect-[4/3] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99]"
+              style={{ aspectRatio: '4 / 3' }}
             >
               {prodForm.photo ? (
                 <>
@@ -2509,16 +2789,31 @@ export default function AdminPage() {
                       <Camera className="w-7 h-7 text-white drop-shadow-sm" />
                     </div>
                   </div>
+
+                  {/* Delete product photo button */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setProdForm(prev => ({ ...prev, photo: '' }));
+                      setIsDeleteProdPhotoModalOpen(true);
                     }}
                     title={t('deletePhoto')}
                     className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
                   >
                     <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+
+                  {/* Edit (crop) product photo button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openProdCropModal();
+                    }}
+                    title={t('editPhoto')}
+                    className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Edit2 className="w-4.5 h-4.5" />
                   </button>
                 </>
               ) : (
@@ -2623,6 +2918,326 @@ export default function AdminPage() {
         </form>
       </AdminDrawer>
 
+      {/* ADVERTISING (Popup) DRAWER */}
+      <AdminDrawer
+        isOpen={isAdDrawerOpen}
+        title={t('advertising')}
+        subtitle={t('advertisingSubtitleShort')}
+        onClose={closeAdDrawer}
+      >
+        <form onSubmit={handleSaveAdvertising} className="space-y-6">
+          {/* Ad Photo Upload (9:16) */}
+          <div className="space-y-3">
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('adPhoto')}</label>
+
+            <input
+              ref={adFileInputRef}
+              id="advertising-photo-file-input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImageUpload(e, 'advertising')}
+              className="hidden"
+            />
+
+            <div
+              onClick={() => adFileInputRef.current?.click()}
+              className="group relative w-full max-w-[280px] aspect-[9/16] border-2 border-[#E6DFD5] hover:border-[#C09E6D] bg-white rounded-2xl overflow-hidden shadow-sm select-none cursor-pointer transition-all active:scale-[0.99] mx-auto"
+              style={{ aspectRatio: '9 / 16' }}
+            >
+              {adForm.photo ? (
+                <>
+                  <Image
+                    src={adForm.photo}
+                    alt="Ad Photo Preview"
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                    unoptimized={adForm.photo.startsWith('data:')}
+                  />
+
+                  {/* Semi-transparent replace photo overlay icon */}
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95">
+                      <Camera className="w-7 h-7 text-white drop-shadow-sm" />
+                    </div>
+                  </div>
+
+                  {/* Delete ad photo button in top right corner */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDeleteAdPhotoModalOpen(true);
+                    }}
+                    title={t('deletePhoto')}
+                    className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+
+                  {/* Edit ad photo button in bottom right corner */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openAdCropModal();
+                    }}
+                    title={t('editPhoto')}
+                    className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#C09E6D] text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+                  >
+                    <Edit2 className="w-4.5 h-4.5" />
+                  </button>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white">
+                  <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#E6DFD5] flex items-center justify-center mb-3">
+                    <Upload className="w-7 h-7 text-[#C09E6D]" />
+                  </div>
+                  <span className="text-sm text-[#3E2F26] font-semibold mb-1">{t('adPhotoClick')}</span>
+                  <span className="text-xs text-[#8E7A68]">{t('adPhotoRatio')}</span>
+                </div>
+              )}
+            </div>
+            {adForm.photo && (
+              <p className="text-xs text-[#8E7A68] text-center">
+                {t('adPhotoHint')}
+              </p>
+            )}
+          </div>
+
+          {/* Delay (seconds) + show until */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">
+                {t('adDelayLabel')}
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={3600}
+                value={adForm.delaySeconds || ''}
+                onChange={(e) => setAdForm({ ...adForm, delaySeconds: Number(e.target.value) })}
+                className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+              />
+              <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('adDelayHint')}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">
+                {t('adShowUntilLabel')}
+              </label>
+              <DatePicker
+                value={adForm.showUntil || ''}
+                onChange={(v) => setAdForm({ ...adForm, showUntil: v })}
+                lang={lang}
+                placeholder={t('adShowUntilPlaceholder')}
+                clearLabel={lang === 'hu' ? 'Törlés' : lang === 'en' ? 'Clear' : 'Очистити'}
+              />
+              <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('adShowUntilHint')}</p>
+            </div>
+          </div>
+
+          {/* Enabled toggle */}
+          <div className="pt-4 border-t border-[#E6DFD5]">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-left min-w-0">
+                <span className="block text-xs uppercase tracking-wider font-semibold text-[#4A3B32]">{t('adEnabledLabel')}</span>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={adForm.enabled}
+                aria-label={t('adEnabledLabel')}
+                onClick={() => {
+                  if (!adForm.enabled && !adForm.photo) {
+                    showToast(t('adRequiredPhoto'), 'error');
+                    return;
+                  }
+                  setAdForm(prev => ({ ...prev, enabled: !prev.enabled }));
+                }}
+                className={`relative inline-flex shrink-0 w-12 h-7 rounded-full transition-colors duration-200 cursor-pointer border ${
+                  adForm.enabled
+                    ? 'bg-[#C09E6D] border-[#C09E6D]'
+                    : 'bg-[#E6DFD5] border-[#D5CBBF]'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                    adForm.enabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                >
+                  {adForm.enabled ? <Check className="w-3.5 h-3.5 text-[#3E2F26] stroke-[3]" /> : <X className="w-3.5 h-3.5 text-[#8E7A68]" />}
+                </span>
+              </button>
+            </div>
+            <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('adEnabledHint')}</p>
+          </div>
+
+          {/* Save */}
+          <div className="pt-4 border-t border-[#E6DFD5]">
+            <button
+              type="submit"
+              disabled={adSaveStatus === 'saving'}
+              className={`relative overflow-hidden w-full flex justify-center items-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                adSaveStatus === 'saving'
+                  ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                  : adSaveStatus === 'saved'
+                  ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                  : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+              }`}
+            >
+              {adSaveStatus === 'saving' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+              )}
+              {adSaveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                  <span>{t('saving')}</span>
+                </>
+              ) : adSaveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                  <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 text-[#C09E6D]" />
+                  <span>{t('saveBtn')}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </AdminDrawer>
+
+      {/* TEXT BANNER DRAWER */}
+      <AdminDrawer
+        isOpen={isTextBannerDrawerOpen}
+        title={t('textBanner')}
+        onClose={closeTextBannerDrawer}
+        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
+      >
+        <form onSubmit={handleSaveTextBanner} className="space-y-5">
+          {/* Banner text */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('textBannerText')} *</label>
+              <span className={`text-[11px] font-bold tabular-nums ${textBannerForm.text.length >= 40 ? 'text-[#C0453A]' : 'text-[#8E7A68]'}`}>
+                {textBannerForm.text.length}/40
+              </span>
+            </div>
+            <textarea
+              value={textBannerForm.text}
+              onChange={(e) => setTextBannerForm(prev => ({ ...prev, text: e.target.value }))}
+              rows={3}
+              maxLength={40}
+              placeholder="☕ Акція! Знижка на всі напої"
+              className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl focus:outline-none focus:border-[#C09E6D] resize-none"
+            />
+            <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerTextHint')}</p>
+          </div>
+
+          {/* Product link (category → product) */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('textBannerLinkLabel')}</label>
+
+            <select
+              value={textBannerForm.categoryId || ''}
+              onChange={(e) => setTextBannerForm(prev => ({ ...prev, categoryId: e.target.value, productId: '' }))}
+              className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl focus:outline-none focus:border-[#C09E6D] mb-2"
+            >
+              <option value="">{t('textBannerNoLink')}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
+              ))}
+            </select>
+
+            <select
+              value={textBannerForm.productId || ''}
+              onChange={(e) => setTextBannerForm(prev => ({ ...prev, productId: e.target.value }))}
+              disabled={!textBannerForm.categoryId}
+              className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl focus:outline-none focus:border-[#C09E6D] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">{t('textBannerProductPlaceholder')}</option>
+              {products
+                .filter((p) => p.categoryId === textBannerForm.categoryId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>{p.nameUk}</option>
+                ))}
+            </select>
+
+            <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerLinkHint')}</p>
+          </div>
+
+          {/* Enabled toggle */}
+          <div className="pt-4 border-t border-[#E6DFD5]">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-left min-w-0">
+                <span className="block text-xs uppercase tracking-wider font-semibold text-[#4A3B32]">{t('textBannerEnabledLabel')}</span>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={textBannerForm.enabled}
+                aria-label={t('textBannerEnabledLabel')}
+                onClick={() => setTextBannerForm(prev => ({ ...prev, enabled: !prev.enabled }))}
+                className={`relative inline-flex shrink-0 w-12 h-7 rounded-full transition-colors duration-200 cursor-pointer border ${
+                  textBannerForm.enabled
+                    ? 'bg-[#C09E6D] border-[#C09E6D]'
+                    : 'bg-[#E6DFD5] border-[#D5CBBF]'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                    textBannerForm.enabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                >
+                  {textBannerForm.enabled ? <Check className="w-3.5 h-3.5 text-[#3E2F26] stroke-[3]" /> : <X className="w-3.5 h-3.5 text-[#8E7A68]" />}
+                </span>
+              </button>
+            </div>
+            <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerEnabledHint')}</p>
+          </div>
+
+          {/* Save */}
+          <div className="pt-4 border-t border-[#E6DFD5]">
+            <button
+              type="submit"
+              disabled={textBannerSaveStatus === 'saving'}
+              className={`relative overflow-hidden w-full flex justify-center items-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                textBannerSaveStatus === 'saving'
+                  ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                  : textBannerSaveStatus === 'saved'
+                  ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                  : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+              }`}
+            >
+              {textBannerSaveStatus === 'saving' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+              )}
+              {textBannerSaveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                  <span>{t('saving')}</span>
+                </>
+              ) : textBannerSaveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                  <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 text-[#C09E6D]" />
+                  <span>{t('saveBtn')}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </AdminDrawer>
+
       {/* RECOMMENDED PRODUCTS PICKER */}
       <RecommendedProductsPicker
         key={recPickerSession}
@@ -2656,7 +3271,8 @@ export default function AdminPage() {
             photo: '',
             photoX: 50,
             photoY: 50,
-            photoScale: 1
+            photoScale: 1,
+            photoOriginal: ''
           }));
           if (catFileInputRef.current) {
             catFileInputRef.current.value = '';
@@ -2704,6 +3320,82 @@ export default function AdminPage() {
         onCropComplete={onCatCropComplete}
         onClose={() => setIsCatCropModalOpen(false)}
         onApply={applyCatCrop}
+      />
+
+      {/* PRODUCT PHOTO CROP & POSITIONING POPUP MODAL */}
+      <ImageCropModal
+        isOpen={isProdCropModalOpen}
+        image={tempProdImg}
+        title={t('productCropTitle')}
+        subtitle={t('productCropSubtitle')}
+        labels={{
+          dragHint: t('cropDragHint'),
+          zoom: t('cropZoom'),
+          reset: t('cropReset'),
+          cancel: t('cancel'),
+          apply: t('cropApply'),
+        }}
+        crop={{ crop: prodCrop, zoom: prodZoom }}
+        aspect={4 / 3}
+        onCropChange={onProdCropChange}
+        onZoomChange={onProdZoomChange}
+        onCropComplete={onProdCropComplete}
+        onClose={() => setIsProdCropModalOpen(false)}
+        onApply={applyProdCrop}
+      />
+
+      {/* DELETE PRODUCT PHOTO CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isDeleteProdPhotoModalOpen}
+        title={t('deleteProductPhotoTitle')}
+        message={t('deleteProductPhotoMessage')}
+        onCancel={() => setIsDeleteProdPhotoModalOpen(false)}
+        onConfirm={() => {
+          setProdForm(prev => ({ ...prev, photo: '', photoOriginal: '' }));
+          if (prodFileInputRef.current) {
+            prodFileInputRef.current.value = '';
+          }
+          setIsDeleteProdPhotoModalOpen(false);
+          showToast(t('productPhotoDeletedToast'));
+        }}
+      />
+
+      {/* DELETE AD PHOTO CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isDeleteAdPhotoModalOpen}
+        title={t('adDeletePhotoTitle')}
+        message={t('adDeletePhotoMessage')}
+        onCancel={() => setIsDeleteAdPhotoModalOpen(false)}
+        onConfirm={() => {
+          setAdForm(prev => ({ ...prev, photo: '', photoOriginal: '', enabled: false }));
+          if (adFileInputRef.current) {
+            adFileInputRef.current.value = '';
+          }
+          setIsDeleteAdPhotoModalOpen(false);
+          showToast(t('adPhotoDeletedToast'));
+        }}
+      />
+
+      {/* AD PHOTO CROP & POSITIONING POPUP MODAL */}
+      <ImageCropModal
+        isOpen={isAdCropModalOpen}
+        image={tempAdImg}
+        title={t('adCropTitle')}
+        subtitle={t('adCropSubtitle')}
+        labels={{
+          dragHint: t('cropDragHint'),
+          zoom: t('cropZoom'),
+          reset: t('cropReset'),
+          cancel: t('cancel'),
+          apply: t('cropApply'),
+        }}
+        crop={{ crop: adCrop, zoom: adZoom }}
+        aspect={9 / 16}
+        onCropChange={onAdCropChange}
+        onZoomChange={onAdZoomChange}
+        onCropComplete={onAdCropComplete}
+        onClose={() => setIsAdCropModalOpen(false)}
+        onApply={applyAdCrop}
       />
 
       {/* WELCOME POPUP */}

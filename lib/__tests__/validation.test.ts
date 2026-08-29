@@ -3,8 +3,10 @@ import {
   validateCafeInfo,
   validateCategory,
   validateProduct,
+  validateAdvertising,
+  validateTextBanner,
 } from '../validation';
-import type { CafeInfo, Category, Product } from '../supabase';
+import type { Advertising, CafeInfo, Category, Product, TextBanner } from '../supabase';
 
 const baseCafe: CafeInfo = {
   ownerNameUk: '',
@@ -58,6 +60,18 @@ describe('validateCafeInfo', () => {
   it('rejects too long name', () => {
     expect(validateCafeInfo({ ...baseCafe, nameUk: 'x'.repeat(201) })).toMatchObject({ ok: false });
   });
+
+  it('rejects oversized banner original', () => {
+    expect(validateCafeInfo({ ...baseCafe, bannerOriginal: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('rejects oversized logo original', () => {
+    expect(validateCafeInfo({ ...baseCafe, logoOriginal: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('accepts originals within size limit', () => {
+    expect(validateCafeInfo({ ...baseCafe, bannerOriginal: 'data:image/webp;base64,...', logoOriginal: 'data:image/webp;base64,...' })).toEqual({ ok: true });
+  });
 });
 
 describe('validateCategory', () => {
@@ -75,6 +89,14 @@ describe('validateCategory', () => {
 
   it('rejects oversized photo', () => {
     expect(validateCategory({ ...baseCategory, photo: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('rejects oversized photo original', () => {
+    expect(validateCategory({ ...baseCategory, photoOriginal: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('accepts photo original', () => {
+    expect(validateCategory({ ...baseCategory, photoOriginal: 'data:image/webp;base64,...' })).toEqual({ ok: true });
   });
 });
 
@@ -101,5 +123,81 @@ describe('validateProduct', () => {
 
   it('rejects missing photo', () => {
     expect(validateProduct({ ...baseProduct, photo: '' })).toMatchObject({ ok: false });
+  });
+
+  it('rejects oversized photo original', () => {
+    expect(validateProduct({ ...baseProduct, photoOriginal: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('accepts photo original', () => {
+    expect(validateProduct({ ...baseProduct, photoOriginal: 'data:image/webp;base64,...' })).toEqual({ ok: true });
+  });
+});
+
+describe('validateAdvertising', () => {
+  const baseAd: Advertising = { photo: 'data:image/webp;base64,...', delaySeconds: 5, enabled: true };
+
+  it('accepts a valid advertising config', () => {
+    expect(validateAdvertising(baseAd)).toEqual({ ok: true });
+  });
+
+  it('accepts empty photo when disabled', () => {
+    expect(validateAdvertising({ photo: '', delaySeconds: 5, enabled: false })).toEqual({ ok: true });
+  });
+
+  it('rejects oversized photo', () => {
+    expect(validateAdvertising({ ...baseAd, photo: 'x'.repeat(1000001) })).toMatchObject({ ok: false });
+  });
+
+  it('rejects negative delay', () => {
+    expect(validateAdvertising({ ...baseAd, delaySeconds: -1 })).toMatchObject({ ok: false });
+  });
+
+  it('rejects non-number delay', () => {
+    expect(validateAdvertising({ ...baseAd, delaySeconds: Number.NaN })).toMatchObject({ ok: false });
+  });
+
+  it('rejects too large delay', () => {
+    expect(validateAdvertising({ ...baseAd, delaySeconds: 3601 })).toMatchObject({ ok: false });
+  });
+
+  it('accepts zero delay', () => {
+    expect(validateAdvertising({ ...baseAd, delaySeconds: 0 })).toEqual({ ok: true });
+  });
+
+  it('accepts a valid show until date', () => {
+    expect(validateAdvertising({ ...baseAd, showUntil: '2026-12-31' })).toEqual({ ok: true });
+  });
+
+  it('accepts empty show until (no limit)', () => {
+    expect(validateAdvertising({ ...baseAd, showUntil: '' })).toEqual({ ok: true });
+  });
+
+  it('rejects an invalid show until date', () => {
+    expect(validateAdvertising({ ...baseAd, showUntil: '31/12/2026' })).toMatchObject({ ok: false });
+  });
+});
+
+describe('validateTextBanner', () => {
+  const baseBanner: TextBanner = { text: '🔥 Акція на каву', enabled: true };
+
+  it('accepts a valid text banner', () => {
+    expect(validateTextBanner(baseBanner)).toEqual({ ok: true });
+  });
+
+  it('rejects empty text', () => {
+    expect(validateTextBanner({ ...baseBanner, text: '' })).toMatchObject({ ok: false });
+  });
+
+  it('rejects text over 40 chars', () => {
+    expect(validateTextBanner({ ...baseBanner, text: 'x'.repeat(41) })).toMatchObject({ ok: false });
+  });
+
+  it('accepts a category and product link', () => {
+    expect(validateTextBanner({ ...baseBanner, categoryId: 'cat-1', productId: 'prod-1' })).toEqual({ ok: true });
+  });
+
+  it('accepts an enabled banner without link', () => {
+    expect(validateTextBanner({ text: 'hello', categoryId: '', productId: '', enabled: false })).toEqual({ ok: true });
   });
 });

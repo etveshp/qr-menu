@@ -41,6 +41,20 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none !important;
 }
+
+/* Custom select with an offset chevron (native browser chevron is flush to the
+   right edge and cannot be moved, so we replace it with a background SVG that
+   sits a comfortable distance from the border). */
+.select-field {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E7A68' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+  padding-right: 2.6rem;
+}
 .no-scrollbar {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
