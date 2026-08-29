@@ -46,7 +46,7 @@ export function ActionCard({
           type="button"
           onClick={onEdit}
           aria-label="Edit"
-          className={`h-9 flex items-center justify-center rounded-full text-[#C09E6D] bg-[#F1ECE3] hover:bg-[#E6DFD5] transition-all duration-200 cursor-pointer overflow-hidden ${
+          className={`h-9 flex items-center justify-center rounded-full text-[#3E2F26] bg-[#F1ECE3] hover:bg-[#E6DFD5] transition-all duration-200 cursor-pointer overflow-hidden ${
             isOpen ? 'w-9 opacity-100' : 'w-0 opacity-0'
           }`}
         >
@@ -56,7 +56,7 @@ export function ActionCard({
           type="button"
           onClick={onDelete}
           aria-label="Delete"
-          className={`h-9 flex items-center justify-center rounded-full text-red-700 bg-red-50 hover:bg-red-100 transition-all duration-200 cursor-pointer overflow-hidden ${
+          className={`h-9 flex items-center justify-center rounded-full text-[#3E2F26] bg-[#F1ECE3] hover:bg-[#E6DFD5] transition-all duration-200 cursor-pointer overflow-hidden ${
             isOpen ? 'w-9 opacity-100' : 'w-0 opacity-0'
           }`}
         >

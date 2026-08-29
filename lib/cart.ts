@@ -21,6 +21,11 @@ export const decrementCartItem = (cart: Cart, productId: string): Cart => {
   return { ...cart, [productId]: qty - 1 };
 };
 
+export const removeCartItem = (cart: Cart, productId: string): Cart => {
+  const { [productId]: _removed, ...rest } = cart;
+  return rest;
+};
+
 export const getCartItemQty = (cart: Cart, productId: string): number =>
   cart[productId] || 0;
 

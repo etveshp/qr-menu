@@ -26,8 +26,9 @@ export async function GET(): Promise<NextResponse> {
     const cafeRow = cafeRes.data;
     const cafeInfo = cafeRow
       ? {
-          name: cafeRow.name,
-          description: cafeRow.description,
+          ownerNameUk: cafeRow.owner_name_uk ?? '', ownerNameHu: cafeRow.owner_name_hu ?? '', ownerNameEn: cafeRow.owner_name_en ?? '',
+          nameUk: cafeRow.name_uk ?? '', nameHu: cafeRow.name_hu ?? '', nameEn: cafeRow.name_en ?? '',
+          descriptionUk: cafeRow.description_uk ?? '', descriptionHu: cafeRow.description_hu ?? '', descriptionEn: cafeRow.description_en ?? '',
           banner: cafeRow.banner,
           logo: cafeRow.logo,
           instagram: cafeRow.instagram,

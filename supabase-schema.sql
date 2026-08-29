@@ -8,8 +8,15 @@
 -- Cafe info (single row)
 create table public.cafe_info (
   id integer primary key default 1,
-  name text not null default '',
-  description text not null default '',
+  owner_name_uk text not null default '',
+  owner_name_hu text not null default '',
+  owner_name_en text not null default '',
+  name_uk text not null default '',
+  name_hu text not null default '',
+  name_en text not null default '',
+  description_uk text not null default '',
+  description_hu text not null default '',
+  description_en text not null default '',
   banner text not null default '',
   logo text not null default '',
   instagram text not null default '',

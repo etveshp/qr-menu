@@ -66,6 +66,7 @@ function renderCart(overrides: Partial<Parameters<typeof CartDrawer>[0]> = {}) {
       onClose={vi.fn()}
       onDecrement={vi.fn()}
       onIncrement={vi.fn()}
+      onRemove={vi.fn()}
       {...overrides}
     />
   );

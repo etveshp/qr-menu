@@ -5,6 +5,7 @@ import {
   addToCart,
   setCartQty,
   decrementCartItem,
+  removeCartItem,
   getCartItemQty,
   getCartItemsCount,
   getCartTotalPrice,
@@ -63,6 +64,10 @@ export function useCart(products: Array<{ id: string; price: number }>) {
     setCart(prev => decrementCartItem(prev, productId));
   }, []);
 
+  const removeItem = useCallback((productId: string) => {
+    setCart(prev => removeCartItem(prev, productId));
+  }, []);
+
   const getQty = useCallback(
     (productId: string) => getCartItemQty(cart, productId),
     [cart]
@@ -77,6 +82,7 @@ export function useCart(products: Array<{ id: string; price: number }>) {
     setQty,
     incrementItem,
     decrementItem,
+    removeItem,
     getQty,
     itemsCount,
     totalPrice,

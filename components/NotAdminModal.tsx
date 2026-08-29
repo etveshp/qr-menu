@@ -53,7 +53,7 @@ export function NotAdminModal({ isOpen, logo, title, text, okLabel = 'ОК', onO
           >
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#C09E6D] via-[#E8D5B3] to-[#C09E6D]" />
             {logo ? (
-              <div className="relative w-32 h-32 mx-auto mb-5 flex items-center justify-center">
+              <div className="relative w-32 h-32 mx-auto mb-2 flex items-center justify-center">
                 <Image
                   src={logo}
                   alt="Logo"
@@ -64,12 +64,12 @@ export function NotAdminModal({ isOpen, logo, title, text, okLabel = 'ОК', onO
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-[#FAF6EE] border border-[#C09E6D]/50 text-[#C09E6D] flex items-center justify-center mx-auto mb-5 shadow-sm">
+              <div className="w-16 h-16 rounded-full bg-[#FAF6EE] border border-[#C09E6D]/50 text-[#C09E6D] flex items-center justify-center mx-auto mb-2 shadow-sm">
                 <Coffee className="w-8 h-8" strokeWidth={1.75} />
               </div>
             )}
             <h3 className="font-display font-semibold text-2xl text-[#231913] mb-3 tracking-wide">{title}</h3>
-            <p className="text-sm text-[#8E7A68] leading-relaxed mb-7">{text}</p>
+            <p className="text-base text-[#8E7A68] leading-relaxed mb-7">{text}</p>
             <button
               ref={okRef}
               type="button"

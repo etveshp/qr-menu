@@ -27,7 +27,7 @@ beforeEach(() => {
 function setupSubscriptions() {
   const unsubscribes = [vi.fn(), vi.fn(), vi.fn()];
   mocks.subscribeCafeInfo.mockImplementation((cb: (d: unknown) => void) => {
-    cb({ name: 'Кав\'ярня', description: '', banner: '', logo: '', instagram: '' });
+    cb({ nameUk: 'Кав\'ярня', nameHu: '', nameEn: '', descriptionUk: '', descriptionHu: '', descriptionEn: '', ownerNameUk: '', ownerNameHu: '', ownerNameEn: '', banner: '', logo: '', instagram: '' });
     return unsubscribes[0];
   });
   mocks.subscribeCategories.mockImplementation((cb: (d: unknown) => void) => {
@@ -46,7 +46,7 @@ describe('useMenuData', () => {
     setupSubscriptions();
     const { result } = renderHook(() => useMenuData());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.cafeInfo?.name).toBe('Кав\'ярня');
+    expect(result.current.cafeInfo?.nameUk).toBe('Кав\'ярня');
   });
 
   it('uses initialData when provided', async () => {
@@ -54,21 +54,21 @@ describe('useMenuData', () => {
     mocks.subscribeCategories.mockReturnValue(vi.fn());
     mocks.subscribeProducts.mockReturnValue(vi.fn());
     const initial = {
-      cafeInfo: { name: 'Світ Кави' },
+      cafeInfo: { nameUk: 'Світ Кави', nameHu: '', nameEn: '' },
       categories: [{ id: 'c1', nameUk: 'Кава' } as any],
       products: [{ id: 'p1' } as any],
     };
     const { result } = renderHook(() => useMenuData(initial));
-    expect(result.current.cafeInfo?.name).toBe('Світ Кави');
+    expect(result.current.cafeInfo?.nameUk).toBe('Світ Кави');
   });
 
   it('reads cafeInfo from localStorage cache', async () => {
-    localStorage.setItem('cafeInfo', JSON.stringify({ name: 'Кеш' }));
+    localStorage.setItem('cafeInfo', JSON.stringify({ nameUk: 'Кеш' }));
     mocks.subscribeCafeInfo.mockReturnValue(vi.fn());
     mocks.subscribeCategories.mockReturnValue(vi.fn());
     mocks.subscribeProducts.mockReturnValue(vi.fn());
     const { result } = renderHook(() => useMenuData());
-    expect(result.current.cafeInfo?.name).toBe('Кеш');
+    expect(result.current.cafeInfo?.nameUk).toBe('Кеш');
   });
 
   it('unsubscribes all on unmount', () => {

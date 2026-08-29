@@ -3,18 +3,17 @@
 import { type RefObject } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'motion/react';
-import { Coffee, Key, Check, ConciergeBell } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Coffee, Key, ConciergeBell } from 'lucide-react';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import type { CafeInfo } from '@/lib/supabase';
+import { getCafeName } from '@/lib/supabase';
 import type { Language } from '@/lib/translations';
 import type { Translator } from '@/lib/translator';
 
 interface HeaderProps {
   headerRef: RefObject<HTMLElement | null>;
   cafeInfo: CafeInfo | null;
-  cartToast: { id: number; message: string; qty: number } | null;
-  selectedProductModal: unknown;
   isAdminLoggedIn: boolean;
   lang: Language;
   changeLanguage: (lang: Language) => void;
@@ -28,8 +27,6 @@ interface HeaderProps {
 export function Header({
   headerRef,
   cafeInfo,
-  cartToast,
-  selectedProductModal,
   isAdminLoggedIn,
   lang,
   changeLanguage,
@@ -51,7 +48,7 @@ export function Header({
             <div className="relative h-14 sm:h-16 w-44 sm:w-60 overflow-hidden shrink-0 flex items-center justify-start">
               <Image
                 src={cafeInfo.logo}
-                alt={cafeInfo?.name || 'Logo'}
+                alt={getCafeName(cafeInfo, lang) || 'Logo'}
                 fill
                 className="object-contain !object-left"
                 referrerPolicy="no-referrer"
@@ -66,33 +63,6 @@ export function Header({
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Cart Toast Message */}
-          <AnimatePresence>
-            {cartToast && !selectedProductModal && (
-              <motion.div
-                key={cartToast.id}
-                initial={{ opacity: 0, x: 20, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 15, scale: 0.92, transition: { duration: 0.2, ease: 'easeIn' } }}
-                transition={{ type: 'spring', damping: 24, stiffness: 350 }}
-                onClick={onOpenCart}
-                className="flex items-center gap-2 py-1 px-3 bg-[#231913]/95 hover:bg-[#3E2F26] border border-[#C09E6D]/60 rounded-full text-[#FAF6EE] shadow-2xl shadow-black/40 backdrop-blur-md cursor-pointer select-none transition-colors active:scale-95"
-              >
-                <div className="w-4.5 h-4.5 rounded-full bg-[#C09E6D] text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Check className="w-3 h-3 stroke-[3]" />
-                </div>
-                <span className="font-sans font-medium text-[11px] sm:text-xs text-[#FAF6EE] whitespace-nowrap">
-                  {cartToast.message}
-                </span>
-                {cartToast.qty > 1 && (
-                  <span className="font-sans font-bold text-[10px] bg-[#C09E6D]/30 border border-[#C09E6D]/50 text-[#FAF6EE] px-1.5 py-0.2 rounded-full leading-tight">
-                    +{cartToast.qty}
-                  </span>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Admin Key */}
           {isAdminLoggedIn && (
             <Link

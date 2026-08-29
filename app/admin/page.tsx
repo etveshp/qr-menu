@@ -26,7 +26,9 @@ import {
   PENDING_ADMIN_REDIRECT_KEY,
   CafeInfo,
   Category,
-  Product
+  Product,
+  getCafeName,
+  getCafeOwnerName
 } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { TRANSLATIONS } from '@/lib/translations';
@@ -71,6 +73,8 @@ import { NotAdminModal } from '@/components/NotAdminModal';
 
 const LANG_CODE: Record<string, string> = { uk: 'UA', hu: 'HU', en: 'EN' };
 
+const WELCOME_KEYS = ['welcomeMsg1', 'welcomeMsg2', 'welcomeMsg3', 'welcomeMsg4', 'welcomeMsg5'] as const;
+
 export default function AdminPage() {
   const { showToast } = useToast();
   const { lang, changeLanguage, t } = useLanguage();
@@ -108,6 +112,28 @@ export default function AdminPage() {
       setIsAuthenticated(true);
     }
   }, []);
+
+  // Welcome popup: shown once per session when the admin enters the cabinet.
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeMsgKey, setWelcomeMsgKey] = useState<typeof WELCOME_KEYS[number]>('welcomeMsg1');
+  const hasShownWelcomeRef = useRef(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser && !hasShownWelcomeRef.current) {
+      hasShownWelcomeRef.current = true;
+      if (typeof window !== 'undefined' && sessionStorage.getItem('aura_admin_welcome_shown') === 'true') {
+        return;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWelcomeMsgKey(WELCOME_KEYS[Math.floor(Math.random() * WELCOME_KEYS.length)]);
+      setShowWelcome(true);
+      try {
+        sessionStorage.setItem('aura_admin_welcome_shown', 'true');
+      } catch {
+        // ignore
+      }
+    }
+  }, [isAuthenticated, currentUser]);
 
   // Marks an in-flight email/password sign-in so the auto-detected (e.g.
   // Google) non-admin path does not override the password-flow modal.
@@ -174,8 +200,15 @@ export default function AdminPage() {
 
   // Form states - Cafe Info
   const [cafeForm, setCafeForm] = useState<CafeInfo>({
-    name: '',
-    description: '',
+    ownerNameUk: '',
+    ownerNameHu: '',
+    ownerNameEn: '',
+    nameUk: '',
+    nameHu: '',
+    nameEn: '',
+    descriptionUk: '',
+    descriptionHu: '',
+    descriptionEn: '',
     banner: '',
     logo: '',
     instagram: '',
@@ -700,6 +733,7 @@ export default function AdminPage() {
     setCurrentUser(null);
     setIsAuthenticated(false);
     sessionStorage.removeItem('aura_admin_auth');
+    sessionStorage.removeItem('aura_admin_welcome_shown');
     localStorage.removeItem('aura_admin_auth');
     localStorage.removeItem('isAdmin');
     showToast(t('logoutSuccess'), 'info');
@@ -1166,7 +1200,7 @@ export default function AdminPage() {
             <div className="relative w-44 sm:w-52 h-16 sm:h-20 flex items-center justify-center mx-auto mb-4 overflow-hidden">
               <Image 
                 src={cafeInfo.logo} 
-                alt={cafeInfo?.name || "Logo"} 
+                alt={getCafeName(cafeInfo, lang) || "Logo"} 
                 fill 
                 className="object-contain" 
                 referrerPolicy="no-referrer"
@@ -1180,7 +1214,7 @@ export default function AdminPage() {
           )}
           
           <h2 className="text-xl sm:text-2xl font-display font-medium tracking-wide mb-1 text-[#231913]">
-            {cafeInfo?.name || t('appName')}
+            {getCafeName(cafeInfo, lang) || t('appName')}
           </h2>
           <p className="text-[11px] sm:text-xs text-[#8E7A68] tracking-widest uppercase mb-6 font-semibold">
             {t('adminCabinet')}
@@ -1364,8 +1398,8 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-xl font-display font-medium text-[#231913] tracking-wide">{cafeInfo?.name || t('adminCabinet')}</h1>
-              {cafeInfo?.name && (
+              <h1 className="text-xl font-display font-medium text-[#231913] tracking-wide">{getCafeName(cafeInfo, lang) || t('adminCabinet')}</h1>
+              {getCafeName(cafeInfo, lang) && (
                 <p className="text-[10px] uppercase tracking-widest text-[#8E7A68]">{t('adminCabinet')}</p>
               )}
             </div>
@@ -1476,16 +1510,72 @@ export default function AdminPage() {
                 </h2>
 
                 <form onSubmit={handleSaveCafe} className="space-y-6">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeOwnerName')}</label>
+                      <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                        {LANG_CODE[lang] ?? lang.toUpperCase()}
+                      </span>
+                    </div>
+                    {lang === 'uk' && (
+                      <input
+                        type="text"
+                        value={cafeForm.ownerNameUk}
+                        onChange={(e) => setCafeForm({...cafeForm, ownerNameUk: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                      />
+                    )}
+                    {lang === 'hu' && (
+                      <input
+                        type="text"
+                        value={cafeForm.ownerNameHu}
+                        onChange={(e) => setCafeForm({...cafeForm, ownerNameHu: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                      />
+                    )}
+                    {lang === 'en' && (
+                      <input
+                        type="text"
+                        value={cafeForm.ownerNameEn}
+                        onChange={(e) => setCafeForm({...cafeForm, ownerNameEn: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                      />
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('cafeName')}</label>
-                      <input 
-                        type="text"
-                        value={cafeForm.name}
-                        onChange={(e) => setCafeForm({...cafeForm, name: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        required
-                      />
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeName')}</label>
+                        <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                          {LANG_CODE[lang] ?? lang.toUpperCase()}
+                        </span>
+                      </div>
+                      {lang === 'uk' && (
+                        <input
+                          type="text"
+                          value={cafeForm.nameUk}
+                          onChange={(e) => setCafeForm({...cafeForm, nameUk: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          required
+                        />
+                      )}
+                      {lang === 'hu' && (
+                        <input
+                          type="text"
+                          value={cafeForm.nameHu}
+                          onChange={(e) => setCafeForm({...cafeForm, nameHu: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        />
+                      )}
+                      {lang === 'en' && (
+                        <input
+                          type="text"
+                          value={cafeForm.nameEn}
+                          onChange={(e) => setCafeForm({...cafeForm, nameEn: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('cafeInstagram')}</label>
@@ -1501,16 +1591,38 @@ export default function AdminPage() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeDescription')}</label>
-                      <span className="text-[10px] font-bold text-[#C09E6D]">{(cafeForm.description || '').length} / 40</span>
+                      <span className="text-[10px] font-bold text-[#C09E6D]">
+                        {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
+                      </span>
                     </div>
-                    <input 
-                      type="text"
-                      value={cafeForm.description}
-                      onChange={(e) => setCafeForm({...cafeForm, description: e.target.value.slice(0, 40)})}
-                      className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                      maxLength={40}
-                      required
-                    />
+                    {lang === 'uk' && (
+                      <input 
+                        type="text"
+                        value={cafeForm.descriptionUk}
+                        onChange={(e) => setCafeForm({...cafeForm, descriptionUk: e.target.value.slice(0, 40)})}
+                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        maxLength={40}
+                        required
+                      />
+                    )}
+                    {lang === 'hu' && (
+                      <input 
+                        type="text"
+                        value={cafeForm.descriptionHu}
+                        onChange={(e) => setCafeForm({...cafeForm, descriptionHu: e.target.value.slice(0, 40)})}
+                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        maxLength={40}
+                      />
+                    )}
+                    {lang === 'en' && (
+                      <input 
+                        type="text"
+                        value={cafeForm.descriptionEn}
+                        onChange={(e) => setCafeForm({...cafeForm, descriptionEn: e.target.value.slice(0, 40)})}
+                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        maxLength={40}
+                      />
+                    )}
                   </div>
 
                    {/* Banner Upload & Positioning */}
@@ -2444,7 +2556,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => setProdForm(prev => ({ ...prev, recommendedIds: prev.recommendedIds.filter(id => id !== rp.id) }))}
-                          className="p-1.5 text-red-700 hover:bg-red-50 transition-all rounded-full shrink-0 cursor-pointer"
+                          className="p-1.5 text-[#3E2F26] hover:bg-[#F1ECE3] transition-all rounded-full shrink-0 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2592,6 +2704,16 @@ export default function AdminPage() {
         onCropComplete={onCatCropComplete}
         onClose={() => setIsCatCropModalOpen(false)}
         onApply={applyCatCrop}
+      />
+
+      {/* WELCOME POPUP */}
+      <NotAdminModal
+        isOpen={showWelcome}
+        logo={cafeInfo?.logo ?? null}
+        title={t('welcomeTitle').replace('{name}', (getCafeOwnerName(cafeInfo, lang) || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '').trim().split(/\s+/)[0] || '')}
+        text={t(welcomeMsgKey)}
+        okLabel={t('toWork')}
+        onOk={() => setShowWelcome(false)}
       />
     </main>
   );

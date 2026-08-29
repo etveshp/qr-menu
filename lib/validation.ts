@@ -17,9 +17,16 @@ const isOptionalString = (v: unknown, max: number): boolean =>
   v === undefined || (typeof v === 'string' && v.length <= max);
 
 export const validateCafeInfo = (info: CafeInfo): ValidationResult => {
-  if (!isNonEmptyString(info.name)) return { ok: false, error: 'Вкажіть назву кав\'ярні' };
-  if (!isBoundedString(info.name, 200)) return { ok: false, error: 'Назва занадто довга' };
-  if (!isBoundedString(info.description, 200)) return { ok: false, error: 'Опис занадто довгий' };
+  if (!isBoundedString(info.ownerNameUk ?? '', 200)) return { ok: false, error: 'Ім\'я власника занадто довге' };
+  if (!isBoundedString(info.ownerNameHu ?? '', 200)) return { ok: false, error: 'Ім\'я власника (HU) занадто довге' };
+  if (!isBoundedString(info.ownerNameEn ?? '', 200)) return { ok: false, error: 'Ім\'я власника (EN) занадто довге' };
+  if (!isNonEmptyString(info.nameUk)) return { ok: false, error: 'Вкажіть назву кав\'ярні українською' };
+  if (!isBoundedString(info.nameUk, 200)) return { ok: false, error: 'Назва занадто довга' };
+  if (!isBoundedString(info.nameHu, 200)) return { ok: false, error: 'Назва (HU) занадто довга' };
+  if (!isBoundedString(info.nameEn, 200)) return { ok: false, error: 'Назва (EN) занадто довга' };
+  if (!isBoundedString(info.descriptionUk, 200)) return { ok: false, error: 'Опис занадто довгий' };
+  if (!isBoundedString(info.descriptionHu, 200)) return { ok: false, error: 'Опис (HU) занадто довгий' };
+  if (!isBoundedString(info.descriptionEn, 200)) return { ok: false, error: 'Опис (EN) занадто довгий' };
   if (!isOptionalString(info.instagram, 500)) return { ok: false, error: 'Instagram занадто довгий' };
   if (!isOptionalString(info.banner, MAX_PHOTO)) return { ok: false, error: 'Банер занадто великий' };
   if (!isOptionalString(info.logo, MAX_PHOTO)) return { ok: false, error: 'Логотип занадто великий' };

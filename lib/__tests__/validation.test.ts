@@ -7,8 +7,15 @@ import {
 import type { CafeInfo, Category, Product } from '../supabase';
 
 const baseCafe: CafeInfo = {
-  name: 'Світ Кави',
-  description: 'Затишна кав’ярня',
+  ownerNameUk: '',
+  ownerNameHu: '',
+  ownerNameEn: '',
+  nameUk: 'Світ Кави',
+  nameHu: 'Svit Kavy',
+  nameEn: 'Svit Kavy',
+  descriptionUk: 'Затишна кав’ярня',
+  descriptionHu: '',
+  descriptionEn: '',
   banner: 'data:image/webp;base64,...',
   logo: 'data:image/webp;base64,...',
   instagram: 'https://instagram.com/svit.kavy',
@@ -45,11 +52,11 @@ describe('validateCafeInfo', () => {
   });
 
   it('rejects empty name', () => {
-    expect(validateCafeInfo({ ...baseCafe, name: '' })).toMatchObject({ ok: false });
+    expect(validateCafeInfo({ ...baseCafe, nameUk: '' })).toMatchObject({ ok: false });
   });
 
   it('rejects too long name', () => {
-    expect(validateCafeInfo({ ...baseCafe, name: 'x'.repeat(201) })).toMatchObject({ ok: false });
+    expect(validateCafeInfo({ ...baseCafe, nameUk: 'x'.repeat(201) })).toMatchObject({ ok: false });
   });
 });
 

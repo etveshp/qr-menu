@@ -4,14 +4,16 @@ import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Sparkles, Instagram } from 'lucide-react';
 import type { CafeInfo } from '@/lib/supabase';
+import { getCafeName, getCafeDescription } from '@/lib/supabase';
 
 interface HeroBannerProps {
   cafeInfo: CafeInfo | null;
   tableNumber: string | null;
+  lang: string;
   t: (key: keyof typeof import('@/lib/translations').TRANSLATIONS['uk']) => string;
 }
 
-export function HeroBanner({ cafeInfo, tableNumber, t }: HeroBannerProps) {
+export function HeroBanner({ cafeInfo, tableNumber, lang, t }: HeroBannerProps) {
   return (
     <section className="max-w-4xl mx-auto relative w-full aspect-[16/9] max-h-80 overflow-hidden border-b border-[#E6DFD5] bg-[#3E2F26] rounded-b-3xl shadow-md" style={{ aspectRatio: '16 / 9' }}>
       {cafeInfo?.banner && (
@@ -39,10 +41,10 @@ export function HeroBanner({ cafeInfo, tableNumber, t }: HeroBannerProps) {
             )}
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-medium text-white tracking-wide truncate">
-              {cafeInfo?.name || t('appName')}
+              {getCafeName(cafeInfo, lang) || t('appName')}
             </h2>
             <p className="text-sm sm:text-base text-[#E6DFD5] mt-1.5 max-w-xl font-light leading-relaxed line-clamp-2">
-              {cafeInfo?.description || t('welcomeDesc')}
+              {getCafeDescription(cafeInfo, lang) || t('welcomeDesc')}
             </p>
           </div>
 

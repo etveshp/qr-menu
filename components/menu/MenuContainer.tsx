@@ -3,12 +3,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product, PENDING_ADMIN_REDIRECT_KEY } from '@/lib/supabase';
+import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName } from '@/lib/supabase';
 import {
-  playAddToCartChime,
   playStepperSound,
   triggerStepperHaptic,
-  triggerAddToCartHaptic,
   triggerHapticFeedback,
 } from '@/lib/sound';
 import Link from 'next/link';
@@ -186,7 +184,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     };
   }, []);
 
-  const { cart, addItem, setQty, incrementItem, decrementItem, getQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
+  const { cart, addItem, setQty, incrementItem, decrementItem, removeItem, getQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
   // Close modals on Escape key + lock body scroll while a modal is open
@@ -234,8 +232,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     const prodId = selectedProductModal.id;
     const targetQty = modalQty;
     setQty(prodId, targetQty);
-    playAddToCartChime();
-    triggerAddToCartHaptic();
+    playStepperSound();
     setBouncingCart(true);
     setTimeout(() => setBouncingCart(false), 300);
     setIsJustAdded(true);
@@ -250,8 +247,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
   const handleAddToCart = (productId: string, e?: React.MouseEvent) => {
     addItem(productId);
-    playAddToCartChime();
-    triggerAddToCartHaptic();
+    playStepperSound();
     setBouncingCart(true);
     setTimeout(() => setBouncingCart(false), 300);
     triggerCartToast(1);
@@ -274,6 +270,11 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
   const handleDecrementCart = (productId: string) => {
     decrementItem(productId);
+    playStepperSound();
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    removeItem(productId);
     playStepperSound();
   };
 
@@ -333,8 +334,6 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
       <Header
         headerRef={headerRef}
         cafeInfo={cafeInfo}
-        cartToast={cartToast}
-        selectedProductModal={selectedProductModal}
         isAdminLoggedIn={isAdminLoggedIn}
         lang={lang}
         changeLanguage={changeLanguage}
@@ -345,7 +344,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         t={t}
       />
 
-      <HeroBanner cafeInfo={cafeInfo} tableNumber={tableNumber} t={t} />
+      <HeroBanner cafeInfo={cafeInfo} tableNumber={tableNumber} lang={lang} t={t} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
@@ -466,6 +465,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         onClose={() => setIsCartOpen(false)}
         onDecrement={handleDecrementCart}
         onIncrement={handleIncrementCart}
+        onRemove={handleRemoveFromCart}
       />
 
       <footer className="mt-8 py-6 border-t border-[#E6DFD5] text-center bg-[#FDFBF7]">
@@ -478,7 +478,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
           onContextMenu={(e) => e.preventDefault()}
           className="text-xs sm:text-sm text-[#8E7A68] tracking-widest uppercase font-medium cursor-default select-none [-webkit-touch-callout:none] touch-manipulation"
         >
-          &copy; {new Date().getFullYear()} {cafeInfo?.name || t('appName')}
+          &copy; {new Date().getFullYear()} {getCafeName(cafeInfo, lang) || t('appName')}
         </p>
       </footer>
 

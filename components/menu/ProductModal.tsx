@@ -121,16 +121,16 @@ export function ProductModal({
                     e.stopPropagation();
                     onOpenCart();
                   }}
-                  className="pointer-events-auto flex items-center gap-2 py-1 px-3 bg-[#231913]/95 hover:bg-[#3E2F26] border border-[#C09E6D]/60 rounded-full text-[#FAF6EE] shadow-2xl shadow-black/40 backdrop-blur-md cursor-pointer select-none transition-colors active:scale-95"
+                  className="pointer-events-auto flex items-center gap-2.5 h-11 px-4 bg-[#231913]/95 hover:bg-[#3E2F26] border border-[#C09E6D]/60 rounded-full text-[#FAF6EE] shadow-2xl shadow-black/40 backdrop-blur-md cursor-pointer select-none transition-colors active:scale-95"
                 >
-                  <div className="w-4.5 h-4.5 rounded-full bg-[#C09E6D] text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Check className="w-3 h-3 stroke-[3]" />
+                  <div className="w-5 h-5 rounded-full bg-[#C09E6D] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
-                  <span className="font-sans font-medium text-[11px] sm:text-xs text-[#FAF6EE] whitespace-nowrap">
+                  <span className="font-sans font-medium text-xs sm:text-sm text-[#FAF6EE] whitespace-nowrap">
                     {cartToast.message}
                   </span>
                   {cartToast.qty > 1 && (
-                    <span className="font-sans font-bold text-[10px] bg-[#C09E6D]/30 border border-[#C09E6D]/50 text-[#FAF6EE] px-1.5 py-0.2 rounded-full leading-tight">
+                    <span className="font-sans font-bold text-xs bg-[#C09E6D]/30 border border-[#C09E6D]/50 text-[#FAF6EE] px-2 py-1 rounded-full leading-tight">
                       +{cartToast.qty}
                     </span>
                   )}

@@ -3,10 +3,28 @@ import { validateCafeInfo, validateCategory, validateProduct } from './validatio
 
 // Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
-  name: string; description: string; banner: string; logo: string; instagram: string;
+  ownerNameUk: string; ownerNameHu: string; ownerNameEn: string;
+  nameUk: string; nameHu: string; nameEn: string;
+  descriptionUk: string; descriptionHu: string; descriptionEn: string;
+  banner: string; logo: string; instagram: string;
   bannerScale?: number; bannerX?: number; bannerY?: number;
   logoScale?: number; logoX?: number; logoY?: number;
 }
+
+export const getCafeName = (info: CafeInfo | null, lang: string): string => {
+  if (!info) return '';
+  return lang === 'hu' ? info.nameHu : lang === 'en' ? info.nameEn : info.nameUk;
+};
+
+export const getCafeDescription = (info: CafeInfo | null, lang: string): string => {
+  if (!info) return '';
+  return lang === 'hu' ? info.descriptionHu : lang === 'en' ? info.descriptionEn : info.descriptionUk;
+};
+
+export const getCafeOwnerName = (info: CafeInfo | null, lang: string): string => {
+  if (!info) return '';
+  return lang === 'hu' ? info.ownerNameHu : lang === 'en' ? info.ownerNameEn : info.ownerNameUk;
+};
 export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; }
 export interface Product {
   id: string; categoryId: string;
@@ -17,7 +35,7 @@ export interface Product {
 }
 
 // Default data (same as the original lib)
-const DEFAULT_CAFE_INFO: CafeInfo = { name: "", description: "", banner: "", logo: "", instagram: "" };
+const DEFAULT_CAFE_INFO: CafeInfo = { ownerNameUk: "", ownerNameHu: "", ownerNameEn: "", nameUk: "", nameHu: "", nameEn: "", descriptionUk: "", descriptionHu: "", descriptionEn: "", banner: "", logo: "", instagram: "" };
 const DEFAULT_CATEGORIES: Category[] = [];
 const DEFAULT_PRODUCTS: Product[] = [];
 
@@ -123,7 +141,7 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   if (supabase) {
     const { data, error } = await supabase.from('cafe_info').select('*').eq('id', 1).single();
     if (!error && data) {
-      const info: CafeInfo = { name: data.name, description: data.description, banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
+      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
       setLocal('cafeInfo', info); return info;
     }
   }
@@ -134,7 +152,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   // Fetch current value first (Realtime only pushes changes, not the initial state)
   supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
     if (!error && data) {
-      const info: CafeInfo = { name: data.name, description: data.description, banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
+      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale };
       setLocal('cafeInfo', info); callback(info);
     }
   }, () => {});
@@ -142,7 +160,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
     if (row) {
-      const info: CafeInfo = { name: row.name, description: row.description, banner: row.banner, logo: row.logo, instagram: row.instagram, bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale, logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale };
+      const info: CafeInfo = { ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '', nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '', descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '', banner: row.banner, logo: row.logo, instagram: row.instagram, bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale, logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale };
       setLocal('cafeInfo', info); callback(info);
     }
   }).subscribe();
@@ -154,7 +172,11 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
   setLocal('cafeInfo', info);
   if (supabase) {
     const { error } = await supabase.from('cafe_info').upsert({
-      id: 1, name: info.name, description: info.description, banner: info.banner, logo: info.logo,
+      id: 1,
+      owner_name_uk: info.ownerNameUk ?? '', owner_name_hu: info.ownerNameHu ?? '', owner_name_en: info.ownerNameEn ?? '',
+      name_uk: info.nameUk ?? '', name_hu: info.nameHu ?? '', name_en: info.nameEn ?? '',
+      description_uk: info.descriptionUk ?? '', description_hu: info.descriptionHu ?? '', description_en: info.descriptionEn ?? '',
+      banner: info.banner, logo: info.logo,
       instagram: info.instagram, banner_x: info.bannerX ?? 50, banner_y: info.bannerY ?? 50,
       banner_scale: info.bannerScale ?? 1, logo_x: info.logoX ?? 50, logo_y: info.logoY ?? 50,
       logo_scale: info.logoScale ?? 1, updated_at: new Date().toISOString(),
