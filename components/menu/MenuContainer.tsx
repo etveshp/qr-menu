@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
+import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
 import {
   playStepperSound,
   triggerStepperHaptic,
@@ -62,6 +62,14 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
   const { currentUser, isAdmin: isAdminLoggedIn } = useAuth(() => setShowNotAdminPopup(true));
 
+  // Customer greeting popup: shown once per session when the cafe enabled a
+  // customer greeting. A random greeting (from the DB list) is displayed in a
+  // welcome popup similar to the admin cabinet popup.
+  const [showCustomerGreeting, setShowCustomerGreeting] = useState(false);
+  const [customerGreetingText, setCustomerGreetingText] = useState('');
+  const greetingPopupRef = useRef(false);
+  const CUSTOMER_GREETING_SHOWN_KEY = 'svk_customer_greeting_shown';
+
   // Forward an admin back to the cabinet right after Google sign-in:
   // Supabase redirects to the site root, so the menu page detects the
   // pending flag and completes the journey to /admin.
@@ -75,6 +83,25 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   }, [isAdminLoggedIn, router]);
 
   const { cafeInfo, categories, products, loading } = useMenuData(initialData ?? undefined);
+
+  // Show the customer greeting popup once per session (needs cafeInfo, hence
+  // declared after useMenuData).
+  useEffect(() => {
+    if (isAdminLoggedIn || !cafeInfo?.greetingCustomerEnabled) return;
+    if (greetingPopupRef.current) return;
+    greetingPopupRef.current = true;
+    if (typeof window !== 'undefined' && sessionStorage.getItem(CUSTOMER_GREETING_SHOWN_KEY) === 'true') return;
+    const random = getRandomGreeting(getCafeCustomerGreeting(cafeInfo, lang));
+    if (!random) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCustomerGreetingText(random);
+    setShowCustomerGreeting(true);
+    try {
+      sessionStorage.setItem(CUSTOMER_GREETING_SHOWN_KEY, 'true');
+    } catch {
+      // ignore
+    }
+  }, [cafeInfo, isAdminLoggedIn, lang]);
 
   const headerRef = useRef<HTMLElement>(null);
   const cartButtonRef = useRef<HTMLButtonElement>(null);
@@ -509,6 +536,16 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         text={t('notAdminPopupText')}
         okLabel={t('notAdminOk')}
         onOk={() => setShowNotAdminPopup(false)}
+      />
+
+      {/* Customer greeting popup */}
+      <NotAdminModal
+        isOpen={showCustomerGreeting}
+        logo={cafeInfo?.logo ?? null}
+        title={t('greetingPopupTitle')}
+        text={customerGreetingText}
+        okLabel={t('greetingPopupOk')}
+        onOk={() => setShowCustomerGreeting(false)}
       />
     </div>
   );
