@@ -171,6 +171,9 @@ export default function AdminPage() {
       // Non-admins must not keep a session: sign them out immediately.
       if (user) {
         await logoutUser();
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+        }
         if (!isEmailAuthRef.current) router.replace('/');
       }
     }

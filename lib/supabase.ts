@@ -107,7 +107,10 @@ export const loginWithEmail = async (email: string, pass: string): Promise<User>
 };
 export const loginWithGoogle = async (): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } });
+  // After OAuth, Supabase redirects to the site root. The landing page
+  // (MenuContainer) detects the PENDING_ADMIN_REDIRECT_KEY flag and forwards
+  // the authenticated admin to /admin. Non-admin users stay on the menu.
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/' } });
   if (error) throw error;
   // OAuth redirects; the session is handled by onAuthStateChange
 };

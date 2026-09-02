@@ -66,13 +66,11 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   // Supabase redirects to the site root, so the menu page detects the
   // pending flag and completes the journey to /admin.
   useEffect(() => {
-    if (
-      isAdminLoggedIn &&
-      typeof window !== 'undefined' &&
-      sessionStorage.getItem(PENDING_ADMIN_REDIRECT_KEY)
-    ) {
+    if (typeof window !== 'undefined' && sessionStorage.getItem(PENDING_ADMIN_REDIRECT_KEY)) {
       sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-      router.replace('/admin');
+      if (isAdminLoggedIn) {
+        router.replace('/admin');
+      }
     }
   }, [isAdminLoggedIn, router]);
 
