@@ -27,7 +27,6 @@ import {
   hasAdminAccess,
   handleRecoveryToken,
   supabase,
-  PENDING_ADMIN_REDIRECT_KEY,
   CafeInfo,
   Category,
   Product,
@@ -171,9 +170,6 @@ export default function AdminPage() {
       // Non-admins must not keep a session: sign them out immediately.
       if (user) {
         await logoutUser();
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-        }
         if (!isEmailAuthRef.current) router.replace('/');
       }
     }
@@ -681,17 +677,15 @@ export default function AdminPage() {
   }, [qrTableNumber]);
 
   // Google Sign-In Handler
-  // After redirect, auth state is handled by subscribeToAuth (useEffect above).
-  // The pending flag lets the landing page forward the admin to /admin.
+  // After OAuth, Supabase redirects straight to /admin where getSession()
+  // restores the session and opens the cabinet (see handleAuthUser).
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthSuccess('');
     try {
       setGoogleLoading(true);
-      sessionStorage.setItem(PENDING_ADMIN_REDIRECT_KEY, '1');
       await loginWithGoogle();
     } catch (err: any) {
-      sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
       setAuthError(getFriendlyErrorMessage(err, lang));
       showToast(getFriendlyErrorMessage(err, lang), 'error');
     } finally {
@@ -1803,7 +1797,12 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('cafeInstagram')}</label>
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeInstagram')}</label>
+                        <span className="text-[10px] bg-transparent px-2.5 py-1 rounded-full font-bold uppercase tracking-wider invisible">
+                          {LANG_CODE[lang] ?? lang.toUpperCase()}
+                        </span>
+                      </div>
                       <input 
                         type="text"
                         value={cafeForm.instagram}
