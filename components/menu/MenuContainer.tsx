@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product, PENDING_ADMIN_REDIRECT_KEY, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
+import { Category, Product, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
 import {
   playStepperSound,
   triggerStepperHaptic,
@@ -69,18 +69,6 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [customerGreetingText, setCustomerGreetingText] = useState('');
   const greetingPopupRef = useRef(false);
   const CUSTOMER_GREETING_SHOWN_KEY = 'svk_customer_greeting_shown';
-
-  // Forward an admin back to the cabinet right after Google sign-in:
-  // Supabase redirects to the site root, so the menu page detects the
-  // pending flag and completes the journey to /admin.
-  useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem(PENDING_ADMIN_REDIRECT_KEY)) {
-      sessionStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-      if (isAdminLoggedIn) {
-        router.replace('/admin');
-      }
-    }
-  }, [isAdminLoggedIn, router]);
 
   const { cafeInfo, categories, products, loading } = useMenuData(initialData ?? undefined);
 
@@ -352,7 +340,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#FAF6EE] font-sans overflow-x-clip">
+    <div className="relative flex min-h-screen flex-col bg-[#FAF6EE] font-sans overflow-x-clip">
       {floaters.map(f => (
         <motion.div
           key={f.id}
@@ -389,7 +377,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
       <HeroBanner cafeInfo={cafeInfo} tableNumber={tableNumber} lang={lang} t={t} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="w-full max-w-4xl mx-auto px-4 py-8 flex-1">
         <AnimatePresence mode="wait">
           {!activeCategory ? (
             <motion.div

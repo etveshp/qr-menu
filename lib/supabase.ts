@@ -84,10 +84,6 @@ export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey) : null;
 export const useSupabase = !!supabase;
 
-// Marks that a Google sign-in was just initiated so the landing page
-// can forward the authenticated admin straight to the admin cabinet.
-export const PENDING_ADMIN_REDIRECT_KEY = 'svk_pending_admin';
-
 // Local storage helpers
 const getLocal = (key: string, def: any) => {
   if (typeof window === 'undefined') return def;
@@ -107,10 +103,10 @@ export const loginWithEmail = async (email: string, pass: string): Promise<User>
 };
 export const loginWithGoogle = async (): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
-  // After OAuth, Supabase redirects to the site root. The landing page
-  // (MenuContainer) detects the PENDING_ADMIN_REDIRECT_KEY flag and forwards
-  // the authenticated admin to /admin. Non-admin users stay on the menu.
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/' } });
+  // After OAuth, Supabase redirects straight to the admin cabinet. The admin
+  // page restores the session via getSession() and shows the cabinet; non-admins
+  // are signed out and bounced back to the menu.
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } });
   if (error) throw error;
   // OAuth redirects; the session is handled by onAuthStateChange
 };
