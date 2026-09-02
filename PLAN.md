@@ -183,11 +183,18 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 - [x] `supabase-seed.sql` + плейсхолдери uk/hu/en — поділ привітань через `\n`.
 - [x] `npm test` (136 тест), `npx tsc --noEmit`, `npm run lint` — чисто.
 
+### 7.16 Keep-alive (щоденний «штовхання» проєкту) (зроблено)
+- [x] `vercel.json`: Vercel Cron Job — щодня о 08:00 UTC викликає `/api/menu` (цей ендпоінт робить запити до Supabase: cafe_info/categories/products).
+- [x] Мета: тримати Supabase-проєкт «живим» (не засинає від бездіяльності) і прогрівати serverless-деплой.
+- [x] Альтернатива: зовнішній моніторинг (UptimeRobot/healthchecks.io) із щоденним пінгом `/api/menu` — без змін у коді.
+- [x] Перевірка: `vercel.json` валідний, крон створюється після деплою (Settings → Cron Jobs).
+
 ---
 
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
+|---|---|---|
 | 2026-08-29 | Фаза 7 — Рекламний попап: таблиця `advertising`, RLS+realtime, міграція; адмін-вкладка (фото 9:16, затримка, on/off); клієнтський попап `AdPopup` у `MenuContainer`; переклади uk/hu/en; 108 тестів, typecheck, lint — чисто. Чекає застосування міграції до live-БД | Kilo |
 | 2026-08-29 | Фаза 7.5 — Повторне кадрування з оригіналу: для секцій фото (банер/лого/категорія/реклама) зберігається до-кроп оригінал (`*_original`); повторне відкриття на редагування показує оригінал у масштабі 1. Міграція `20260829160000_photo_originals.sql` (застосовано). 113 тестів, typecheck, lint — чисто | Kilo |
 | 2026-08-29 | Фаза 7.6 — Поле «Показувати до:» (дата) для попапа: колонка `show_until`, збереження/читання, показ попапа лише до дати; переклади uk/hu/en. Міграція `20260829170000_advertising_show_until.sql` (застосовано). 116 тестів, typecheck, lint — чисто | Kilo |
@@ -200,7 +207,7 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 | 2026-09-02 | Фаза 7.13 — Багаторядкові привітання: поля → textarea (кілька привітань через `;`), випадковий показ через `getRandomGreeting` у HeroBanner та admin-popup; ліміт 2000; 135 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.14 — Перенесення hardcoded-привітань у БД: клієнтське (`welcome`) та адмінські (`welcomeMsg1..5`) в `cafe_info.greeting_*`; міграція `20260902110000_seed_cafe_greetings.sql` (застосовано), оновлено seed; показ з БД. 135 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.15 — Розділення привітань переносом рядка: `getRandomGreeting` ділить за `\n` (сумісно з `;`); міграція `20260902120000_greeting_newline_separator.sql` (застосовано), seed + плейсхолдери оновлено. 136 тестів, typecheck, lint — чисто | Kilo |
-|---|---|---|
+| 2026-09-02 | Фаза 7.16 — Keep-alive: `vercel.json` зі щоденним cron (08:00 UTC) на `/api/menu`, який робить запити до Supabase — проєкт не «засинає»; прогрів serverless. Перевірено: конфіг валідний. 136 тестів, typecheck, lint — чисто | Kilo |
 | 2026-08-25 | Створено копію `SVITKAVY-SUPABASE` (міграція Firebase → Supabase + Vercel). Firebase видалено, Supabase SDK встановлено, `lib/supabase.ts` створено, імпорти оновлено, `app/api/menu` переписано. 95 тестів, typecheck, lint — чисто | Kilo |
 | 2026-08-25 | Supabase: SQL-схема + seed-дані, Google OAuth налаштовано. Vercel: репо підключено, env додано, прод `svitkavyqrmenu-five.vercel.app` деплоїться | Kilo |
 | 2026-08-25 | Виправлено: початковий fetch у subscribe* (Supabase Realtime не надсилає початковий стан — додано явний запит). Перевірено в чистому браузері: назва, опис, Instagram, категорії, товари — з Supabase | Kilo |
