@@ -65,7 +65,7 @@ export function AdPopup({ t }: AdPopupProps) {
       {visible && ad.photo && (
         <motion.div
           key="ad-popup"
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6 sm:items-end sm:justify-end sm:bg-transparent sm:backdrop-blur-none sm:pointer-events-none bg-black/60 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           role="dialog"
@@ -74,7 +74,7 @@ export function AdPopup({ t }: AdPopupProps) {
         >
           {/* 9:16 popup with small outer margins (not full screen) */}
           <motion.div
-            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20"
+            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-auto sm:max-w-[240px] sm:pointer-events-auto sm:mb-2 sm:mr-2"
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}

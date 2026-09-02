@@ -28,6 +28,14 @@ create table public.cafe_info (
   logo_scale real not null default 1,
   banner_original text not null default '',
   logo_original text not null default '',
+  greeting_customer_uk text not null default '',
+  greeting_customer_hu text not null default '',
+  greeting_customer_en text not null default '',
+  greeting_customer_enabled boolean not null default false,
+  greeting_admin_uk text not null default '',
+  greeting_admin_hu text not null default '',
+  greeting_admin_en text not null default '',
+  greeting_admin_enabled boolean not null default false,
   updated_at timestamptz not null default now()
 );
 

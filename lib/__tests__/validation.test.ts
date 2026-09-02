@@ -72,6 +72,22 @@ describe('validateCafeInfo', () => {
   it('accepts originals within size limit', () => {
     expect(validateCafeInfo({ ...baseCafe, bannerOriginal: 'data:image/webp;base64,...', logoOriginal: 'data:image/webp;base64,...' })).toEqual({ ok: true });
   });
+
+  it('accepts greetings and toggles', () => {
+    expect(validateCafeInfo({
+      ...baseCafe,
+      greetingCustomerUk: 'Ласкаво просимо! ☕', greetingCustomerEnabled: true,
+      greetingAdminUk: 'Гарного дня!', greetingAdminEnabled: true,
+    })).toEqual({ ok: true });
+  });
+
+  it('rejects too long customer greeting', () => {
+    expect(validateCafeInfo({ ...baseCafe, greetingCustomerUk: 'x'.repeat(2001) })).toMatchObject({ ok: false });
+  });
+
+  it('rejects too long admin greeting', () => {
+    expect(validateCafeInfo({ ...baseCafe, greetingAdminHu: 'x'.repeat(2001) })).toMatchObject({ ok: false });
+  });
 });
 
 describe('validateCategory', () => {

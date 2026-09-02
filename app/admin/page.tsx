@@ -34,7 +34,9 @@ import {
   Advertising,
   TextBanner,
   getCafeName,
-  getCafeOwnerName
+  getCafeOwnerName,
+  getCafeAdminGreeting,
+  getRandomGreeting
 } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { TRANSLATIONS, ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
@@ -2043,6 +2045,171 @@ export default function AdminPage() {
                 </form>
               </div>
 
+              {/* Greetings */}
+              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
+                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                  {t('greetings')}
+                </h2>
+                <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('greetingsSubtitle')}</p>
+
+                <form onSubmit={handleSaveCafe} className="space-y-8">
+                  {/* Customer greeting */}
+                  <div>
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-[#231913]">{t('greetingCustomerLabel')}</h3>
+                        <p className="text-[11px] text-[#8E7A68]">{t('greetingCustomerHint')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!!cafeForm.greetingCustomerEnabled}
+                        aria-label={t('greetingCustomerLabel')}
+                        onClick={() => setCafeForm({ ...cafeForm, greetingCustomerEnabled: !cafeForm.greetingCustomerEnabled })}
+                        className={`relative inline-flex shrink-0 w-12 h-7 rounded-full transition-colors duration-200 cursor-pointer border ${
+                          cafeForm.greetingCustomerEnabled
+                            ? 'bg-[#C09E6D] border-[#C09E6D]'
+                            : 'bg-[#E6DFD5] border-[#D5CBBF]'
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1/2 -translate-y-1/2 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                            cafeForm.greetingCustomerEnabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        >
+                          {cafeForm.greetingCustomerEnabled ? <Check className="w-3.5 h-3.5 text-[#3E2F26] stroke-[3]" /> : <X className="w-3.5 h-3.5 text-[#8E7A68]" />}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {lang === 'uk' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingCustomerUk ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerUk: e.target.value })}
+                          placeholder={t('greetingCustomerPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                      {lang === 'hu' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingCustomerHu ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerHu: e.target.value })}
+                          placeholder={t('greetingCustomerPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                      {lang === 'en' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingCustomerEn ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerEn: e.target.value })}
+                          placeholder={t('greetingCustomerPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Admin greeting */}
+                  <div>
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-[#231913]">{t('greetingAdminLabel')}</h3>
+                        <p className="text-[11px] text-[#8E7A68]">{t('greetingAdminHint')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!!cafeForm.greetingAdminEnabled}
+                        aria-label={t('greetingAdminLabel')}
+                        onClick={() => setCafeForm({ ...cafeForm, greetingAdminEnabled: !cafeForm.greetingAdminEnabled })}
+                        className={`relative inline-flex shrink-0 w-12 h-7 rounded-full transition-colors duration-200 cursor-pointer border ${
+                          cafeForm.greetingAdminEnabled
+                            ? 'bg-[#C09E6D] border-[#C09E6D]'
+                            : 'bg-[#E6DFD5] border-[#D5CBBF]'
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1/2 -translate-y-1/2 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                            cafeForm.greetingAdminEnabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        >
+                          {cafeForm.greetingAdminEnabled ? <Check className="w-3.5 h-3.5 text-[#3E2F26] stroke-[3]" /> : <X className="w-3.5 h-3.5 text-[#8E7A68]" />}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {lang === 'uk' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingAdminUk ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminUk: e.target.value })}
+                          placeholder={t('greetingAdminPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                      {lang === 'hu' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingAdminHu ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminHu: e.target.value })}
+                          placeholder={t('greetingAdminPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                      {lang === 'en' && (
+                        <textarea
+                          rows={4}
+                          value={cafeForm.greetingAdminEn ?? ''}
+                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminEn: e.target.value })}
+                          placeholder={t('greetingAdminPlaceholder')}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save */}
+                  <div className="pt-4 border-t border-[#E6DFD5]">
+                    <button
+                      type="submit"
+                      disabled={cafeSaveStatus === 'saving'}
+                      className={`relative overflow-hidden w-full flex justify-center items-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                        cafeSaveStatus === 'saving'
+                          ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                          : cafeSaveStatus === 'saved'
+                          ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                          : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+                      }`}
+                    >
+                      {cafeSaveStatus === 'saving' && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+                      )}
+                      {cafeSaveStatus === 'saving' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                          <span>{t('saving')}</span>
+                        </>
+                      ) : cafeSaveStatus === 'saved' ? (
+                        <>
+                          <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                          <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 text-[#C09E6D]" />
+                          <span>{t('saveBtn')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               {/* Change Login Password */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
                 <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
@@ -2281,55 +2448,60 @@ export default function AdminPage() {
           {/* TAB 5: ADVERTISING */}
           {activeTab === 'advertising' && (
             <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-              <h2 className="text-2xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                {t('advertising')}
+              <h2 className="text-2xl font-display font-medium text-[#231913] mb-6 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                {t('advertisingNav')}
               </h2>
 
-              {/* Feature list */}
-              <ul className="space-y-2.5 mb-8">
-                {ADVERTISING_FEATURES[lang].map((f, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
-                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Two sections side-by-side on desktop (2 columns), stacked on mobile */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-              {/* Add popup button */}
-              <div>
-                <button
-                  type="button"
-                  onClick={openAdDrawer}
-                  className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 text-[#C09E6D]" />
-                  {t('addAdPopup')}
-                </button>
-              </div>
+                {/* Popup in menu */}
+                <div className="flex flex-col p-6 border border-[#E6DFD5] rounded-2xl bg-white">
+                  <h3 className="text-xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                    {t('advertising')}
+                  </h3>
 
-              {/* Text banner section */}
-              <div className="mt-10 pt-8 border-t border-[#E6DFD5]">
-                <h3 className="text-xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {t('textBanner')}
-                </h3>
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {ADVERTISING_FEATURES[lang].map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
+                        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <ul className="space-y-2.5 mb-8">
-                  {TEXT_BANNER_FEATURES[lang].map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
-                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <button
+                    type="button"
+                    onClick={openAdDrawer}
+                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer mt-auto"
+                  >
+                    {adForm.photo ? <Edit2 className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
+                    {adForm.photo ? t('editAdPopup') : t('addAdPopup')}
+                  </button>
+                </div>
 
-                <div>
+                {/* Text banner */}
+                <div className="flex flex-col p-6 border border-[#E6DFD5] rounded-2xl bg-white">
+                  <h3 className="text-xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                    {t('textBanner')}
+                  </h3>
+
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {TEXT_BANNER_FEATURES[lang].map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-[#4A3B32] leading-relaxed">
+                        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#C09E6D] shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
                   <button
                     type="button"
                     onClick={openTextBannerDrawer}
-                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold bg-[#F1ECE3] hover:bg-[#E6DFD5] text-[#4A3B32] rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer mt-auto"
                   >
-                    <Plus className="w-4 h-4 text-[#C09E6D]" />
-                    {t('addTextBanner')}
+                    {textBannerForm.text ? <Edit2 className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
+                    {textBannerForm.text ? t('editTextBanner') : t('addTextBanner')}
                   </button>
                 </div>
               </div>
@@ -3063,7 +3235,7 @@ export default function AdminPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                  className={`absolute top-1/2 -translate-y-1/2 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
                     adForm.enabled ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 >
@@ -3190,7 +3362,7 @@ export default function AdminPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                  className={`absolute top-1/2 -translate-y-1/2 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
                     textBannerForm.enabled ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 >
@@ -3403,7 +3575,7 @@ export default function AdminPage() {
         isOpen={showWelcome}
         logo={cafeInfo?.logo ?? null}
         title={t('welcomeTitle').replace('{name}', (getCafeOwnerName(cafeInfo, lang) || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '').trim().split(/\s+/)[0] || '')}
-        text={t(welcomeMsgKey)}
+        text={(cafeInfo?.greetingAdminEnabled ? getRandomGreeting(getCafeAdminGreeting(cafeInfo, lang)) : '') || t(welcomeMsgKey)}
         okLabel={t('toWork')}
         onOk={() => setShowWelcome(false)}
       />

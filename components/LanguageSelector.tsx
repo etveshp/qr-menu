@@ -53,8 +53,8 @@ export function LanguageSelector({
       className="relative w-11 h-11 select-none z-30 flex items-center justify-center shrink-0"
     >
       <motion.div
-        layout
         id="lang-switcher-container"
+        initial={false}
         transition={{ 
           type: "spring", 
           stiffness: 350, 

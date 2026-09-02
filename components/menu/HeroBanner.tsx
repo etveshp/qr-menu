@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Sparkles, Instagram } from 'lucide-react';
 import type { CafeInfo } from '@/lib/supabase';
-import { getCafeName, getCafeDescription } from '@/lib/supabase';
+import { getCafeName, getCafeDescription, getCafeCustomerGreeting, getRandomGreeting } from '@/lib/supabase';
 
 interface HeroBannerProps {
   cafeInfo: CafeInfo | null;
@@ -44,7 +44,7 @@ export function HeroBanner({ cafeInfo, tableNumber, lang, t }: HeroBannerProps) 
               {getCafeName(cafeInfo, lang) || t('appName')}
             </h2>
             <p className="text-sm sm:text-base text-[#E6DFD5] mt-1.5 max-w-xl font-light leading-relaxed line-clamp-2">
-              {getCafeDescription(cafeInfo, lang) || t('welcomeDesc')}
+              {(cafeInfo?.greetingCustomerEnabled ? getRandomGreeting(getCafeCustomerGreeting(cafeInfo, lang)) : '') || getCafeDescription(cafeInfo, lang) || t('welcomeDesc')}
             </p>
           </div>
 

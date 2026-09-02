@@ -32,6 +32,12 @@ export const validateCafeInfo = (info: CafeInfo): ValidationResult => {
   if (!isOptionalString(info.logo, MAX_PHOTO)) return { ok: false, error: 'Логотип занадто великий' };
   if (!isOptionalString(info.bannerOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал банеру занадто великий' };
   if (!isOptionalString(info.logoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал логотипу занадто великий' };
+  if (!isBoundedString(info.greetingCustomerUk ?? '', 2000)) return { ok: false, error: 'Привітання клієнтів (UK) занадто довге' };
+  if (!isBoundedString(info.greetingCustomerHu ?? '', 2000)) return { ok: false, error: 'Привітання клієнтів (HU) занадто довге' };
+  if (!isBoundedString(info.greetingCustomerEn ?? '', 2000)) return { ok: false, error: 'Привітання клієнтів (EN) занадто довге' };
+  if (!isBoundedString(info.greetingAdminUk ?? '', 2000)) return { ok: false, error: 'Привітання адміна (UK) занадто довге' };
+  if (!isBoundedString(info.greetingAdminHu ?? '', 2000)) return { ok: false, error: 'Привітання адміна (HU) занадто довге' };
+  if (!isBoundedString(info.greetingAdminEn ?? '', 2000)) return { ok: false, error: 'Привітання адміна (EN) занадто довге' };
   return { ok: true };
 };
 
@@ -47,23 +53,23 @@ export const validateCategory = (category: Category): ValidationResult => {
 };
 
 export const validateProduct = (product: Product): ValidationResult => {
-  if (!isNonEmptyString(product.nameUk)) return { ok: false, error: 'Вкажіть назву товару українською' };
-  if (!isBoundedString(product.nameUk, MAX_NAME)) return { ok: false, error: 'Назва товару занадто довга' };
-  if (!isNonEmptyString(product.categoryId)) return { ok: false, error: 'Оберіть категорію товару' };
+  if (!isNonEmptyString(product.nameUk)) return { ok: false, error: 'Вкажіть назву страви українською' };
+  if (!isBoundedString(product.nameUk, MAX_NAME)) return { ok: false, error: 'Назва страви занадто довга' };
+  if (!isNonEmptyString(product.categoryId)) return { ok: false, error: 'Оберіть категорію страви' };
   if (typeof product.price !== 'number' || !Number.isFinite(product.price) || product.price < 0 || product.price > 1000000) {
-    return { ok: false, error: 'Ціна товару некоректна' };
+    return { ok: false, error: 'Ціна страви некоректна' };
   }
-  if (!isBoundedString(product.nameHu, MAX_NAME)) return { ok: false, error: 'Назва товару (HU) занадто довга' };
-  if (!isBoundedString(product.nameEn, MAX_NAME)) return { ok: false, error: 'Назва товару (EN) занадто довга' };
+  if (!isBoundedString(product.nameHu, MAX_NAME)) return { ok: false, error: 'Назва страви (HU) занадто довга' };
+  if (!isBoundedString(product.nameEn, MAX_NAME)) return { ok: false, error: 'Назва страви (EN) занадто довга' };
   if (!isBoundedString(product.descriptionUk, MAX_DESC)) return { ok: false, error: 'Опис (UA) занадто довгий' };
   if (!isBoundedString(product.descriptionHu, MAX_DESC)) return { ok: false, error: 'Опис (HU) занадто довгий' };
   if (!isBoundedString(product.descriptionEn, MAX_DESC)) return { ok: false, error: 'Опис (EN) занадто довгий' };
   if (!isBoundedString(product.ingredientsUk, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (UA) занадто довгі' };
   if (!isBoundedString(product.ingredientsHu, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (HU) занадто довгі' };
   if (!isBoundedString(product.ingredientsEn, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (EN) занадто довгі' };
-  if (!isNonEmptyString(product.photo)) return { ok: false, error: 'Додайте фото товару' };
-  if (!isBoundedString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото товару занадто велике' };
-  if (!isOptionalString(product.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото товару занадто великий' };
+  if (!isNonEmptyString(product.photo)) return { ok: false, error: 'Додайте фото страви' };
+  if (!isBoundedString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото страви занадто велике' };
+  if (!isOptionalString(product.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото страви занадто великий' };
   return { ok: true };
 };
 
@@ -82,6 +88,6 @@ export const validateTextBanner = (banner: TextBanner): ValidationResult => {
   if (!isNonEmptyString(banner.text)) return { ok: false, error: 'Вкажіть текст банера' };
   if (!isBoundedString(banner.text, 40)) return { ok: false, error: 'Текст банера занадто довгий (максимум 40 символів)' };
   if (banner.categoryId && !isBoundedString(banner.categoryId, 100)) return { ok: false, error: 'Категорія некоректна' };
-  if (banner.productId && !isBoundedString(banner.productId, 100)) return { ok: false, error: 'Товар некоректний' };
+  if (banner.productId && !isBoundedString(banner.productId, 100)) return { ok: false, error: 'Страва некоректна' };
   return { ok: true };
 };

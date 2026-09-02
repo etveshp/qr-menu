@@ -10,6 +10,10 @@ export interface CafeInfo {
   bannerScale?: number; bannerX?: number; bannerY?: number;
   logoScale?: number; logoX?: number; logoY?: number;
   bannerOriginal?: string; logoOriginal?: string;
+  greetingCustomerUk?: string; greetingCustomerHu?: string; greetingCustomerEn?: string;
+  greetingCustomerEnabled?: boolean;
+  greetingAdminUk?: string; greetingAdminHu?: string; greetingAdminEn?: string;
+  greetingAdminEnabled?: boolean;
 }
 
 export const getCafeName = (info: CafeInfo | null, lang: string): string => {
@@ -25,6 +29,25 @@ export const getCafeDescription = (info: CafeInfo | null, lang: string): string 
 export const getCafeOwnerName = (info: CafeInfo | null, lang: string): string => {
   if (!info) return '';
   return lang === 'hu' ? info.ownerNameHu : lang === 'en' ? info.ownerNameEn : info.ownerNameUk;
+};
+
+export const getCafeCustomerGreeting = (info: CafeInfo | null, lang: string): string => {
+  if (!info) return '';
+  return lang === 'hu' ? (info.greetingCustomerHu ?? '') : lang === 'en' ? (info.greetingCustomerEn ?? '') : (info.greetingCustomerUk ?? '');
+};
+
+export const getCafeAdminGreeting = (info: CafeInfo | null, lang: string): string => {
+  if (!info) return '';
+  return lang === 'hu' ? (info.greetingAdminHu ?? '') : lang === 'en' ? (info.greetingAdminEn ?? '') : (info.greetingAdminUk ?? '');
+};
+
+// Greetings are stored as several greetings separated by a newline ("\n").
+// We also tolerate ";" so previously seeded data keeps working. Pick one at random.
+export const getRandomGreeting = (raw: string | undefined | null, rng: () => number = Math.random): string => {
+  if (!raw) return '';
+  const list = raw.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+  if (list.length === 0) return '';
+  return list[Math.floor(rng() * list.length) % list.length];
 };
 export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; photoOriginal?: string; }
 export interface Product {
@@ -138,6 +161,19 @@ export const hasAdminAccess = async (user: User | null): Promise<boolean> => {
 };
 
 // Data helpers
+const mapCafeInfo = (row: any): CafeInfo => ({
+  ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '',
+  nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '',
+  descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '',
+  banner: row.banner, logo: row.logo, instagram: row.instagram,
+  bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale,
+  logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale,
+  bannerOriginal: row.banner_original ?? '', logoOriginal: row.logo_original ?? '',
+  greetingCustomerUk: row.greeting_customer_uk ?? '', greetingCustomerHu: row.greeting_customer_hu ?? '', greetingCustomerEn: row.greeting_customer_en ?? '',
+  greetingCustomerEnabled: row.greeting_customer_enabled ?? false,
+  greetingAdminUk: row.greeting_admin_uk ?? '', greetingAdminHu: row.greeting_admin_hu ?? '', greetingAdminEn: row.greeting_admin_en ?? '',
+  greetingAdminEnabled: row.greeting_admin_enabled ?? false,
+});
 const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
   photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
@@ -158,7 +194,7 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   if (supabase) {
     const { data, error } = await supabase.from('cafe_info').select('*').eq('id', 1).single();
     if (!error && data) {
-      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale, bannerOriginal: data.banner_original ?? '', logoOriginal: data.logo_original ?? '' };
+      const info: CafeInfo = mapCafeInfo(data);
       setLocal('cafeInfo', info); return info;
     }
   }
@@ -169,7 +205,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   // Fetch current value first (Realtime only pushes changes, not the initial state)
   supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
     if (!error && data) {
-      const info: CafeInfo = { ownerNameUk: data.owner_name_uk ?? '', ownerNameHu: data.owner_name_hu ?? '', ownerNameEn: data.owner_name_en ?? '', nameUk: data.name_uk ?? '', nameHu: data.name_hu ?? '', nameEn: data.name_en ?? '', descriptionUk: data.description_uk ?? '', descriptionHu: data.description_hu ?? '', descriptionEn: data.description_en ?? '', banner: data.banner, logo: data.logo, instagram: data.instagram, bannerX: data.banner_x, bannerY: data.banner_y, bannerScale: data.banner_scale, logoX: data.logo_x, logoY: data.logo_y, logoScale: data.logo_scale, bannerOriginal: data.banner_original ?? '', logoOriginal: data.logo_original ?? '' };
+      const info: CafeInfo = mapCafeInfo(data);
       setLocal('cafeInfo', info); callback(info);
     }
   }, () => {});
@@ -177,7 +213,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
     if (row) {
-      const info: CafeInfo = { ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '', nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '', descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '', banner: row.banner, logo: row.logo, instagram: row.instagram, bannerX: row.banner_x, bannerY: row.banner_y, bannerScale: row.banner_scale, logoX: row.logo_x, logoY: row.logo_y, logoScale: row.logo_scale, bannerOriginal: row.banner_original ?? '', logoOriginal: row.logo_original ?? '' };
+      const info: CafeInfo = mapCafeInfo(row);
       setLocal('cafeInfo', info); callback(info);
     }
   }).subscribe();
@@ -197,6 +233,10 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       instagram: info.instagram, banner_x: info.bannerX ?? 50, banner_y: info.bannerY ?? 50,
       banner_scale: info.bannerScale ?? 1, logo_x: info.logoX ?? 50, logo_y: info.logoY ?? 50,
       logo_scale: info.logoScale ?? 1, banner_original: info.bannerOriginal ?? '', logo_original: info.logoOriginal ?? '',
+      greeting_customer_uk: info.greetingCustomerUk ?? '', greeting_customer_hu: info.greetingCustomerHu ?? '', greeting_customer_en: info.greetingCustomerEn ?? '',
+      greeting_customer_enabled: info.greetingCustomerEnabled ?? false,
+      greeting_admin_uk: info.greetingAdminUk ?? '', greeting_admin_hu: info.greetingAdminHu ?? '', greeting_admin_en: info.greetingAdminEn ?? '',
+      greeting_admin_enabled: info.greetingAdminEnabled ?? false,
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
@@ -294,7 +334,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       price: Number(product.price), photo: product.photo, photo_original: product.photoOriginal ?? '',
       recommended_ids: product.recommendedIds ?? [],
     });
-    if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження товару'); }
+    if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
   }
 };
 export const deleteProduct = async (id: string): Promise<void> => {
@@ -302,7 +342,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
   setLocal('products', current.filter(p => p.id !== id));
   if (supabase) {
     const { error } = await supabase.from('products').delete().eq('id', id);
-    if (error) { console.error('Supabase error deleting product', error); throw new Error('Помилка видалення товару'); }
+    if (error) { console.error('Supabase error deleting product', error); throw new Error('Помилка видалення страви'); }
   }
 };
 

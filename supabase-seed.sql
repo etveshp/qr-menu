@@ -2,8 +2,8 @@
 -- Run this in Supabase SQL Editor after creating tables.
 
 -- 1. Cafe Info
-insert into public.cafe_info (id, owner_name_uk, owner_name_hu, owner_name_en, name_uk, name_hu, name_en, description_uk, description_hu, description_en, banner, logo, instagram, banner_x, banner_y, banner_scale, logo_x, logo_y, logo_scale)
-values (1, '', '', '', 'Світ Кави', 'Svit Kavy', 'Svit Kavy', 'Затишна кав''ярня в центрі Вишкова', 'Hangulatos kávézó Visk központjában', 'A cozy coffee shop in the center of Vyshkovo', '', '', 'https://www.instagram.com/svit.kavy', 48, 47, 1.7, 50, 50, 1)
+insert into public.cafe_info (id, owner_name_uk, owner_name_hu, owner_name_en, name_uk, name_hu, name_en, description_uk, description_hu, description_en, banner, logo, instagram, banner_x, banner_y, banner_scale, logo_x, logo_y, logo_scale, greeting_customer_uk, greeting_customer_hu, greeting_customer_en, greeting_customer_enabled, greeting_admin_uk, greeting_admin_hu, greeting_admin_en, greeting_admin_enabled)
+values (1, '', '', '', 'Світ Кави', 'Svit Kavy', 'Svit Kavy', 'Затишна кав''ярня в центрі Вишкова', 'Hangulatos kávézó Visk központjában', 'A cozy coffee shop in the center of Vyshkovo', '', '', 'https://www.instagram.com/svit.kavy', 48, 47, 1.7, 50, 50, 1, 'Ласкаво просимо до Світ Кави', 'Üdvözöljük a Svit Kavy kávézóban', 'Welcome to Svit Kavy', true, E'Чудовий день, щоб зробити зміни в меню!\nГості вже чекають на щось новеньке. За роботу!\nСвіжа порція ідей — і меню засяє по-новому!\nСаме час додати родзинку в меню!\nСьогодні ідеальний день, щоб здивувати гостей.', E'Remek nap a menü frissítésére!\nA vendégek már várnak valami újra. Munkára fel!\nFriss ötletek — a menü új fényben tündököl!\nItt az ideje egy kis különlegességet adni a menühöz!\nMa tökéletes nap arra, hogy meglepje a vendégeket.', E'A great day to make changes to the menu!\nGuests are already waiting for something new. Let''s get to work!\nA fresh batch of ideas — and the menu will shine anew!\nTime to add a little zest to the menu!\nToday is the perfect day to surprise your guests.', true)
 on conflict (id) do update set
   name_uk = excluded.name_uk,
   name_hu = excluded.name_hu,
@@ -17,7 +17,15 @@ on conflict (id) do update set
   instagram = excluded.instagram,
   banner_x = excluded.banner_x,
   banner_y = excluded.banner_y,
-  banner_scale = excluded.banner_scale;
+  banner_scale = excluded.banner_scale,
+  greeting_customer_uk = excluded.greeting_customer_uk,
+  greeting_customer_hu = excluded.greeting_customer_hu,
+  greeting_customer_en = excluded.greeting_customer_en,
+  greeting_customer_enabled = excluded.greeting_customer_enabled,
+  greeting_admin_uk = excluded.greeting_admin_uk,
+  greeting_admin_hu = excluded.greeting_admin_hu,
+  greeting_admin_en = excluded.greeting_admin_en,
+  greeting_admin_enabled = excluded.greeting_admin_enabled;
 
 -- 2. Categories
 insert into public.categories (id, name_uk, name_hu, name_en, photo) values
