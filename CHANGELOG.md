@@ -17,6 +17,24 @@
 
 ---
 
+## [0.3.2] - 2026-09-03
+
+### Changed
+
+- **Оновлення Next.js 15.5.23 → 16.3.4** (офіційний codemod `@next/codemod upgrade latest`):
+  - Turbopack тепер дефолт для `next build`; з кастомним webpack-конфіґом збірка в 16 падає — webpack-хук з хаком `DISABLE_HMR` (AI Studio-специфічний) видалено з `next.config.ts`.
+  - Опцію `eslint: { ignoreDuringBuilds: false }` видалено з `next.config.ts` (у Next 16 `next lint` та `eslint`-опція конфіґу прибрані; проєкт уже лінтує через `eslint .`).
+  - Codemod додав `export const instant = false` (opt-out Cache Components) у `app/layout.tsx` та `app/page.tsx`, але цей експорт валідний лише з `cacheComponents: true` — видалено, бо Cache Components не використовується.
+  - `tsconfig.json`: `jsx: preserve` → `react-jsx`, додано `.next/dev/types` у include; `next-env.d.ts` оновлено під нові типи роутів (стандартні зміни codemod).
+  - `eslint-config-next` → 16.3.4; ESLint залишено на 9.x (`^9.39.1`), бо codemod підняв його до 10.9.1, а плагіни всередині `eslint-config-next` (react/jsx-a11y/import/typescript-eslint) ще вимагають `eslint ^9` — lint падав.
+  - Залежності: `next` 16.3.4 (зафіксовано), react/react-dom 19.2.8 + overrides для `@types/react`.
+
+### Fixed
+
+- (у складі апгрейду) Застарілий кеш `.next/types` (з Next 15) ламав `tsc --noEmit` на `instant` — вирішено очищенням `.next`.
+
+---
+
 ## [0.3.1] - 2026-09-02
 
 ### Fixed

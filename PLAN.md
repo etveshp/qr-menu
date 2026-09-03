@@ -222,6 +222,14 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 - [x] `app/admin/page.tsx`: назва на сторінці входу рендериться лише коли `cafeInfo` доступний (`cafeInfo ? getCafeName(...) || t('appName') : ''`) — інакше залишається порожньою, тож «Світ Кави QR Меню» більше не мигає.
 - [x] `npm test` (136 тест), `npx tsc --noEmit`, `npm run lint` — чисто.
 
+### 7.23 Апгрейд Next.js 15.5.23 → 16.3.4 (зроблено, гілка `upgrade/next-16`)
+- [x] Node v24.18.0 (вимога ≥ 20.9 виконана); codemod `npx @next/codemod@canary upgrade latest`.
+- [x] `next.config.ts`: видалено `eslint: {...}` (опція прибрана в 16) та webpack-хук `DISABLE_HMR` (Turbopack — новий дефолт build; кастомний webpack ламає збірку).
+- [x] Видалено codemod-експорти `export const instant = false` з `app/layout.tsx` / `app/page.tsx` — валідні лише з `cacheComponents: true`, який не використовується.
+- [x] ESLint відкотито до `^9.39.1`: codemod поставив 10.9.1, але плагіни `eslint-config-next` вимагають `^9` (lint падав).
+- [x] `tsconfig.json` (`jsx: react-jsx`, `.next/dev/types`) і `next-env.d.ts` оновлені codemod-ом; очищено застарілий кеш `.next`.
+- [x] Верифікація: `npm run build` (Turbopack) успішний, 136 тестів, `tsc --noEmit`, lint — чисто.
+
 ---
 
 ## Журнал змін плану
@@ -232,6 +240,7 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 | 2026-09-02 | Фаза 7.20 — Google-вхід: адмін одразу в кабінеті. `loginWithGoogle` редиректить на `/admin`; прибрано `PENDING_ADMIN_REDIRECT_KEY` з `lib/supabase.ts`, `app/admin/page.tsx`, `MenuContainer.tsx`. Не-адмін викидається в меню через `handleAuthUser`. 136 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.21 — Сторінка входу в кабінет: прибрано мигання стороннього логотипа (кавова чашка `Coffee`). Fallback-заглушку замінено на пустий спейсер тих самих розмірів — тепер відображається лише завантажений клієнтом логотип. 136 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.22 — Сторінка входу: прибрано мигання назви «Світ Кави QR Меню» замість «Світ Кави». Назва рендериться лише коли `cafeInfo` завантажений. 136 тестів, typecheck, lint — чисто | Kilo |
+| 2026-09-03 | Фаза 7.23 — Апгрейд Next.js 15.5.23 → 16.3.4 (гілка `upgrade/next-16`): codemod, Turbopack-білд дефолт, видалено eslint-опцію і webpack-хук з next.config, ESLint відкотито до ^9 (несумісність плагінів eslint-config-next), видалено `instant = false`. Build успішний, 136 тестів, tsc, lint — чисто | Kilo |
 | 2026-08-29 | Фаза 7 — Рекламний попап: таблиця `advertising`, RLS+realtime, міграція; адмін-вкладка (фото 9:16, затримка, on/off); клієнтський попап `AdPopup` у `MenuContainer`; переклади uk/hu/en; 108 тестів, typecheck, lint — чисто. Чекає застосування міграції до live-БД | Kilo |
 | 2026-08-29 | Фаза 7.5 — Повторне кадрування з оригіналу: для секцій фото (банер/лого/категорія/реклама) зберігається до-кроп оригінал (`*_original`); повторне відкриття на редагування показує оригінал у масштабі 1. Міграція `20260829160000_photo_originals.sql` (застосовано). 113 тестів, typecheck, lint — чисто | Kilo |
 | 2026-08-29 | Фаза 7.6 — Поле «Показувати до:» (дата) для попапа: колонка `show_until`, збереження/читання, показ попапа лише до дати; переклади uk/hu/en. Міграція `20260829170000_advertising_show_until.sql` (застосовано). 116 тестів, typecheck, lint — чисто | Kilo |
