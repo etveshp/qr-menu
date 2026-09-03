@@ -108,9 +108,13 @@ export default function AdminPage() {
   const [authSuccess, setAuthSuccess] = useState<string>('');
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // True once the persisted "admin session" flag has been restored from
+  // storage. Until then we render a spinner instead of the login form so a
+  // signed-in admin never sees the login view flash on refresh.
+  const [authRestored, setAuthRestored] = useState<boolean>(false);
 
   // Restore the persisted "admin session" flag only after mount to avoid
-  // server/client hydration mismatch (server always renders the login view).
+  // server/client hydration mismatch (server always renders the spinner).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const stored =
@@ -120,29 +124,13 @@ export default function AdminPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthenticated(true);
     }
+    setAuthRestored(true);
   }, []);
 
   // Welcome popup: shown once per session when the admin enters the cabinet.
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeMsgKey, setWelcomeMsgKey] = useState<typeof WELCOME_KEYS[number]>('welcomeMsg1');
   const hasShownWelcomeRef = useRef(false);
-
-  useEffect(() => {
-    if (isAuthenticated && currentUser && !hasShownWelcomeRef.current) {
-      hasShownWelcomeRef.current = true;
-      if (typeof window !== 'undefined' && sessionStorage.getItem('aura_admin_welcome_shown') === 'true') {
-        return;
-      }
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setWelcomeMsgKey(WELCOME_KEYS[Math.floor(Math.random() * WELCOME_KEYS.length)]);
-      setShowWelcome(true);
-      try {
-        sessionStorage.setItem('aura_admin_welcome_shown', 'true');
-      } catch {
-        // ignore
-      }
-    }
-  }, [isAuthenticated, currentUser]);
 
   // Marks an in-flight email/password sign-in so the auto-detected (e.g.
   // Google) non-admin path does not override the password-flow modal.
@@ -244,6 +232,25 @@ export default function AdminPage() {
       // ignore invalid cache
     }
   }, []);
+
+  // Welcome popup: shown once per session when the admin enters the cabinet,
+  // but only when the admin greeting toggle is enabled in cafe settings.
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser || hasShownWelcomeRef.current) return;
+    if (!cafeInfo?.greetingAdminEnabled) return;
+    hasShownWelcomeRef.current = true;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('aura_admin_welcome_shown') === 'true') {
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWelcomeMsgKey(WELCOME_KEYS[Math.floor(Math.random() * WELCOME_KEYS.length)]);
+    setShowWelcome(true);
+    try {
+      sessionStorage.setItem('aura_admin_welcome_shown', 'true');
+    } catch {
+      // ignore
+    }
+  }, [isAuthenticated, currentUser, cafeInfo?.greetingAdminEnabled]);
 
   // Form states - Category
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -1403,6 +1410,17 @@ export default function AdminPage() {
     );
   }
 
+  // While restoring the persisted session flag, show a spinner so a
+  // signed-in admin never sees the login form flash on refresh.
+  if (!authRestored) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] font-sans text-[#4A3B32]">
+        <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
+      </main>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] px-4 py-12 font-sans text-[#4A3B32]">
@@ -1727,39 +1745,6 @@ export default function AdminPage() {
                 </h2>
 
                 <form onSubmit={handleSaveCafe} className="space-y-6">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeOwnerName')}</label>
-                      <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        {LANG_CODE[lang] ?? lang.toUpperCase()}
-                      </span>
-                    </div>
-                    {lang === 'uk' && (
-                      <input
-                        type="text"
-                        value={cafeForm.ownerNameUk}
-                        onChange={(e) => setCafeForm({...cafeForm, ownerNameUk: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                      />
-                    )}
-                    {lang === 'hu' && (
-                      <input
-                        type="text"
-                        value={cafeForm.ownerNameHu}
-                        onChange={(e) => setCafeForm({...cafeForm, ownerNameHu: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                      />
-                    )}
-                    {lang === 'en' && (
-                      <input
-                        type="text"
-                        value={cafeForm.ownerNameEn}
-                        onChange={(e) => setCafeForm({...cafeForm, ownerNameEn: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                      />
-                    )}
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <div className="mb-2 flex items-center justify-between">
@@ -1795,56 +1780,90 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeDescription')}</label>
+                        <span className="text-[10px] font-bold text-[#C09E6D]">
+                          {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
+                        </span>
+                      </div>
+                      {lang === 'uk' && (
+                        <input
+                          type="text"
+                          value={cafeForm.descriptionUk}
+                          onChange={(e) => setCafeForm({...cafeForm, descriptionUk: e.target.value.slice(0, 40)})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          maxLength={40}
+                          required
+                        />
+                      )}
+                      {lang === 'hu' && (
+                        <input
+                          type="text"
+                          value={cafeForm.descriptionHu}
+                          onChange={(e) => setCafeForm({...cafeForm, descriptionHu: e.target.value.slice(0, 40)})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          maxLength={40}
+                        />
+                      )}
+                      {lang === 'en' && (
+                        <input
+                          type="text"
+                          value={cafeForm.descriptionEn}
+                          onChange={(e) => setCafeForm({...cafeForm, descriptionEn: e.target.value.slice(0, 40)})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                          maxLength={40}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                       <div className="mb-2 flex items-center justify-between">
                         <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeInstagram')}</label>
                         <span className="text-[10px] bg-transparent px-2.5 py-1 rounded-full font-bold uppercase tracking-wider invisible">
                           {LANG_CODE[lang] ?? lang.toUpperCase()}
                         </span>
                       </div>
-                      <input 
+                      <input
                         type="text"
                         value={cafeForm.instagram}
                         onChange={(e) => setCafeForm({...cafeForm, instagram: e.target.value})}
                         className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeDescription')}</label>
-                      <span className="text-[10px] font-bold text-[#C09E6D]">
-                        {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
-                      </span>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeOwnerName')}</label>
+                        <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                          {LANG_CODE[lang] ?? lang.toUpperCase()}
+                        </span>
+                      </div>
+                      {lang === 'uk' && (
+                        <input
+                          type="text"
+                          value={cafeForm.ownerNameUk}
+                          onChange={(e) => setCafeForm({...cafeForm, ownerNameUk: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        />
+                      )}
+                      {lang === 'hu' && (
+                        <input
+                          type="text"
+                          value={cafeForm.ownerNameHu}
+                          onChange={(e) => setCafeForm({...cafeForm, ownerNameHu: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        />
+                      )}
+                      {lang === 'en' && (
+                        <input
+                          type="text"
+                          value={cafeForm.ownerNameEn}
+                          onChange={(e) => setCafeForm({...cafeForm, ownerNameEn: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
+                        />
+                      )}
                     </div>
-                    {lang === 'uk' && (
-                      <input 
-                        type="text"
-                        value={cafeForm.descriptionUk}
-                        onChange={(e) => setCafeForm({...cafeForm, descriptionUk: e.target.value.slice(0, 40)})}
-                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        maxLength={40}
-                        required
-                      />
-                    )}
-                    {lang === 'hu' && (
-                      <input 
-                        type="text"
-                        value={cafeForm.descriptionHu}
-                        onChange={(e) => setCafeForm({...cafeForm, descriptionHu: e.target.value.slice(0, 40)})}
-                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        maxLength={40}
-                      />
-                    )}
-                    {lang === 'en' && (
-                      <input 
-                        type="text"
-                        value={cafeForm.descriptionEn}
-                        onChange={(e) => setCafeForm({...cafeForm, descriptionEn: e.target.value.slice(0, 40)})}
-                        className="w-full px-4 py-3 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        maxLength={40}
-                      />
-                    )}
                   </div>
 
                    {/* Banner Upload & Positioning */}

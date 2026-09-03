@@ -74,7 +74,7 @@ export function NotAdminModal({ isOpen, logo, title, text, okLabel = 'ОК', onO
               ref={okRef}
               type="button"
               onClick={onOk}
-              className="w-full py-3.5 px-6 bg-[#3E2F26] hover:bg-[#231913] text-[#FAF6EE] text-xs font-bold uppercase tracking-widest rounded-full shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full py-3.5 px-6 bg-[#3E2F26] hover:bg-[#231913] text-[#FAF6EE] text-xs font-bold uppercase tracking-widest rounded-full shadow-md transition-all active:scale-[0.98] cursor-pointer focus:outline-none"
             >
               {okLabel}
             </button>

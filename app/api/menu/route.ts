@@ -38,6 +38,10 @@ export async function GET(): Promise<NextResponse> {
           logoScale: cafeRow.logo_scale,
           logoX: cafeRow.logo_x,
           logoY: cafeRow.logo_y,
+          greetingCustomerUk: cafeRow.greeting_customer_uk ?? '', greetingCustomerHu: cafeRow.greeting_customer_hu ?? '', greetingCustomerEn: cafeRow.greeting_customer_en ?? '',
+          greetingCustomerEnabled: cafeRow.greeting_customer_enabled ?? false,
+          greetingAdminUk: cafeRow.greeting_admin_uk ?? '', greetingAdminHu: cafeRow.greeting_admin_hu ?? '', greetingAdminEn: cafeRow.greeting_admin_en ?? '',
+          greetingAdminEnabled: cafeRow.greeting_admin_enabled ?? false,
         }
       : null;
 
