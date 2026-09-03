@@ -17,6 +17,24 @@
 
 ---
 
+## [0.3.2] - 2026-09-03
+
+### Changed
+
+- **Оновлення Next.js 15.5.23 → 16.3.4** (офіційний codemod `@next/codemod upgrade latest`):
+  - Turbopack тепер дефолт для `next build`; з кастомним webpack-конфіґом збірка в 16 падає — webpack-хук з хаком `DISABLE_HMR` (AI Studio-специфічний) видалено з `next.config.ts`.
+  - Опцію `eslint: { ignoreDuringBuilds: false }` видалено з `next.config.ts` (у Next 16 `next lint` та `eslint`-опція конфіґу прибрані; проєкт уже лінтує через `eslint .`).
+  - Codemod додав `export const instant = false` (opt-out Cache Components) у `app/layout.tsx` та `app/page.tsx`, але цей експорт валідний лише з `cacheComponents: true` — видалено, бо Cache Components не використовується.
+  - `tsconfig.json`: `jsx: preserve` → `react-jsx`, додано `.next/dev/types` у include; `next-env.d.ts` оновлено під нові типи роутів (стандартні зміни codemod).
+  - `eslint-config-next` → 16.3.4; ESLint залишено на 9.x (`^9.39.1`), бо codemod підняв його до 10.9.1, а плагіни всередині `eslint-config-next` (react/jsx-a11y/import/typescript-eslint) ще вимагають `eslint ^9` — lint падав.
+  - Залежності: `next` 16.3.4 (зафіксовано), react/react-dom 19.2.8 + overrides для `@types/react`.
+
+### Fixed
+
+- (у складі апгрейду) Застарілий кеш `.next/types` (з Next 15) ламав `tsc --noEmit` на `instant` — вирішено очищенням `.next`.
+
+---
+
 ## [0.3.1] - 2026-09-02
 
 ### Fixed
@@ -24,6 +42,8 @@
 - **Футер у меню не притискався до низу екрана**: зовнішній контейнер `MenuContainer` став `flex flex-col` (з `min-h-screen`), а `<main>` отримав `flex-1` — при короткому вмісті футер тепер завжди внизу екрана, а не одразу після контенту.
 - **Назва закладу та Instagram у налаштуваннях на різних рівнях**: на десктопі (`md:grid-cols-2`) поля «Назва закладу» і «Посилання на Instagram» тепер вирівняні по одній лінії — у заголовок Instagram-поля додано невидимий бейдж поточної мови (спейсер тієї ж висоти, що й бейдж у поля назви).
 - **Адмін після Google-входу потрапляв у меню замість кабінету**: раніше `loginWithGoogle` редиректила на `/` (меню), а перехід у `/admin` залежав від крихкого прапорця `PENDING_ADMIN_REDIRECT_KEY` + `sessionStorage`-ефекту в `MenuContainer` (міг не спрацювати, якщо роль ще не встигла визначитись). Тепер `loginWithGoogle` редиректить **одразу на `/admin`** — адмін одразу відкриває кабінет. Не-адміни, які опинились на `/admin`, викидаються назад у меню (`handleAuthUser` → `router.replace('/')`). Механізм `PENDING_ADMIN_REDIRECT_KEY` видалено з `lib/supabase.ts`, `app/admin/page.tsx` та `MenuContainer.tsx`.
+- **На сторінці входу в кабінет миготів сторонній логотип (кавова чашка)**: на початковому завантаженні `cafeInfo` ще не завантажений (`null`), тому fallback-гілка рендерила заглушку `Coffee`. Заглушку замінено на пустий спейсер тих самих розмірів — тепер на сторінці входу відображається лише завантажений клієнтом логотип, без стороннього брендування та стрибка макета.
+- **На сторінці входу мигала назва «Світ Кави QR Меню» замість «Світ Кави»**: та сама причина — `cafeInfo` ще `null`, і `getCafeName(cafeInfo, lang) || t('appName')` відкочувався на `appName`. Тепер назва рендериться лише коли `cafeInfo` доступний (`cafeInfo ? getCafeName(...) || t('appName') : ''`) — замість неї нічого не блимає.
 
 ---
 

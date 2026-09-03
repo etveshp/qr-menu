@@ -1420,13 +1420,11 @@ export default function AdminPage() {
               />
             </div>
           ) : (
-            <div className="w-14 h-14 bg-[#3E2F26] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <Coffee className="w-7 h-7 text-[#FAF6EE]" />
-            </div>
+            <div className="w-44 sm:w-52 h-16 sm:h-20 mx-auto mb-4" aria-hidden="true" />
           )}
           
           <h2 className="text-xl sm:text-2xl font-display font-medium tracking-wide mb-1 text-[#231913]">
-            {getCafeName(cafeInfo, lang) || t('appName')}
+            {cafeInfo ? (getCafeName(cafeInfo, lang) || t('appName')) : ''}
           </h2>
           <p className="text-[11px] sm:text-xs text-[#8E7A68] tracking-widest uppercase mb-6 font-semibold">
             {t('adminCabinet')}
