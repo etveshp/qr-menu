@@ -283,7 +283,7 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 - [x] Тести `lib/__tests__/photo-storage.test.ts` (7 тестів: розпізнавання data-URI, MIME, шляхи, round-trip URL). 144 тести, `tsc --noEmit`, lint, `npm run build` — чисто.
 - [x] Міграцію `20260904100000_photo_storage.sql` застосовано до live-БД (`supabase db push`, 2026-09-04); бакет `menu-photos` існує й віддає публічні об'єкти (перевірено: неіснуючий об'єкт → 404 "Object not found"; публічне читання анонімом працює).
 - [x] Код фази 7.31 (і 7.30 CI) закомічено й запушено в `main` + `production` (коміт `425a4a7`) — Vercel деплоїть.
-- [ ] **Користувач**: прогнати `npm run backfill:photos` з `SUPABASE_SERVICE_ROLE_KEY` (бекап наявних base64-фото у Storage; ключ — у Supabase Dashboard → Settings → API); після цього перевірити меню й адмінку.
+- [x] `npm run backfill:photos` виконано з service-role ключем (2026-09-04): 6 об'єктів завантажено, 3 рядки оновлено — cafe_info (banner, logo), advertising (photo, photo_original), категорія з base64-фото. Товари та інші категорії вже мали Unsplash-URL — не чіпались. Перевірено: у БД публічні Storage-URL, банер віддається HTTP 200 (image/webp).
 
 ---
 
@@ -291,6 +291,7 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-04 | Фаза 7.31 завершена: `npm run backfill:photos` виконано (service-role) — 6 об'єктів у Storage, 3 рядки оновлено (cafe_info banner/logo, advertising photo/photo_original, категорія); перевірено публічні URL і HTTP 200. Старі Unsplash-фото не чіпались | Codebuff |
 | 2026-09-04 | Фази 7.30+7.31 задеплоєно: коміт `425a4a7` у `main` і `production` (Vercel деплоїть); міграцію `20260904100000_photo_storage.sql` застосовано до live-БД (`supabase db push`) — бакет `menu-photos` існує, публічне читання працює (404 "Object not found" для відсутнього об'єкта). Лишилось: `npm run backfill:photos` із service-role ключем (за користувачем) | Codebuff |
 | 2026-09-04 | Фаза 7.31 — Фото в Supabase Storage: `lib/photo-storage.ts` (детерміновані шляхи, хелпери), `lib/supabase.ts` (`storeOrKeep`: data-URI → Storage-URL при збереженні з фолбеком на inline, якщо бакета нема), міграція бакета `menu-photos` + RLS (читання публічне, запис — адмін), `scripts/backfill-photos.mjs` (service role), remotePattern для `next/image`, 7 тестів. 144 тести, tsc, lint, build — чисто. Live-БД не чіпали — застосування міграції й бекап за користувачем | Codebuff |
 | 2026-09-04 | Фаза 7.30 — CI workflow: `.github/workflows/ci.yml` — на push/PR у `main` GitHub Actions проганяє `npm test` (137), `npx tsc --noEmit`, `npm run lint`, `npm run build` (Node 22, npm-кеш; env не потрібен). Локально весь ланцюжок чистий | Codebuff |
