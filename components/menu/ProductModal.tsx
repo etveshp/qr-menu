@@ -1,6 +1,7 @@
 'use client';
 
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
+import { computeTitleFloat, type TitleFloatState } from '@/lib/title-float';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, Minus, Plus, ConciergeBell } from 'lucide-react';
@@ -61,6 +62,56 @@ export function ProductModal({
   onRecPointerMove,
 }: ProductModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const titleRowRef = useRef<HTMLDivElement>(null);
+
+  const [float, setFloat] = useState<TitleFloatState>(() =>
+    computeTitleFloat({ scrollTop: 0, paddingTop: 20, rowHeight: 60 })
+  );
+  const [cloneLayout, setCloneLayout] = useState({ left: 20, width: 0, height: 60 });
+
+  useEffect(() => {
+    const content = contentRef.current;
+    const row = titleRowRef.current;
+    if (!product || !content || !row) return;
+
+    let paddingTop = 20;
+    let rowHeight = Math.max(1, row.offsetHeight);
+
+    const measure = () => {
+      const cs = getComputedStyle(content);
+      paddingTop = parseFloat(cs.paddingTop) || 20;
+      rowHeight = Math.max(1, row.offsetHeight);
+      const padLeft = parseFloat(cs.paddingLeft) || 20;
+      const padRight = parseFloat(cs.paddingRight) || 20;
+      const width = content.clientWidth - padLeft - padRight;
+      setCloneLayout({ left: padLeft, width: Math.max(0, width), height: rowHeight });
+    };
+
+    const update = () => {
+      setFloat(computeTitleFloat({ scrollTop: content.scrollTop, paddingTop, rowHeight }));
+    };
+
+    measure();
+    update();
+    content.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', measure);
+    const ro = new ResizeObserver(() => {
+      measure();
+      update();
+    });
+    ro.observe(row);
+    document.fonts?.ready?.then(() => {
+      measure();
+      update();
+    }).catch(() => {});
+
+    return () => {
+      content.removeEventListener('scroll', update);
+      window.removeEventListener('resize', measure);
+      ro.disconnect();
+    };
+  }, [product]);
 
   useEffect(() => {
     if (!product || !dialogRef.current) return;
@@ -179,7 +230,7 @@ export function ProductModal({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Photo Banner with Close Button */}
-            <div className="relative w-full aspect-[4/3] bg-[#F1ECE3] shrink-0">
+            <div className="relative w-full aspect-[4/3] bg-[#F1ECE3] shrink-0 overflow-hidden">
               <Image
                 src={product.photo}
                 alt={getProductName(product)}
@@ -187,6 +238,32 @@ export function ProductModal({
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
+
+              {/* Title float overlay: gradient + light copy of the title/price rising over the photo */}
+              <div className="absolute inset-0 z-[5] overflow-hidden pointer-events-none" aria-hidden="true">
+                <div
+                  className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent"
+                  style={{ height: float.gradientHeight, opacity: float.gradientOpacity }}
+                />
+                <div
+                  className="absolute flex items-start justify-between gap-3"
+                  style={{
+                    left: cloneLayout.left,
+                    width: cloneLayout.width,
+                    height: cloneLayout.height,
+                    bottom: float.cloneBottom,
+                    opacity: float.cloneOpacity,
+                  }}
+                >
+                  <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#FAF6EE] leading-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+                    {getProductName(product)}
+                  </h3>
+                  <span className="font-bold text-2xl sm:text-3xl text-[#E9C78E] shrink-0 tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+                    {product.price} {t('priceCurrency')}
+                  </span>
+                </div>
+              </div>
+
               <button
                 onClick={onClose}
                 className="absolute top-3.5 right-3.5 z-10 w-9 h-9 rounded-full bg-black/50 text-white backdrop-blur-md flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all shadow-lg border border-white/10"
@@ -197,8 +274,8 @@ export function ProductModal({
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
-              <div className="flex items-start justify-between gap-3">
+            <div ref={contentRef} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              <div ref={titleRowRef} className="flex items-start justify-between gap-3" style={{ opacity: float.inFlowOpacity }}>
                 <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#231913] leading-tight">
                   {getProductName(product)}
                 </h3>
