@@ -37,6 +37,7 @@ export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, 
           src={product.photo}
           alt={name}
           fill
+          sizes="(max-width: 640px) 46vw, 424px"
           className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           referrerPolicy="no-referrer"
         />

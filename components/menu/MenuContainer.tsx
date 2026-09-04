@@ -425,6 +425,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
                           src={categories.find(c => c.id === activeCategory)!.photo}
                           alt="Category Mini"
                           fill
+                          sizes="36px"
                           className="object-cover"
                           referrerPolicy="no-referrer"
                         />

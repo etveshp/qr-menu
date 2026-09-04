@@ -86,6 +86,7 @@ export function AdPopup({ t }: AdPopupProps) {
               src={ad.photo}
               alt={t('advertising')}
               fill
+              sizes="(min-width: 640px) 240px, 320px"
               className="object-cover"
               referrerPolicy="no-referrer"
               unoptimized={ad.photo.startsWith('data:')}

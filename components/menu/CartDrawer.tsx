@@ -123,6 +123,7 @@ export function CartDrawer({
                             src={prod.photo}
                             alt={prod.nameUk}
                             fill
+                            sizes="96px"
                             className="object-cover"
                             referrerPolicy="no-referrer"
                           />

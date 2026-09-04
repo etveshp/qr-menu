@@ -1440,6 +1440,7 @@ export default function AdminPage() {
                 src={cafeInfo.logo} 
                 alt={getCafeName(cafeInfo, lang) || "Logo"} 
                 fill 
+                sizes="(min-width: 640px) 208px, 176px"
                 className="object-contain" 
                 referrerPolicy="no-referrer"
                 unoptimized={cafeInfo.logo.startsWith('data:')}
@@ -1651,6 +1652,7 @@ export default function AdminPage() {
                       src={currentUser.user_metadata.avatar_url}
                       alt="User"
                       fill
+                      sizes="24px"
                       className="object-cover"
                       referrerPolicy="no-referrer"
                     />
@@ -1900,6 +1902,7 @@ export default function AdminPage() {
                             src={cafeForm.banner} 
                             alt="Cafe Banner Preview" 
                             fill 
+                            sizes="(max-width: 768px) 100vw, 768px"
                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
                             referrerPolicy="no-referrer"
                             unoptimized={cafeForm.banner.startsWith('data:')}
@@ -1981,6 +1984,7 @@ export default function AdminPage() {
                             src={cafeForm.logo} 
                             alt="Cafe Logo Preview" 
                             fill 
+                            sizes="(max-width: 768px) 100vw, 768px"
                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
                             referrerPolicy="no-referrer"
                             unoptimized={cafeForm.logo.startsWith('data:')}
@@ -3149,6 +3153,7 @@ export default function AdminPage() {
                     src={adForm.photo}
                     alt="Ad Photo Preview"
                     fill
+                    sizes="280px"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                     unoptimized={adForm.photo.startsWith('data:')}

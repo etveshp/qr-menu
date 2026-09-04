@@ -58,6 +58,7 @@ export function NotAdminModal({ isOpen, logo, title, text, okLabel = 'ОК', onO
                   src={logo}
                   alt="Logo"
                   fill
+                  sizes="128px"
                   className="object-contain"
                   unoptimized={logo.startsWith('data:')}
                   referrerPolicy="no-referrer"

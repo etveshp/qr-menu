@@ -2,9 +2,10 @@
  * Геометрія «напливу» назви страви та ціни над фото у розкритій картці (ProductModal).
  *
  * При скролі контенту картки рядок назви+ціни не ховається під фото, а плавно
- * напливає над нижнім краєм фото на висоту свого рядка і зупиняється, коли його
- * нижній край досягає нижнього краю фото. Одночасно знизу фото «пропагується»
- * вгору затемнюючий градієнт — рівно такої висоти, щоб назву і ціну було видно.
+ * напливає над нижнім краєм фото на висоту свого рядка і зупиняється, лишаючи
+ * невеликий відступ (TITLE_FLOAT_BOTTOM_GAP) від нижнього краю фото. Одночасно
+ * знизу фото «пропагується» вгору затемнюючий градієнт — рівно такої висоти,
+ * щоб назву і ціну було видно.
  *
  * Уся логіка тут — чиста функція від scrollTop контейнера та виміряних розмірів,
  * щоб її можна було покрити юніт-тестами без DOM.
@@ -12,6 +13,9 @@
 
 /** Додатковий «повітряний» зазор градієнта над рядком назви, px. */
 export const TITLE_FLOAT_GRADIENT_GAP = 12;
+
+/** Відступ між нижнім краєм фото та нижнім краєм напливлого рядка назви, px. */
+export const TITLE_FLOAT_BOTTOM_GAP = 16;
 
 export interface TitleFloatInput {
   /** Поточна позиція скролу контейнера з контентом, px (0..scrollHeight). */
@@ -25,10 +29,10 @@ export interface TitleFloatInput {
 export interface TitleFloatState {
   /**
    * Прогрес переходу 0..1: 0 — рядок ще повністю під фото (у потоці контенту),
-   * 1 — рядок повністю наплив над фото (нижній край збігається з нижнім краєм фото).
+   * 1 — рядок повністю наплив над фото (нижній край на TITLE_FLOAT_BOTTOM_GAP вище нижнього краю фото).
    */
   progress: number;
-  /** Зсув копії ряду вгору відносно нижнього краю фото, px (0 — упритул до фото). */
+  /** Зсув нижнього краю копії ряду над нижнім краєм фото, px (у напливі — TITLE_FLOAT_BOTTOM_GAP). */
   cloneBottom: number;
   /** Прозорість «світлої» копії над фото, 0..1. */
   cloneOpacity: number;
@@ -50,12 +54,18 @@ export function computeTitleFloat({ scrollTop, paddingTop, rowHeight }: TitleFlo
   const travel = Math.min(Math.max(scrollTop, 0), total);
   // Частка рядка, що вже опинилась над фото (0 — рядок цілком під фото).
   const progress = clamp01((scrollTop - paddingTop) / safeRow);
+  // У фазі «під фото» копія рухається від свого місця до нижнього краю фото;
+  // у фазі напливу вона доходить до спокою на TITLE_FLOAT_BOTTOM_GAP вище нижнього краю фото.
+  const cloneBottom =
+    travel <= paddingTop
+      ? total - travel
+      : safeRow - progress * (safeRow - TITLE_FLOAT_BOTTOM_GAP);
   return {
     progress,
-    cloneBottom: total - travel,
+    cloneBottom,
     cloneOpacity: progress,
     inFlowOpacity: 1 - progress,
-    gradientHeight: (safeRow + TITLE_FLOAT_GRADIENT_GAP) * progress,
+    gradientHeight: (safeRow + TITLE_FLOAT_GRADIENT_GAP + TITLE_FLOAT_BOTTOM_GAP) * progress,
     gradientOpacity: progress,
   };
 }

@@ -28,7 +28,7 @@ export function ActionCard({
   return (
     <div className="relative flex items-stretch overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
       <div className="relative w-24 aspect-[4/3] shrink-0 self-stretch overflow-hidden">
-        <Image src={photo} alt={alt} fill className="object-cover" referrerPolicy="no-referrer" />
+        <Image src={photo} alt={alt} fill sizes="96px" className="object-cover" referrerPolicy="no-referrer" />
       </div>
 
       {/* Sliding text panel (covers photo on open) */}

@@ -50,6 +50,7 @@ export function Header({
                 src={cafeInfo.logo}
                 alt={getCafeName(cafeInfo, lang) || 'Logo'}
                 fill
+                sizes="(min-width: 640px) 240px, 176px"
                 className="object-contain !object-left"
                 referrerPolicy="no-referrer"
               />

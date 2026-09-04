@@ -235,6 +235,7 @@ export function ProductModal({
                 src={product.photo}
                 alt={getProductName(product)}
                 fill
+                sizes="(max-width: 512px) 100vw, 512px"
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -339,6 +340,7 @@ export function ProductModal({
                             src={rec.photo}
                             alt={getProductName(rec)}
                             fill
+                            sizes="112px"
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             referrerPolicy="no-referrer"
                           />
