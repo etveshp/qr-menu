@@ -58,7 +58,7 @@ Required checks after meaningful work: `npm test`, `npx tsc --noEmit`, `npm run 
 
 ## Gotchas & environment notes
 
-- `AGENTS.md` header still says "Next.js 15" — the project was upgraded to **Next.js 16.3.4** (PLAN Phase 7.23); trust `package.json`.
+- `AGENTS.md` header now matches **Next.js 16.3.4** (upgrade was PLAN Phase 7.23); `package.json` version (`0.1.0`) still lags the CHANGELOG (`0.3.3`) — trust `CHANGELOG.md` for the changelog, `package.json` only for dependency versions.
 - Tailwind v4 via `@tailwindcss/postcss` — no `tailwind.config.*` file; theme lives in `app/globals.css`.
 - Dev port: 3001 per `.env.example` (3000 is used elsewhere); check running listeners before choosing a port.
 - `.env.local` holds real Supabase keys; `.env.example` has placeholders — never commit real keys. Tests must not depend on live Supabase (`lib/supabase.ts` and some UI components are excluded from coverage for that reason).
