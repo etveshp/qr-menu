@@ -326,7 +326,7 @@ export default function AdminPage() {
 
   // Kebab card actions
   const [openActionsId, setOpenActionsId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'category' | 'product'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'category' | 'product'; id: string; name: string; productsCount?: number } | null>(null);
   const [prodForm, setProdForm] = useState<{
     id: string;
     categoryId: string;
@@ -1196,11 +1196,6 @@ export default function AdminPage() {
   };
 
   const performDeleteCategory = async (id: string) => {
-    const productsInCategory = products.filter(p => p.categoryId === id);
-    if (productsInCategory.length > 0) {
-      showToast(t('categoryHasProducts'), 'error');
-      return;
-    }
     try {
       await deleteCategory(id);
       await fetchData();
@@ -2345,7 +2340,7 @@ export default function AdminPage() {
                           setOpenActionsId(null);
                           handleEditCategory(cat);
                         }}
-                        onDelete={() => setDeleteTarget({ kind: 'category', id: cat.id, name: cat.nameUk })}
+                        onDelete={() => setDeleteTarget({ kind: 'category', id: cat.id, name: cat.nameUk, productsCount: products.filter(p => p.categoryId === cat.id).length })}
                       >
                         <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
                         <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
@@ -3478,6 +3473,9 @@ export default function AdminPage() {
         isOpen={!!deleteTarget}
         title={t('deleteConfirmTitle')}
         message={deleteTarget ? `${t('deleteConfirmMessage')} "${deleteTarget.name}"?` : ''}
+        warning={deleteTarget?.kind === 'category' && (deleteTarget.productsCount ?? 0) > 0
+          ? t('deleteCategoryWithProductsWarning').replace('{count}', String(deleteTarget!.productsCount))
+          : ''}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           const target = deleteTarget;

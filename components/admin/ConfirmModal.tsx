@@ -1,11 +1,12 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
   message: string;
+  warning?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   onCancel: () => void;
@@ -16,6 +17,7 @@ export function ConfirmModal({
   isOpen,
   title,
   message,
+  warning = '',
   confirmLabel = 'Видалити',
   cancelLabel = 'Скасувати',
   onCancel,
@@ -30,7 +32,13 @@ export function ConfirmModal({
           <Trash2 className="w-7 h-7" />
         </div>
         <h3 className="font-display font-medium text-xl text-[#231913] mb-2">{title}</h3>
-        <p className="text-xs text-[#8E7A68] leading-relaxed mb-6">{message}</p>
+        <p className="text-xs text-[#8E7A68] leading-relaxed mb-2">{message}</p>
+        {warning && (
+          <div className="mb-5 flex items-start gap-2.5 p-3 bg-[#FAF6EE] border border-[#C09E6D]/40 rounded-xl text-left">
+            <AlertTriangle className="w-4 h-4 text-[#C09E6D] shrink-0 mt-0.5" />
+            <span className="text-xs text-[#3E2F26] font-medium leading-relaxed">{warning}</span>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
