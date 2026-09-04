@@ -17,7 +17,7 @@ async function fetchMenuData(): Promise<MenuContainerProps['initialData']> {
 
   try {
     const res = await fetch(`${baseUrl}/api/menu`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 30, tags: ['menu'] },
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -25,6 +25,8 @@ async function fetchMenuData(): Promise<MenuContainerProps['initialData']> {
       cafeInfo: data.cafeInfo ?? null,
       categories: Array.isArray(data.categories) ? data.categories : [],
       products: Array.isArray(data.products) ? data.products : [],
+      textBanner: data.textBanner ?? null,
+      advertising: data.advertising ?? null,
     };
   } catch (e) {
     console.error('Failed to fetch menu data for SSR:', e);

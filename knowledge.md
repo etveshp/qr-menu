@@ -6,7 +6,7 @@
 
 ## What this is
 
-A QR-code restaurant menu prototype (coffee house "Світ Кави"): public menu page + admin cabinet (login via Google OAuth, manage cafe settings, categories, products, advertising popup, text banner, greetings). This is a **separate Supabase copy** of an older Firebase version (`SVITKAVY` / `etveshp/svit-kavu-qr-menu`) — different GitHub/Google/Supabase/Vercel accounts, not linked to personal ones.
+A QR-code restaurant menu prototype (coffee house "Світ Кави"): public menu page + admin cabinet (login via Google OAuth, manage cafe settings, categories, products, photo banner, text banner, greetings). This is a **separate Supabase copy** of an older Firebase version (`SVITKAVY` / `etveshp/svit-kavu-qr-menu`) — different GitHub/Google/Supabase/Vercel accounts, not linked to personal ones.
 
 Stack: **Next.js 16** (App Router, Turbopack build) + React 19 + TypeScript (strict) + Tailwind CSS v4 + Supabase (Auth via Google OAuth + Postgres + Realtime) deployed on Vercel.
 
@@ -28,7 +28,7 @@ Stack: **Next.js 16** (App Router, Turbopack build) + React 19 + TypeScript (str
 | `supabase-schema.sql`, `supabase-seed.sql` | Canonical full schema (tables + RLS) & seed |
 | `test/`, `lib|components|hooks/__tests__/`, `e2e/menu.spec.ts` | Vitest unit tests, Playwright e2e |
 
-DB tables: `cafe_info` (localized names/slogan/descriptions, greetings), `categories`, `products`, `profiles` (admin flag, RLS), `advertising` (popup), `text_banner`. All public reads; writes restricted to admins via RLS through `profiles` (admin check uses `SECURITY DEFINER` `is_admin_true()` to avoid recursive RLS).
+DB tables: `cafe_info` (localized names/slogan/descriptions, greetings), `categories`, `products`, `profiles` (admin flag, RLS), `advertising` (photo banner), `text_banner`. All public reads; writes restricted to admins via RLS through `profiles` (admin check uses `SECURITY DEFINER` `is_admin_true()` to avoid recursive RLS).
 
 ## Commands
 

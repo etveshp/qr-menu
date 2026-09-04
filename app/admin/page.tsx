@@ -2589,7 +2589,7 @@ export default function AdminPage() {
               {/* Two sections side-by-side on desktop (2 columns), stacked on mobile */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                {/* Popup in menu */}
+                {/* Photo banner */}
                 <div className="flex flex-col p-6 border border-[#E6DFD5] rounded-2xl bg-white">
                   <h3 className="text-xl font-display font-medium text-[#231913] mb-4 tracking-wide pb-2 border-b border-[#E6DFD5]">
                     {t('advertising')}
@@ -3224,7 +3224,7 @@ export default function AdminPage() {
         </form>
       </AdminDrawer>
 
-      {/* ADVERTISING (Popup) DRAWER */}
+      {/* ADVERTISING (Photo banner) DRAWER */}
       <AdminDrawer
         isOpen={isAdDrawerOpen}
         title={t('advertising')}
@@ -3344,7 +3344,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Optional product link (category → product): clicking the popup opens the dish */}
+          {/* Optional product link (category → product): clicking the photo banner opens the dish */}
           <div className="space-y-3">
             <div>
               <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('adLinkLabel')}</label>

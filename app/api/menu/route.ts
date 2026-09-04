@@ -17,10 +17,12 @@ export async function GET(): Promise<NextResponse> {
   }
 
   try {
-    const [cafeRes, catsRes, prodsRes] = await Promise.all([
+    const [cafeRes, catsRes, prodsRes, bannerRes, adRes] = await Promise.all([
       supabase.from('cafe_info').select('*').eq('id', 1).single(),
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('products').select('*').order('sort_order'),
+      supabase.from('text_banner').select('*').eq('id', 1).single(),
+      supabase.from('advertising').select('*').eq('id', 1).single(),
     ]);
 
     const cafeRow = cafeRes.data;
@@ -57,9 +59,34 @@ export async function GET(): Promise<NextResponse> {
       price: Number(r.price), photo: r.photo, sortOrder: r.sort_order ?? 0,
     }));
 
-    return NextResponse.json({ cafeInfo, categories, products }, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
-    });
+    // Single-row settings for the photo banner and the text banner. These are
+    // tiny (one row each) and ride along with the menu JSON so the client can
+    // skip its own initial Supabase queries when the page is server-rendered.
+    const textBanner = {
+      text: bannerRes.data?.text ?? '',
+      categoryId: bannerRes.data?.category_id ?? '',
+      productId: bannerRes.data?.product_id ?? '',
+      enabled: bannerRes.data?.enabled ?? false,
+    };
+
+    const advertising = {
+      photo: adRes.data?.photo ?? '',
+      photoOriginal: adRes.data?.photo_original ?? '',
+      delaySeconds: adRes.data?.delay_seconds ?? 5,
+      enabled: adRes.data?.enabled ?? false,
+      showUntil: adRes.data?.show_until ?? '',
+      categoryId: adRes.data?.category_id ?? '',
+      productId: adRes.data?.product_id ?? '',
+    };
+
+    return NextResponse.json(
+      { cafeInfo, categories, products, textBanner, advertising },
+      {
+        // Cached by the menu page's SSR fetch (ISR + on-demand revalidation),
+        // so this handler itself stays uncached to keep regenerations fresh.
+        headers: { 'Cache-Control': 'no-store' },
+      }
+    );
   } catch (e) {
     console.error('Menu API error:', e);
     return NextResponse.json({ error: 'Failed to load menu' }, { status: 500 });

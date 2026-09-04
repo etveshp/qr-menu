@@ -27,11 +27,12 @@ beforeEach(() => {
 });
 
 describe('useAuth', () => {
-  it('initializes isAdmin from localStorage', () => {
+  it('starts not-admin on first render (hydration-safe)', () => {
     localStorage.setItem('aura_admin_auth', 'true');
     mocks.subscribeToAuth.mockReturnValue(vi.fn());
     const { result } = renderHook(() => useAuth());
-    expect(result.current.isAdmin).toBe(true);
+    // First (hydration) render must match SSR: no admin yet.
+    expect(result.current.isAdmin).toBe(false);
   });
 
   it('subscribes to auth on mount', async () => {

@@ -9,7 +9,7 @@ import type { Translator } from '@/lib/translator';
 
 const DEFAULT_AD: Advertising = { photo: '', delaySeconds: 5, enabled: false };
 
-// The popup shows while `showUntil` is empty (no limit) or today <= showUntil.
+// The photo banner shows while `showUntil` is empty (no limit) or today <= showUntil.
 const isWithinShowWindow = (ad: Advertising): boolean => {
   if (!ad.showUntil) return true;
   if (typeof window === 'undefined') return true;
@@ -24,16 +24,21 @@ interface AdPopupProps {
   products: Product[];
   onOpenProduct: (product: Product) => void;
   t: Translator;
+  /** Fresh photo-banner settings from SSR (menu caching); skips the initial fetch. */
+  initialAd?: Advertising;
 }
 
-export function AdPopup({ products, onOpenProduct, t }: AdPopupProps) {
-  const [ad, setAd] = useState<Advertising>(DEFAULT_AD);
+export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps) {
+  const [ad, setAd] = useState<Advertising>(initialAd ?? DEFAULT_AD);
   const [visible, setVisible] = useState(false);
   const wasShownRef = useRef(false);
+  // Captured once on mount so the effect (empty deps) does not resubscribe when
+  // props change; also lets us schedule the SSR-provided banner immediately.
+  const initialAdRef = useRef(initialAd);
 
-  // Show the popup once per page load, after the configured delay, once the ad
+  // Show the photo banner once per page load, after the configured delay, once the ad
   // is enabled and has a photo (and is still within its "show until" window).
-  // Realtime updates refresh the settings, but the popup is never re-shown
+  // Realtime updates refresh the settings, but the banner is never re-shown
   // after it was already displayed.
   useEffect(() => {
     let cancelled = false;
@@ -52,10 +57,14 @@ export function AdPopup({ products, onOpenProduct, t }: AdPopupProps) {
       }, Math.max(0, (next.delaySeconds ?? 5) * 1000));
     };
 
+    const skipInitial = initialAdRef.current !== undefined;
+    if (skipInitial && initialAdRef.current) {
+      schedule(initialAdRef.current);
+    }
     subscribeAdvertising((next) => {
       setAd(next);
       schedule(next);
-    });
+    }, { skipInitial });
 
     return () => {
       cancelled = true;
@@ -85,7 +94,7 @@ export function AdPopup({ products, onOpenProduct, t }: AdPopupProps) {
           aria-modal="true"
           aria-label={t('advertising')}
         >
-          {/* 9:16 popup with small outer margins (not full screen) */}
+          {/* 9:16 photo banner with small outer margins (not full screen) */}
           <motion.div
             className={`relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${product ? 'cursor-pointer' : ''}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
@@ -102,7 +111,7 @@ export function AdPopup({ products, onOpenProduct, t }: AdPopupProps) {
               unoptimized={ad.photo.startsWith('data:')}
             />
 
-            {/* Whole popup opens the linked dish (click-through area) */}
+            {/* Whole photo banner opens the linked dish (click-through area) */}
             {product && (
               <button
                 type="button"

@@ -83,7 +83,7 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 
--- Advertising popup (single row)
+-- Photo banner in the menu (single row)
 create table public.advertising (
   id integer primary key default 1,
   photo text not null default '',

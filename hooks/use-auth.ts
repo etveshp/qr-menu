@@ -12,16 +12,13 @@ export function useAuth(onNonAdmin?: () => void) {
   }, [onNonAdmin]);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return (
-        sessionStorage.getItem('aura_admin_auth') === 'true' ||
-        localStorage.getItem('aura_admin_auth') === 'true' ||
-        localStorage.getItem('isAdmin') === 'true'
-      );
-    }
-    return false;
-  });
+  // Deliberately starts as `false` on both the server and the client's first
+  // render: the admin status comes from the stored Supabase session, which only
+  // exists on the client. Reading localStorage synchronously in the initializer
+  // made the client's first render differ from the SSR HTML (admin "key" icon
+  // appeared only on the client) → hydration mismatch. The subscription below
+  // restores the real status from the auth state after hydration.
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth(async (user) => {

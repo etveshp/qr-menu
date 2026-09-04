@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Category, Product, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
+import { Category, Product, Advertising, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
 import {
   playStepperSound,
   triggerStepperHaptic,
@@ -32,6 +32,8 @@ export interface MenuContainerProps {
     cafeInfo: Record<string, unknown> | null;
     categories: Record<string, unknown>[];
     products: Record<string, unknown>[];
+    textBanner?: Record<string, unknown> | null;
+    advertising?: Record<string, unknown> | null;
   } | null;
 }
 
@@ -102,10 +104,17 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [modalQty, setModalQty] = useState<number>(1);
   const [isJustAdded, setIsJustAdded] = useState<boolean>(false);
 
-  // Text banner (sticky bar under the header)
-  const [textBanner, setTextBanner] = useState<TextBannerData>({ text: '', enabled: false });
+  // Text banner (sticky bar under the header). Seeded from SSR (Variant 1) so
+  // the subscription only listens for realtime changes instead of re-fetching.
+  const hasInitialBannerRef = useRef(initialData?.textBanner != null);
+  const [textBanner, setTextBanner] = useState<TextBannerData>(() => {
+    if (initialData?.textBanner) {
+      return initialData.textBanner as unknown as TextBannerData;
+    }
+    return { text: '', enabled: false };
+  });
   useEffect(() => {
-    const unsubscribe = subscribeTextBanner((banner) => setTextBanner(banner));
+    const unsubscribe = subscribeTextBanner((banner) => setTextBanner(banner), { skipInitial: hasInitialBannerRef.current });
     return () => unsubscribe();
   }, []);
 
@@ -515,7 +524,12 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
       <ScrollToTop visible={showScrollTop} label={t('scrollToTop')} onClick={scrollToTop} />
 
-      <AdPopup products={products} onOpenProduct={openProductModal} t={t} />
+      <AdPopup
+        products={products}
+        onOpenProduct={openProductModal}
+        initialAd={initialData?.advertising ? (initialData.advertising as unknown as Advertising) : undefined}
+        t={t}
+      />
 
       <NotAdminModal
         isOpen={showNotAdminPopup}

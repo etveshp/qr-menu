@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   subscribeCafeInfo,
   subscribeCategories,
@@ -30,6 +30,14 @@ function toProducts(data: Record<string, unknown>[] | undefined): Product[] {
 }
 
 export function useMenuData(initialData?: MenuDataInitial) {
+  // Variant 1 (menu caching): the server-rendered page is the fresh baseline
+  // (ISR ≤30 s + on-demand revalidation), so when SSR data is present the menu
+  // subscriptions skip their initial full SELECT and only react to realtime
+  // changes. Without SSR data (fetch failure) we keep the previous behaviour:
+  // the subscription fetches the current state and drives the loading state.
+  const hasInitialData = initialData != null;
+  const hasInitialDataRef = useRef(hasInitialData);
+
   const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(() => {
     if (initialData?.cafeInfo) return toCafeInfo(initialData.cafeInfo);
     if (typeof window !== 'undefined') {
@@ -54,7 +62,7 @@ export function useMenuData(initialData?: MenuDataInitial) {
     }
     return [];
   });
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(!hasInitialData);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,18 +74,19 @@ export function useMenuData(initialData?: MenuDataInitial) {
       }
     };
 
+    const skipInitial = hasInitialDataRef.current;
     const unsubCafe = subscribeCafeInfo((info) => {
       setCafeInfo(info);
       tick();
-    });
+    }, { skipInitial });
     const unsubCats = subscribeCategories((cats) => {
       setCategories(cats);
       tick();
-    });
+    }, { skipInitial });
     const unsubProds = subscribeProducts((prods) => {
       setProducts(prods);
       tick();
-    });
+    }, { skipInitial });
 
     return () => {
       cancelled = true;

@@ -207,6 +207,32 @@ const mapCafeInfo = (row: any): CafeInfo => ({
   greetingAdminUk: row.greeting_admin_uk ?? '', greetingAdminHu: row.greeting_admin_hu ?? '', greetingAdminEn: row.greeting_admin_en ?? '',
   greetingAdminEnabled: row.greeting_admin_enabled ?? false,
 });
+
+/**
+ * On-demand ISR revalidation of the public menu page (Variant 3).
+ * Called from the admin-side write functions after the Supabase write succeeds.
+ * Fire-and-forget: a failure must never fail the admin save itself.
+ */
+function triggerMenuRevalidation(): void {
+  if (typeof window === 'undefined' || typeof fetch !== 'function' || !supabase) return;
+  supabase.auth
+    .getSession()
+    .then(({ data }) => {
+      const token = data.session?.access_token;
+      if (!token) return;
+      fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    })
+    .catch(() => {});
+}
+
+/** Options for menu subscriptions (Variant 1). */
+export interface SubscribeOptions {
+  /** Skip the initial SELECT: the caller already has fresh data (e.g. from SSR). */
+  skipInitial?: boolean;
+}
 const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
   photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
@@ -235,15 +261,18 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   }
   return getLocal('cafeInfo', DEFAULT_CAFE_INFO);
 };
-export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => void) => {
+export const subscribeCafeInfo = (callback: (info: CafeInfo) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
-  // Fetch current value first (Realtime only pushes changes, not the initial state)
-  supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
-    if (!error && data) {
-      const info: CafeInfo = mapCafeInfo(data);
-      setLocal('cafeInfo', info); callback(info);
-    }
-  }, () => {});
+  // Fetch current value first (Realtime only pushes changes, not the initial
+  // state) — unless the caller already has fresh data (SSR) and skips it.
+  if (!opts?.skipInitial) {
+    supabase.from('cafe_info').select('*').eq('id', 1).single().then(({ data, error }) => {
+      if (!error && data) {
+        const info: CafeInfo = mapCafeInfo(data);
+        setLocal('cafeInfo', info); callback(info);
+      }
+    }, () => {});
+  }
   const channel = supabase.channel('cafe_info');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
@@ -280,6 +309,7 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
+    triggerMenuRevalidation();
   }
 };
 
@@ -291,7 +321,7 @@ export const getCategories = async (): Promise<Category[]> => {
   }
   return getLocal('categories', DEFAULT_CATEGORIES);
 };
-export const subscribeCategories = (callback: (cats: Category[]) => void): (() => void) => {
+export const subscribeCategories = (callback: (cats: Category[]) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   let fetchTimer: ReturnType<typeof setTimeout> | null = null;
   const fetchAll = async () => {
@@ -299,16 +329,15 @@ export const subscribeCategories = (callback: (cats: Category[]) => void): (() =
     const cats = (data ?? []).map(mapCategory);
     setLocal('categories', cats); callback(cats);
   };
-  // Fetch current value first (Realtime only pushes changes, not the initial state)
-  fetchAll();
+  // Fetch current value first (Realtime only pushes changes, not the initial
+  // state) — unless the caller already has fresh data (SSR) and skips it.
+  if (!opts?.skipInitial) {
+    fetchAll();
+  }
   const channel = supabase.channel('categories');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, (payload) => {
-    if (payload.eventType === 'DELETE') {
-      const current = getLocal('categories', DEFAULT_CATEGORIES) as Category[];
-      const updated = current.filter(c => c.id !== payload.old?.id);
-      setLocal('categories', updated); callback(updated);
-      return;
-    }
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+    // Refetch the whole list on every change (INSERT/UPDATE/DELETE). A DELETE
+    // cannot reliably patch a skipped local cache, so no special-case here.
     // Debounce batch updates (e.g. reorder writes many rows at once).
     if (fetchTimer) clearTimeout(fetchTimer);
     fetchTimer = setTimeout(() => { fetchAll(); }, 250);
@@ -338,6 +367,7 @@ export const reorderCategories = async (orderedIds: string[]): Promise<void> => 
       }
     }
     if (failed.length) throw new Error('Помилка збереження порядку категорій');
+    triggerMenuRevalidation();
   }
 };
 export const saveCategory = async (category: Category): Promise<void> => {
@@ -355,6 +385,7 @@ export const saveCategory = async (category: Category): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('categories').upsert({ id: stored.id, name_uk: stored.nameUk, name_hu: stored.nameHu, name_en: stored.nameEn, photo: stored.photo, photo_x: stored.photoX ?? 50, photo_y: stored.photoY ?? 50, photo_scale: stored.photoScale ?? 1, photo_original: stored.photoOriginal ?? '', sort_order: stored.sortOrder ?? 0 });
     if (error) { console.error('Supabase error saving category', error); throw new Error('Помилка збереження категорії'); }
+    triggerMenuRevalidation();
   }
 };
 export const deleteCategory = async (id: string): Promise<void> => {
@@ -363,6 +394,7 @@ export const deleteCategory = async (id: string): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) { console.error('Supabase error deleting category', error); throw new Error('Помилка видалення категорії'); }
+    triggerMenuRevalidation();
   }
 };
 
@@ -374,7 +406,7 @@ export const getProducts = async (): Promise<Product[]> => {
   }
   return getLocal('products', DEFAULT_PRODUCTS);
 };
-export const subscribeProducts = (callback: (prods: Product[]) => void): (() => void) => {
+export const subscribeProducts = (callback: (prods: Product[]) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   let fetchTimer: ReturnType<typeof setTimeout> | null = null;
   const fetchAll = async () => {
@@ -382,8 +414,11 @@ export const subscribeProducts = (callback: (prods: Product[]) => void): (() => 
     const prods = (data ?? []).map(mapProduct);
     setLocal('products', prods); callback(prods);
   };
-  // Fetch current value first (Realtime only pushes changes, not the initial state)
-  fetchAll();
+  // Fetch current value first (Realtime only pushes changes, not the initial
+  // state) — unless the caller already has fresh data (SSR) and skips it.
+  if (!opts?.skipInitial) {
+    fetchAll();
+  }
   const channel = supabase.channel('products');
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
     // Debounce batch updates (e.g. reorder writes many rows at once).
@@ -412,6 +447,7 @@ export const reorderProducts = async (orderedIds: string[]): Promise<void> => {
       }
     }
     if (failed.length) throw new Error('Помилка збереження порядку страв');
+    triggerMenuRevalidation();
   }
 };
 export const saveProduct = async (product: Product): Promise<void> => {
@@ -443,6 +479,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       sort_order: stored.sortOrder ?? 0,
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
+    triggerMenuRevalidation();
   }
 };
 export const deleteProduct = async (id: string): Promise<void> => {
@@ -451,6 +488,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) { console.error('Supabase error deleting product', error); throw new Error('Помилка видалення страви'); }
+    triggerMenuRevalidation();
   }
 };
 
@@ -480,7 +518,7 @@ export const getAdvertising = async (): Promise<Advertising> => {
 
 let advertisingSubId = 0;
 
-export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() => void) => {
+export const subscribeAdvertising = (callback: (ad: Advertising) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   // Use a unique channel topic per subscription: `supabase.channel(topic)`
   // reuses an existing channel with the same topic, which would already be
@@ -488,12 +526,14 @@ export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() =
   // (e.g. React StrictMode double-mount in dev) or when several subscribers
   // are registered. A unique topic guarantees a fresh, unsubscribed channel.
   const topic = `advertising-${advertisingSubId++}`;
-  supabase.from('advertising').select('*').eq('id', 1).single().then(({ data, error }) => {
-    if (!error && data) {
-      const ad = mapAdvertising(data);
-      setLocal('advertising', ad); callback(ad);
-    }
-  }, () => {});
+  if (!opts?.skipInitial) {
+    supabase.from('advertising').select('*').eq('id', 1).single().then(({ data, error }) => {
+      if (!error && data) {
+        const ad = mapAdvertising(data);
+        setLocal('advertising', ad); callback(ad);
+      }
+    }, () => {});
+  }
   const channel = supabase.channel(topic);
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'advertising', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
@@ -523,6 +563,7 @@ export const saveAdvertising = async (ad: Advertising): Promise<void> => {
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing advertising', error); throw new Error('Помилка збереження реклами'); }
+    triggerMenuRevalidation();
   }
 };
 
@@ -549,19 +590,21 @@ export const getTextBanner = async (): Promise<TextBanner> => {
 
 let textBannerSubId = 0;
 
-export const subscribeTextBanner = (callback: (banner: TextBanner) => void): (() => void) => {
+export const subscribeTextBanner = (callback: (banner: TextBanner) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   // Unique topic per subscription: `supabase.channel(topic)` reuses an existing
   // channel with the same topic, which would already be subscribed (and .on()
   // after subscribe() throws) when the effect re-runs. A unique topic
   // guarantees a fresh, unsubscribed channel.
   const topic = `text-banner-${textBannerSubId++}`;
-  supabase.from('text_banner').select('*').eq('id', 1).single().then(({ data, error }) => {
-    if (!error && data) {
-      const banner = mapTextBanner(data);
-      setLocal('textBanner', banner); callback(banner);
-    }
-  }, () => {});
+  if (!opts?.skipInitial) {
+    supabase.from('text_banner').select('*').eq('id', 1).single().then(({ data, error }) => {
+      if (!error && data) {
+        const banner = mapTextBanner(data);
+        setLocal('textBanner', banner); callback(banner);
+      }
+    }, () => {});
+  }
   const channel = supabase.channel(topic);
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'text_banner', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
@@ -587,5 +630,6 @@ export const saveTextBanner = async (banner: TextBanner): Promise<void> => {
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing text banner', error); throw new Error('Помилка збереження текстового банера'); }
+    triggerMenuRevalidation();
   }
 };

@@ -47,6 +47,10 @@ describe('useMenuData', () => {
     const { result } = renderHook(() => useMenuData());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.cafeInfo?.nameUk).toBe('Кав\'ярня');
+    // No SSR baseline → the initial fetch runs (skipInitial: false).
+    expect(mocks.subscribeCafeInfo).toHaveBeenCalledWith(expect.any(Function), { skipInitial: false });
+    expect(mocks.subscribeCategories).toHaveBeenCalledWith(expect.any(Function), { skipInitial: false });
+    expect(mocks.subscribeProducts).toHaveBeenCalledWith(expect.any(Function), { skipInitial: false });
   });
 
   it('uses initialData when provided', async () => {
@@ -60,6 +64,11 @@ describe('useMenuData', () => {
     };
     const { result } = renderHook(() => useMenuData(initial));
     expect(result.current.cafeInfo?.nameUk).toBe('Світ Кави');
+    // SSR baseline present → subscriptions only listen for realtime changes.
+    expect(mocks.subscribeCafeInfo).toHaveBeenCalledWith(expect.any(Function), { skipInitial: true });
+    expect(mocks.subscribeCategories).toHaveBeenCalledWith(expect.any(Function), { skipInitial: true });
+    expect(mocks.subscribeProducts).toHaveBeenCalledWith(expect.any(Function), { skipInitial: true });
+    expect(result.current.loading).toBe(false);
   });
 
   it('reads cafeInfo from localStorage cache', async () => {
