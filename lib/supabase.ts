@@ -1,5 +1,14 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { validateCafeInfo, validateCategory, validateProduct, validateTextBanner } from './validation';
+import {
+  PHOTO_BUCKET,
+  CAFE_PHOTO_PATHS,
+  ADVERTISING_PHOTO_PATHS,
+  entityPhotoPaths,
+  isDataUriPhoto,
+  dataUriMime,
+  objectPublicUrl,
+} from './photo-storage';
 
 // Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
@@ -83,6 +92,28 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey) : null;
 export const useSupabase = !!supabase;
+
+// Stores an inline data: photo into Supabase Storage and returns its public
+// URL. Non-data values (already-stored URLs, empty strings) pass through
+// unchanged. Deterministic object path + upsert means re-saving a crop
+// overwrites the same object. When Storage is unavailable (no bucket/policies
+// yet, offline), the inline value is kept so saving never breaks.
+const storeOrKeep = async (value: string, path: string): Promise<string> => {
+  if (!supabase || !value || !isDataUriPhoto(value)) return value;
+  try {
+    const res = await fetch(value);
+    const blob = await res.blob();
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, {
+      contentType: dataUriMime(value),
+      upsert: true,
+    });
+    if (error) throw error;
+    return objectPublicUrl(supabaseUrl, PHOTO_BUCKET, path);
+  } catch (e) {
+    console.error('Photo storage upload failed, keeping inline value', e);
+    return value;
+  }
+};
 
 // Local storage helpers
 const getLocal = (key: string, def: any) => {
@@ -221,21 +252,26 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void): (() => vo
 export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
   const validation = validateCafeInfo(info);
   if (!validation.ok) throw new Error(validation.error);
-  setLocal('cafeInfo', info);
+  const banner = await storeOrKeep(info.banner, CAFE_PHOTO_PATHS.banner);
+  const logo = await storeOrKeep(info.logo, CAFE_PHOTO_PATHS.logo);
+  const bannerOriginal = await storeOrKeep(info.bannerOriginal ?? '', CAFE_PHOTO_PATHS.bannerOriginal);
+  const logoOriginal = await storeOrKeep(info.logoOriginal ?? '', CAFE_PHOTO_PATHS.logoOriginal);
+  const storedInfo: CafeInfo = { ...info, banner, logo, bannerOriginal, logoOriginal };
+  setLocal('cafeInfo', storedInfo);
   if (supabase) {
     const { error } = await supabase.from('cafe_info').upsert({
       id: 1,
-      owner_name_uk: info.ownerNameUk ?? '', owner_name_hu: info.ownerNameHu ?? '', owner_name_en: info.ownerNameEn ?? '',
-      name_uk: info.nameUk ?? '', name_hu: info.nameHu ?? '', name_en: info.nameEn ?? '',
-      description_uk: info.descriptionUk ?? '', description_hu: info.descriptionHu ?? '', description_en: info.descriptionEn ?? '',
-      banner: info.banner, logo: info.logo,
-      instagram: info.instagram, banner_x: info.bannerX ?? 50, banner_y: info.bannerY ?? 50,
-      banner_scale: info.bannerScale ?? 1, logo_x: info.logoX ?? 50, logo_y: info.logoY ?? 50,
-      logo_scale: info.logoScale ?? 1, banner_original: info.bannerOriginal ?? '', logo_original: info.logoOriginal ?? '',
-      greeting_customer_uk: info.greetingCustomerUk ?? '', greeting_customer_hu: info.greetingCustomerHu ?? '', greeting_customer_en: info.greetingCustomerEn ?? '',
-      greeting_customer_enabled: info.greetingCustomerEnabled ?? false,
-      greeting_admin_uk: info.greetingAdminUk ?? '', greeting_admin_hu: info.greetingAdminHu ?? '', greeting_admin_en: info.greetingAdminEn ?? '',
-      greeting_admin_enabled: info.greetingAdminEnabled ?? false,
+      owner_name_uk: storedInfo.ownerNameUk ?? '', owner_name_hu: storedInfo.ownerNameHu ?? '', owner_name_en: storedInfo.ownerNameEn ?? '',
+      name_uk: storedInfo.nameUk ?? '', name_hu: storedInfo.nameHu ?? '', name_en: storedInfo.nameEn ?? '',
+      description_uk: storedInfo.descriptionUk ?? '', description_hu: storedInfo.descriptionHu ?? '', description_en: storedInfo.descriptionEn ?? '',
+      banner: storedInfo.banner, logo: storedInfo.logo,
+      instagram: storedInfo.instagram, banner_x: storedInfo.bannerX ?? 50, banner_y: storedInfo.bannerY ?? 50,
+      banner_scale: storedInfo.bannerScale ?? 1, logo_x: storedInfo.logoX ?? 50, logo_y: storedInfo.logoY ?? 50,
+      logo_scale: storedInfo.logoScale ?? 1, banner_original: storedInfo.bannerOriginal ?? '', logo_original: storedInfo.logoOriginal ?? '',
+      greeting_customer_uk: storedInfo.greetingCustomerUk ?? '', greeting_customer_hu: storedInfo.greetingCustomerHu ?? '', greeting_customer_en: storedInfo.greetingCustomerEn ?? '',
+      greeting_customer_enabled: storedInfo.greetingCustomerEnabled ?? false,
+      greeting_admin_uk: storedInfo.greetingAdminUk ?? '', greeting_admin_hu: storedInfo.greetingAdminHu ?? '', greeting_admin_en: storedInfo.greetingAdminEn ?? '',
+      greeting_admin_enabled: storedInfo.greetingAdminEnabled ?? false,
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
@@ -275,12 +311,16 @@ export const subscribeCategories = (callback: (cats: Category[]) => void): (() =
 export const saveCategory = async (category: Category): Promise<void> => {
   const validation = validateCategory(category);
   if (!validation.ok) throw new Error(validation.error);
+  const paths = entityPhotoPaths('category', category.id);
+  const photo = await storeOrKeep(category.photo, paths.photo);
+  const photoOriginal = await storeOrKeep(category.photoOriginal ?? '', paths.photoOriginal);
+  const stored: Category = { ...category, photo, photoOriginal };
   const current = await getCategories();
-  const idx = current.findIndex(c => c.id === category.id);
-  if (idx >= 0) current[idx] = category; else current.push(category);
+  const idx = current.findIndex(c => c.id === stored.id);
+  if (idx >= 0) current[idx] = stored; else current.push(stored);
   setLocal('categories', current);
   if (supabase) {
-    const { error } = await supabase.from('categories').upsert({ id: category.id, name_uk: category.nameUk, name_hu: category.nameHu, name_en: category.nameEn, photo: category.photo, photo_x: category.photoX ?? 50, photo_y: category.photoY ?? 50, photo_scale: category.photoScale ?? 1, photo_original: category.photoOriginal ?? '' });
+    const { error } = await supabase.from('categories').upsert({ id: stored.id, name_uk: stored.nameUk, name_hu: stored.nameHu, name_en: stored.nameEn, photo: stored.photo, photo_x: stored.photoX ?? 50, photo_y: stored.photoY ?? 50, photo_scale: stored.photoScale ?? 1, photo_original: stored.photoOriginal ?? '' });
     if (error) { console.error('Supabase error saving category', error); throw new Error('Помилка збереження категорії'); }
   }
 };
@@ -320,18 +360,22 @@ export const subscribeProducts = (callback: (prods: Product[]) => void): (() => 
 export const saveProduct = async (product: Product): Promise<void> => {
   const validation = validateProduct(product);
   if (!validation.ok) throw new Error(validation.error);
+  const paths = entityPhotoPaths('product', product.id);
+  const photo = await storeOrKeep(product.photo, paths.photo);
+  const photoOriginal = await storeOrKeep(product.photoOriginal ?? '', paths.photoOriginal);
+  const stored: Product = { ...product, photo, photoOriginal };
   const current = await getProducts();
-  const idx = current.findIndex(p => p.id === product.id);
-  if (idx >= 0) current[idx] = product; else current.push(product);
+  const idx = current.findIndex(p => p.id === stored.id);
+  if (idx >= 0) current[idx] = stored; else current.push(stored);
   setLocal('products', current);
   if (supabase) {
     const { error } = await supabase.from('products').upsert({
-      id: product.id, category_id: product.categoryId,
-      name_uk: product.nameUk, name_hu: product.nameHu, name_en: product.nameEn,
-      description_uk: product.descriptionUk, description_hu: product.descriptionHu, description_en: product.descriptionEn,
-      ingredients_uk: product.ingredientsUk, ingredients_hu: product.ingredientsHu, ingredients_en: product.ingredientsEn,
-      price: Number(product.price), photo: product.photo, photo_original: product.photoOriginal ?? '',
-      recommended_ids: product.recommendedIds ?? [],
+      id: stored.id, category_id: stored.categoryId,
+      name_uk: stored.nameUk, name_hu: stored.nameHu, name_en: stored.nameEn,
+      description_uk: stored.descriptionUk, description_hu: stored.descriptionHu, description_en: stored.descriptionEn,
+      ingredients_uk: stored.ingredientsUk, ingredients_hu: stored.ingredientsHu, ingredients_en: stored.ingredientsEn,
+      price: Number(stored.price), photo: stored.photo, photo_original: stored.photoOriginal ?? '',
+      recommended_ids: stored.recommendedIds ?? [],
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
   }
@@ -387,15 +431,18 @@ export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() =
 };
 
 export const saveAdvertising = async (ad: Advertising): Promise<void> => {
-  setLocal('advertising', ad);
+  const photo = await storeOrKeep(ad.photo ?? '', ADVERTISING_PHOTO_PATHS.photo);
+  const photoOriginal = await storeOrKeep(ad.photoOriginal ?? '', ADVERTISING_PHOTO_PATHS.photoOriginal);
+  const storedAd: Advertising = { ...ad, photo, photoOriginal };
+  setLocal('advertising', storedAd);
   if (supabase) {
     const { error } = await supabase.from('advertising').upsert({
       id: 1,
-      photo: ad.photo ?? '',
-      photo_original: ad.photoOriginal ?? '',
-      delay_seconds: ad.delaySeconds ?? 5,
-      enabled: ad.enabled ?? false,
-      show_until: ad.showUntil || null,
+      photo: storedAd.photo ?? '',
+      photo_original: storedAd.photoOriginal ?? '',
+      delay_seconds: storedAd.delaySeconds ?? 5,
+      enabled: storedAd.enabled ?? false,
+      show_until: storedAd.showUntil || null,
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing advertising', error); throw new Error('Помилка збереження реклами'); }

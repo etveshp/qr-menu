@@ -268,12 +268,29 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 - [x] Фікс 2: `sm:w-auto` → `sm:w-[240px] sm:max-w-none` — картка 9:16 рендериться 240px на десктопі/планшеті, 320px на мобільному.
 - [x] Регресійний тест: «still shows the popup when a stale StrictMode subscription fires after the live one» (падає на старому коді, проходить на новому). 137 тестів, `tsc --noEmit`, lint — чисто.
 
+### 7.30 CI workflow: GitHub Actions на push/PR у `main` (зроблено)
+- [x] `.github/workflows/ci.yml`: тригери — `push` і `pull_request` на гілку `main` (Vercel деплоїть Preview з `main`, тож регресії не доїдуть до деплою без перевірки).
+- [x] Кроки (ubuntu-latest, Node 22 з npm-кешем): `npm ci` → `npm test` → `npx tsc --noEmit` → `npm run lint` → `npm run build`; таймаут 20 хв.
+- [x] Секретів не потрібно: `lib/supabase.ts` створює клієнта лише за наявності `NEXT_PUBLIC_SUPABASE_*` (інакше `null`), а SSR-фетч `/api/menu` у `app/page.tsx` обгорнуто в try/catch — `next build` у CI проходить без env.
+- [x] Локальний прогін усього ланцюжка CI: 137 тестів, `tsc --noEmit`, lint, `npm run build` — чисто.
+
+### 7.31 Фото в Supabase Storage: base64-колонки → публічні URL (зроблено; до live-БД НЕ застосовано)
+- [x] `lib/photo-storage.ts` — чисті хелпери: детерміновані шляхи об'єктів (`cafe/banner.webp`, `categories/<id>.webp`, `products/<id>-original.webp`, `advertising/popup.webp`), розпізнавання data-URI/MIME, `objectPublicUrl`/`storagePathFromPublicUrl` (зворотне перетворення).
+- [x] `lib/supabase.ts`: `storeOrKeep` — data-URI завантажується в Storage (upsert на той самий шлях, тож повторний кроп перезаписує об'єкт, а не накопичує сміття) і повертає публічний URL; не-data значення проходять як є. Якщо бакета/політик ще нема (міграцію не застосовано) — inline-значення зберігається, збереження не ламається. Підключено в `updateCafeInfo`, `saveCategory`, `saveProduct`, `saveAdvertising` (включно з `*Original`). Колонки й типи не змінювались, UI адмінки/меню не чіпали — рядки тепер тримають URL замість base64.
+- [x] `next.config.ts`: дозволено remote-оптимізацію зображень `**.supabase.co/storage/**` для `next/image`.
+- [x] Міграція `20260904100000_photo_storage.sql`: публічний бакет `menu-photos` (5MB, image/*) + політики RLS на `storage.objects`: читання — анонімам, запис — лише адмінам (той самий патерн `profiles.is_admin`, що в таблицях).
+- [x] `scripts/backfill-photos.mjs` (+ `npm run backfill:photos`): одноразовий перенос наявних base64-значень (cafe_info, advertising, categories, products — фото й оригінали) у Storage через service-role ключ; ідемпотентний (пропускає вже URL).
+- [x] Тести `lib/__tests__/photo-storage.test.ts` (7 тестів: розпізнавання data-URI, MIME, шляхи, round-trip URL). 144 тести, `tsc --noEmit`, lint, `npm run build` — чисто.
+- [ ] **Користувач**: застосувати міграцію до live-БД (`supabase db push`) і прогнати `npm run backfill:photos` з service-role ключем; після цього перевірити меню й адмінку.
+
 ---
 
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-04 | Фаза 7.31 — Фото в Supabase Storage: `lib/photo-storage.ts` (детерміновані шляхи, хелпери), `lib/supabase.ts` (`storeOrKeep`: data-URI → Storage-URL при збереженні з фолбеком на inline, якщо бакета нема), міграція бакета `menu-photos` + RLS (читання публічне, запис — адмін), `scripts/backfill-photos.mjs` (service role), remotePattern для `next/image`, 7 тестів. 144 тести, tsc, lint, build — чисто. Live-БД не чіпали — застосування міграції й бекап за користувачем | Codebuff |
+| 2026-09-04 | Фаза 7.30 — CI workflow: `.github/workflows/ci.yml` — на push/PR у `main` GitHub Actions проганяє `npm test` (137), `npx tsc --noEmit`, `npm run lint`, `npm run build` (Node 22, npm-кеш; env не потрібен). Локально весь ланцюжок чистий | Codebuff |
 | 2026-09-04 | Закрито застарілі пункти плану автоматичними перевірками: (7.4) міграції до live-БД — `supabase migration list --linked`: усі 16 Local == Remote; (7.4) показ попапа — Playwright-проба на фінальному коді (десктоп 1280px: попап ~9 с, картка видима, 0 помилок). Пункти, що потребують адмін-входу (6.5 Google-вхід, 7.4 збереження налаштувань реклами, 7.5 повторне відкриття оригіналу фото), позначено як ручні перевірки користувача | Codebuff |
 | 2026-09-04 | Фаза 7.29 — Рекламний попап у меню: (1) гонка StrictMode — спільний `timerRef` дозволяв «мертвій» підписці після cleanup скинути таймер «живої» (таймер став локальним для запуску ефекту); (2) CSS — `sm:w-auto` без потокового контенту схлопував картку до ~2px на десктопі (тепер `sm:w-[240px]`). Регресійний тест на StrictMode-гонку. 137 тестів, tsc, lint — чисто | Codebuff |
 | 2026-09-04 | Фаза 7.28 — Фікс деплою на Vercel після апгрейду Next 16: всі деплої падали з `ENOENT .next/next-server.js.nft.json` через `output: 'standalone'` у `next.config.ts` (пережиток Cloud Run; відомий баг Next 16.3 — vercel/next.js #96646). Видалено standalone-опцію; локальна збірка й перевірки чисті | Codebuff |
