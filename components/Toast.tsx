@@ -39,23 +39,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       
-      {/* Toast Portal Container */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 pointer-events-none w-full max-w-md px-4">
+      {/* Toast Portal Container: bottom-right on tablet/desktop, bottom-center full-width on mobile */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end z-50 flex flex-col gap-3 pointer-events-none w-full max-w-md px-4 sm:px-0 sm:w-auto">
         <AnimatePresence>
           {toasts.map((toast) => {
-            let bgColor = 'bg-[#FAF6EE]';
+            let bgColor = 'bg-[#FDFBF7]';
             let borderColor = 'border-[#E6DFD5]';
             let textColor = 'text-[#3E2F26]';
             let Icon = InfoIcon;
             let iconColor = 'text-[#C09E6D]';
 
+            // Toasts stay in the app's coffee/gold palette for every type;
+            // the icon only gets a subtle tone shift to hint success/error.
             if (toast.type === 'success') {
-              borderColor = 'border-emerald-200/80';
-              iconColor = 'text-emerald-600';
+              iconColor = 'text-[#C09E6D]';
               Icon = CheckCircle2;
             } else if (toast.type === 'error') {
-              borderColor = 'border-rose-200/80';
-              iconColor = 'text-rose-600';
+              iconColor = 'text-[#8E7A68]';
               Icon = AlertCircle;
             }
 

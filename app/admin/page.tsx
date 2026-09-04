@@ -96,6 +96,8 @@ export default function AdminPage() {
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [changePassLoading, setChangePassLoading] = useState(false);
   const [changePassError, setChangePassError] = useState('');
+  // Fields highlighted after a "required field" validation miss: 'current' | 'new' | 'confirm'
+  const [changePassInvalidFields, setChangePassInvalidFields] = useState<string[]>([]);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'reset'>('signin');
@@ -779,6 +781,11 @@ export default function AdminPage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangePassError('');
+    if (!newPasswordInput || !confirmPasswordInput) {
+      setChangePassInvalidFields([!newPasswordInput && 'new', !confirmPasswordInput && 'confirm'].filter(Boolean) as string[]);
+      return;
+    }
+    setChangePassInvalidFields([]);
     if (!newPasswordInput || newPasswordInput.length < 6) {
       setChangePassError(t('passwordTooShort'));
       return;
@@ -808,6 +815,12 @@ export default function AdminPage() {
   const handleChangePasswordSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangePassError('');
+    const invalid: string[] = [!currentPasswordInput && 'current', !newPasswordInput && 'new', !confirmPasswordInput && 'confirm'].filter(Boolean) as string[];
+    if (invalid.length > 0) {
+      setChangePassInvalidFields(invalid);
+      return;
+    }
+    setChangePassInvalidFields([]);
     if (!currentPasswordInput) {
       setChangePassError(t('currentPasswordIncorrect'));
       return;
@@ -1358,10 +1371,10 @@ export default function AdminPage() {
                 <input
                   type="password"
                   value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  placeholder={t('newPasswordPlaceholder')}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl"
-                  required
+                  onChange={(e) => { setNewPasswordInput(e.target.value); if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                  onFocus={() => { if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                  placeholder={changePassInvalidFields.includes('new') ? t('requiredField') : t('newPasswordPlaceholder')}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl ${changePassInvalidFields.includes('new') ? 'border-rose-300 placeholder:text-rose-600' : ''}`}
                 />
               </div>
             </div>
@@ -1375,10 +1388,10 @@ export default function AdminPage() {
                 <input
                   type="password"
                   value={confirmPasswordInput}
-                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                  placeholder={t('confirmNewPasswordPlaceholder')}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl"
-                  required
+                  onChange={(e) => { setConfirmPasswordInput(e.target.value); if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                  onFocus={() => { if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                  placeholder={changePassInvalidFields.includes('confirm') ? t('requiredField') : t('confirmNewPasswordPlaceholder')}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-xs sm:text-sm rounded-xl ${changePassInvalidFields.includes('confirm') ? 'border-rose-300 placeholder:text-rose-600' : ''}`}
                 />
               </div>
             </div>
@@ -2249,10 +2262,10 @@ export default function AdminPage() {
                         <input
                           type="password"
                           value={currentPasswordInput}
-                          onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                          placeholder={t('currentPasswordPlaceholder')}
-                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          required
+                          onChange={(e) => { setCurrentPasswordInput(e.target.value); if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          onFocus={() => { if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          placeholder={changePassInvalidFields.includes('current') ? t('requiredField') : t('currentPasswordPlaceholder')}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl ${changePassInvalidFields.includes('current') ? 'border-rose-300 placeholder:text-rose-600' : ''}`}
                         />
                       </div>
                     </div>
@@ -2265,10 +2278,10 @@ export default function AdminPage() {
                         <input
                           type="password"
                           value={newPasswordInput}
-                          onChange={(e) => setNewPasswordInput(e.target.value)}
-                          placeholder={t('newPasswordPlaceholder')}
-                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          required
+                          onChange={(e) => { setNewPasswordInput(e.target.value); if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          onFocus={() => { if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          placeholder={changePassInvalidFields.includes('new') ? t('requiredField') : t('newPasswordPlaceholder')}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl ${changePassInvalidFields.includes('new') ? 'border-rose-300 placeholder:text-rose-600' : ''}`}
                         />
                       </div>
                     </div>
@@ -2281,10 +2294,10 @@ export default function AdminPage() {
                         <input
                           type="password"
                           value={confirmPasswordInput}
-                          onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                          placeholder={t('confirmNewPasswordPlaceholder')}
-                          className="w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          required
+                          onChange={(e) => { setConfirmPasswordInput(e.target.value); if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          onFocus={() => { if (changePassInvalidFields.length) setChangePassInvalidFields([]); }}
+                          placeholder={changePassInvalidFields.includes('confirm') ? t('requiredField') : t('confirmNewPasswordPlaceholder')}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl ${changePassInvalidFields.includes('confirm') ? 'border-rose-300 placeholder:text-rose-600' : ''}`}
                         />
                       </div>
                     </div>
