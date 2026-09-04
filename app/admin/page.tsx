@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -11,9 +11,11 @@ import {
   getCategories, 
   saveCategory, 
   deleteCategory, 
+  reorderCategories,
   getProducts, 
   saveProduct, 
   deleteProduct,
+  reorderProducts,
   getAdvertising,
   saveAdvertising,
   getTextBanner,
@@ -75,6 +77,7 @@ import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { ActionCard } from '@/components/admin/ActionCard';
+import { SortableActionCardGrid } from '@/components/admin/SortableActionCardGrid';
 import { RecommendedProductsPicker } from '@/components/admin/RecommendedProductsPicker';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
@@ -149,6 +152,12 @@ export default function AdminPage() {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('aura_admin_auth', 'true');
         localStorage.setItem('aura_admin_auth', 'true');
+        // Очищаємо залишки токенів/параметрів сесії з URL (напр. після OAuth
+        // redirect). Інакше supabase при наступних завантаженнях знову парсить
+        // стару URL-сесію і логує "Session as retrieved from URL was issued
+        // over 120s ago, URL could be stale".
+        const cleanUrl = window.location.pathname + window.location.search;
+        if (window.location.hash) window.history.replaceState({}, '', cleanUrl);
       }
       isEmailAuthRef.current = false;
     } else {
@@ -285,9 +294,70 @@ export default function AdminPage() {
 
   // Category filter for the Menu (products) tab
   const [menuFilterCategoryId, setMenuFilterCategoryId] = useState<string>('all');
+
+  // For the "all" view, group products by category in menu order (categories
+  // already sorted by sort_order); inside each category products keep sort_order.
+  const sortedAllProducts = useMemo(() => {
+    const byCategory = new Map<string, Product[]>();
+    for (const p of products) {
+      const arr = byCategory.get(p.categoryId) ?? [];
+      arr.push(p);
+      byCategory.set(p.categoryId, arr);
+    }
+    const sortByOrder = (a: Product, b: Product) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+    const result: Product[] = [];
+    for (const cat of categories) {
+      const group = byCategory.get(cat.id) ?? [];
+      group.sort(sortByOrder);
+      result.push(...group);
+    }
+    const included = new Set(result.map((p) => p.id));
+    for (const p of products) {
+      if (!included.has(p.id)) result.push(p);
+    }
+    return result;
+  }, [categories, products]);
+
   const filteredMenuProducts = menuFilterCategoryId === 'all'
-    ? products
-    : products.filter((p) => p.categoryId === menuFilterCategoryId);
+    ? sortedAllProducts
+    : products
+        .filter((p) => p.categoryId === menuFilterCategoryId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  // Reorder categories (drag & drop) — optimistic update + persist.
+  const handleReorderCategories = async (orderedIds: string[]) => {
+    const prev = categories;
+    const byId = new Map(prev.map((c) => [c.id, c]));
+    const next: Category[] = [];
+    orderedIds.forEach((id, i) => {
+      const cat = byId.get(id);
+      if (cat) next.push({ ...cat, sortOrder: i });
+    });
+    setCategories(next);
+    try {
+      await reorderCategories(orderedIds);
+    } catch (err) {
+      setCategories(prev);
+      showToast(err instanceof Error ? err.message : t('reorderError'), 'error');
+    }
+  };
+
+  // Reorder products within one category (drag & drop) — optimistic + persist.
+  const handleReorderProducts = async (orderedIds: string[]) => {
+    const prev = products;
+    const byId = new Map(prev.map((p) => [p.id, p]));
+    const positions = new Map(orderedIds.map((id, i) => [id, i]));
+    const next = prev.map((p) =>
+      positions.has(p.id) ? { ...p, sortOrder: positions.get(p.id)! } : p
+    );
+    setProducts(next);
+    try {
+      await reorderProducts(orderedIds);
+    } catch (err) {
+      setProducts(prev);
+      showToast(err instanceof Error ? err.message : t('reorderError'), 'error');
+    }
+  };
 
   // Recommended products picker (drawer for choosing products for "Ідеально смакує разом")
   const [isRecPickerOpen, setIsRecPickerOpen] = useState<boolean>(false);
@@ -1631,8 +1701,8 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-[#FAF6EE] text-[#4A3B32] font-sans pb-16">
       {/* Upper Navigation Header */}
-      <header className="sticky top-0 z-40 bg-[#FDFBF7] border-b border-[#E6DFD5] premium-shadow px-4 py-3 md:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-[#FDFBF7] border-b border-[#E6DFD5] premium-shadow">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-xl font-display font-medium text-[#231913] tracking-wide">{getCafeName(cafeInfo, lang) || t('adminCabinet')}</h1>
@@ -1902,6 +1972,7 @@ export default function AdminPage() {
                             src={cafeForm.banner} 
                             alt="Cafe Banner Preview" 
                             fill 
+                            loading="eager"
                             sizes="(max-width: 768px) 100vw, 768px"
                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
                             referrerPolicy="no-referrer"
@@ -1984,6 +2055,7 @@ export default function AdminPage() {
                             src={cafeForm.logo} 
                             alt="Cafe Logo Preview" 
                             fill 
+                            loading="eager"
                             sizes="(max-width: 768px) 100vw, 768px"
                             className="object-cover transition-transform duration-300 group-hover:scale-105" 
                             referrerPolicy="no-referrer"
@@ -2345,25 +2417,25 @@ export default function AdminPage() {
                     <p className="text-base">{t('noCategories')}</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {categories.map((cat) => (
-                      <ActionCard
-                        key={cat.id}
-                        photo={cat.photo}
-                        alt={cat.nameUk}
-                        isOpen={openActionsId === cat.id}
-                        onToggle={() => setOpenActionsId(openActionsId === cat.id ? null : cat.id)}
-                        onEdit={() => {
-                          setOpenActionsId(null);
-                          handleEditCategory(cat);
-                        }}
-                        onDelete={() => setDeleteTarget({ kind: 'category', id: cat.id, name: cat.nameUk, productsCount: products.filter(p => p.categoryId === cat.id).length })}
-                      >
+                  <SortableActionCardGrid<Category>
+                    items={categories}
+                    isOpenId={openActionsId}
+                    onToggle={(id) => setOpenActionsId(openActionsId === id ? null : id)}
+                    onEdit={(cat) => {
+                      setOpenActionsId(null);
+                      handleEditCategory(cat);
+                    }}
+                    onDelete={(cat) => setDeleteTarget({ kind: 'category', id: cat.id, name: cat.nameUk, productsCount: products.filter(p => p.categoryId === cat.id).length })}
+                    onReorder={handleReorderCategories}
+                    onDragStart={() => setOpenActionsId(null)}
+                    getAlt={(cat) => cat.nameUk}
+                    renderContent={(cat) => (
+                      <>
                         <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
                         <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
-                      </ActionCard>
-                    ))}
-                  </div>
+                      </>
+                    )}
+                  />
                 )}
               </div>
             </div>
@@ -2433,23 +2505,54 @@ export default function AdminPage() {
                     <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
                     <p className="text-base">{products.length === 0 ? t('noProducts') : t('noCategoryProducts')}</p>
                   </div>
+                ) : menuFilterCategoryId === 'all' ? (
+                  <>
+                    <p className="mb-4 text-xs text-[#8E7A68]">{t('reorderPickCategory')}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredMenuProducts.map((p) => {
+                        const cat = categories.find(c => c.id === p.categoryId);
+                        return (
+                          <ActionCard
+                            key={p.id}
+                            photo={p.photo}
+                            alt={p.nameUk}
+                            isOpen={openActionsId === p.id}
+                            onToggle={() => setOpenActionsId(openActionsId === p.id ? null : p.id)}
+                            onEdit={() => {
+                              setOpenActionsId(null);
+                              handleEditProduct(p);
+                            }}
+                            onDelete={() => setDeleteTarget({ kind: 'product', id: p.id, name: lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk })}
+                          >
+                            <p className="font-semibold text-sm text-[#231913]">
+                              {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
+                            </p>
+                            <p className="text-xs font-semibold text-[#3E2F26]">
+                              {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')}
+                            </p>
+                            <p className="text-xs font-bold text-[#3E2F26]">{p.price} ₴</p>
+                          </ActionCard>
+                        );
+                      })}
+                    </div>
+                  </>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredMenuProducts.map((p) => {
+                  <SortableActionCardGrid<Product>
+                    items={filteredMenuProducts}
+                    isOpenId={openActionsId}
+                    onToggle={(id) => setOpenActionsId(openActionsId === id ? null : id)}
+                    onEdit={(p) => {
+                      setOpenActionsId(null);
+                      handleEditProduct(p);
+                    }}
+                    onDelete={(p) => setDeleteTarget({ kind: 'product', id: p.id, name: lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk })}
+                    onReorder={handleReorderProducts}
+                    onDragStart={() => setOpenActionsId(null)}
+                    getAlt={(p) => p.nameUk}
+                    renderContent={(p) => {
                       const cat = categories.find(c => c.id === p.categoryId);
                       return (
-                        <ActionCard
-                          key={p.id}
-                          photo={p.photo}
-                          alt={p.nameUk}
-                          isOpen={openActionsId === p.id}
-                          onToggle={() => setOpenActionsId(openActionsId === p.id ? null : p.id)}
-                          onEdit={() => {
-                            setOpenActionsId(null);
-                            handleEditProduct(p);
-                          }}
-                          onDelete={() => setDeleteTarget({ kind: 'product', id: p.id, name: lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk })}
-                        >
+                        <>
                           <p className="font-semibold text-sm text-[#231913]">
                             {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
                           </p>
@@ -2457,10 +2560,10 @@ export default function AdminPage() {
                             {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')}
                           </p>
                           <p className="text-xs font-bold text-[#3E2F26]">{p.price} ₴</p>
-                        </ActionCard>
+                        </>
                       );
-                    })}
-                  </div>
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -3239,6 +3342,39 @@ export default function AdminPage() {
               />
               <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('adShowUntilHint')}</p>
             </div>
+          </div>
+
+          {/* Optional product link (category → product): clicking the popup opens the dish */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('adLinkLabel')}</label>
+              <p className="text-[11px] text-[#8E7A68] mt-1 leading-relaxed">{t('adLinkHint')}</p>
+            </div>
+
+            <select
+              value={adForm.categoryId || ''}
+              onChange={(e) => setAdForm(prev => ({ ...prev, categoryId: e.target.value, productId: '' }))}
+              className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl focus:outline-none focus:border-[#C09E6D]"
+            >
+              <option value="">{t('adNoLink')}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
+              ))}
+            </select>
+
+            <select
+              value={adForm.productId || ''}
+              onChange={(e) => setAdForm(prev => ({ ...prev, productId: e.target.value }))}
+              disabled={!adForm.categoryId}
+              className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl focus:outline-none focus:border-[#C09E6D] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">{t('adProductPlaceholder')}</option>
+              {products
+                .filter((p) => p.categoryId === adForm.categoryId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>{p.nameUk}</option>
+                ))}
+            </select>
           </div>
 
           {/* Enabled toggle */}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { subscribeAdvertising, type Advertising } from '@/lib/supabase';
+import { subscribeAdvertising, type Advertising, type Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
 const DEFAULT_AD: Advertising = { photo: '', delaySeconds: 5, enabled: false };
@@ -21,10 +21,12 @@ const isWithinShowWindow = (ad: Advertising): boolean => {
 };
 
 interface AdPopupProps {
+  products: Product[];
+  onOpenProduct: (product: Product) => void;
   t: Translator;
 }
 
-export function AdPopup({ t }: AdPopupProps) {
+export function AdPopup({ products, onOpenProduct, t }: AdPopupProps) {
   const [ad, setAd] = useState<Advertising>(DEFAULT_AD);
   const [visible, setVisible] = useState(false);
   const wasShownRef = useRef(false);
@@ -63,6 +65,14 @@ export function AdPopup({ t }: AdPopupProps) {
 
   const close = () => setVisible(false);
 
+  const product = products.find((p) => p.id === ad.productId);
+
+  const openLinkedProduct = () => {
+    if (!product) return;
+    setVisible(false);
+    onOpenProduct(product);
+  };
+
   return (
     <>
       {visible && ad.photo && (
@@ -77,7 +87,7 @@ export function AdPopup({ t }: AdPopupProps) {
         >
           {/* 9:16 popup with small outer margins (not full screen) */}
           <motion.div
-            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2"
+            className={`relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${product ? 'cursor-pointer' : ''}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
@@ -91,6 +101,16 @@ export function AdPopup({ t }: AdPopupProps) {
               referrerPolicy="no-referrer"
               unoptimized={ad.photo.startsWith('data:')}
             />
+
+            {/* Whole popup opens the linked dish (click-through area) */}
+            {product && (
+              <button
+                type="button"
+                onClick={openLinkedProduct}
+                aria-label={`${t('adOpenProduct')}: ${product.nameUk}`}
+                className="absolute inset-0 z-10"
+              />
+            )}
 
             {/* Close button in the top right corner */}
             <button

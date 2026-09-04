@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, ArrowRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { TextBanner as TextBannerData, Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
@@ -11,7 +11,6 @@ interface TextBannerProps {
   products: Product[];
   headerHeight: number;
   onOpenProduct: (product: Product) => void;
-  getProductName: (p: Product) => string;
   t: Translator;
 }
 
@@ -20,7 +19,6 @@ export function TextBanner({
   products,
   headerHeight,
   onOpenProduct,
-  getProductName,
   t,
 }: TextBannerProps) {
   const [dismissed, setDismissed] = useState(false);
@@ -51,13 +49,6 @@ export function TextBanner({
         <span className="text-sm sm:text-base font-semibold text-[#231913] leading-snug truncate">
           {banner.text}
         </span>
-
-        {product && (
-          <span className="hidden sm:inline-flex items-center gap-1 text-[11px] uppercase tracking-wider font-bold text-[#C09E6D] shrink-0">
-            {getProductName(product)}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </span>
-        )}
 
         {/* Close button (right, does not affect centering) */}
         <span

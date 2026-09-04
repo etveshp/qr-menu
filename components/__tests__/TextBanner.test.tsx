@@ -42,7 +42,6 @@ describe('TextBanner', () => {
         products={products}
         headerHeight={65}
         onOpenProduct={() => {}}
-        getProductName={(p) => p.nameUk}
         t={mockT}
       />
     );
@@ -56,7 +55,6 @@ describe('TextBanner', () => {
         products={products}
         headerHeight={65}
         onOpenProduct={() => {}}
-        getProductName={(p) => p.nameUk}
         t={mockT}
       />
     );
@@ -73,7 +71,6 @@ describe('TextBanner', () => {
         products={products}
         headerHeight={65}
         onOpenProduct={onOpenProduct}
-        getProductName={(p) => p.nameUk}
         t={mockT}
       />
     );
@@ -91,7 +88,6 @@ describe('TextBanner', () => {
         products={products}
         headerHeight={65}
         onOpenProduct={() => {}}
-        getProductName={(p) => p.nameUk}
         t={mockT}
       />
     );
@@ -112,7 +108,6 @@ describe('TextBanner', () => {
         products={products}
         headerHeight={65}
         onOpenProduct={onOpenProduct}
-        getProductName={(p) => p.nameUk}
         t={mockT}
       />
     );

@@ -4,6 +4,12 @@ import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Edit2, Trash2, MoreVertical } from 'lucide-react';
 
+export interface DragHandleProps {
+  handleRef: (element: HTMLButtonElement | null) => void;
+  listeners: Record<string, any>;
+  attributes: Record<string, any>;
+}
+
 interface ActionCardProps {
   photo: string;
   alt: string;
@@ -12,6 +18,7 @@ interface ActionCardProps {
   onEdit: () => void;
   onDelete: () => void;
   children: React.ReactNode;
+  dragHandle?: DragHandleProps;
 }
 
 const PHOTO_WIDTH = 96;
@@ -24,6 +31,7 @@ export function ActionCard({
   onEdit,
   onDelete,
   children,
+  dragHandle,
 }: ActionCardProps) {
   return (
     <div className="relative flex items-stretch overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
@@ -65,8 +73,13 @@ export function ActionCard({
         <button
           type="button"
           onClick={onToggle}
+          ref={dragHandle?.handleRef}
+          {...(dragHandle?.listeners ?? {})}
+          {...(dragHandle?.attributes ?? {})}
           aria-label="Actions"
-          className="w-10 h-10 flex items-center justify-center text-[#8E7A68] hover:text-[#3E2F26] transition-colors rounded-full cursor-pointer"
+          className={`w-10 h-10 flex items-center justify-center text-[#8E7A68] hover:text-[#3E2F26] transition-colors rounded-full cursor-pointer ${
+            dragHandle ? 'cursor-grab touch-none active:cursor-grabbing' : ''
+          }`}
         >
           <MoreVertical className="w-5 h-5" />
         </button>

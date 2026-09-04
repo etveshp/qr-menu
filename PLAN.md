@@ -293,10 +293,56 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 
 ---
 
+## Фаза 8 — ПОРЯДОК КАТЕГОРІЙ І СТРАВ (drag & drop в адмінці)
+
+Мета: категорії та страви можна впорядкувати перетягуванням в кабінеті адміна
+(довгий тап/затискання на кебабі `⋮` — картка «відділяється» і переміщується).
+Порядок зберігається в БД і відображається в меню.
+
+### 8.1 Міграція БД (виконано)
+- [x] Колонки `categories.sort_order` та `products.sort_order` (`integer not null default 0`).
+- [x] Backfill: категорії `row_number() over (order by created_at, id) - 1`; товари per-category `row_number() over (partition by category_id order by created_at, id) - 1`.
+- [x] Міграція `20260904120000_add_sort_order.sql` + оновлено `supabase-schema.sql`.
+- [x] Застосовано до live-БД (`supabase db push`, supabase link) — 2026-09-04.
+
+### 8.2 Типи та читання (порядок з'являється в меню й адмінці) (виконано)
+- [x] `Category.sortOrder` / `Product.sortOrder` у типах + `mapCategory`/`mapProduct` (`lib/supabase.ts`).
+- [x] `/api/menu` (`app/api/menu/route.ts`): `.order('sort_order')` + поле `sortOrder` у JSON.
+- [x] `.order('sort_order')` у `getCategories/subscribeCategories/getProducts/subscribeProducts`.
+- [x] Перевірки: `npm test`, `npx tsc --noEmit`, `npm run lint`.
+
+### 8.3 Збереження порядку (виконано)
+- [x] `reorderCategories(orderedIds)` / `reorderProducts(orderedIds)` (батч-upsert `sort_order 0..n` + localStorage).
+- [x] Новим записам — `sort_order = max + 1`; зміна `categoryId` товару → кінець нової категорії.
+- [x] Юніт-тести чистої логіки reorder/призначення порядку (`lib/__tests__/reorder.test.ts`, 11 тестів).
+
+### 8.4 Drag & drop в адмінці (виконано, dnd-kit)
+- [x] Додано залежності `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`.
+- [x] Категорії: сітка вкладки Categories перетягується за `⋮` (long-press на тачі).
+- [x] Страви: перетягування у вкладці Products при виборі конкретної категорії; у «Всі» вимкнено + підказка (`reorderPickCategory`).
+- [x] Кебаб: короткий тап → Edit/Delete, довгий → drag; картка «відділяється» (shadow/ring/scale + live-зсув інших карток); після drag прибрано випадковий click-відкриття панелі.
+- [x] Drop → збереження (8.3) + відкат/toast при помилці; переклади підказки uk/hu/en.
+
+### 8.5 Realtime без «шторму» (виконано)
+- [x] Debounce (250 мс) повторного рефетчу в `subscribeCategories`/`subscribeProducts`.
+
+### 8.6 Перевірки (частково)
+- [x] `npm test` (162), `npx tsc --noEmit`, `npm run lint`, `npm run build` — чисто.
+- [x] Меню завантажується з `.order('sort_order')` (перевірено в браузері, 0 console-errors; live-БД вже з колонкою).
+- [ ] Авто/Playwright-перевірка самого drag у кабінеті (потребує адмін-сесії — окремо).
+- [ ] Ручна перевірка користувача (перетягування категорій/страв в адмінці → збереження → порядок у меню).
+
+---
+
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-04 | Реклама: прикріплення страви до попапа (як у text_banner) — колонки `advertising.category_id`/`product_id` (міграція `20260904150000_advertising_product_link.sql`, live-БД застосовано), UI в адмін-дрaвері (категорія→страва), клік по попапу відкриває страву (AdPopup + MenuContainer), переклади uk/hu/en, +тест AdPopup (163). tsc, lint, build — чисто | Kilo |
+| 2026-09-04 | Консоль `/admin`: прев'ю банер/лого в кабінеті — `loading="eager"` (LCP warning для `cafe/banner.webp` прибрано); після входу чиститься hash з токенами з URL (gotrue stale-session warning). 162 тести, tsc, lint — чисто | Kilo |
+| 2026-09-04 | Фікс drag & drop (Фаза 8): картки повертались на старе місце — на drop зберігали початковий from/to замість live-порядку (`SortableActionCardGrid` тепер комітить `displayIds`); список страв в адмінці додатково сортується за `sortOrder`. 162 тести, tsc, lint — чисто | Kilo |
+| 2026-09-04 | TextBanner (меню): прибрано назву прив'язаної страви та стрілку — банер показує лише текст адміна; перехід на товар по кліку збережено. Прибрано проп `getProductName` у TextBanner/MenuContainer + тести. 162 тести, tsc, lint — чисто | Kilo |
+| 2026-09-04 | Фаза 8 — Порядок категорій і страв (drag & drop в адмінці, гілка `feat/drag-reorder`): колонки `sort_order` (міграція `20260904120000_add_sort_order.sql`, застосовано до live-БД + backfill), dnd-kit-сітка `SortableActionCardGrid` (long-press на кебабі), `reorderCategories/reorderProducts`, `.order('sort_order')` у читаннях та `/api/menu`, debounce realtime, `lib/reorder.ts` + 11 тестів. 162 тести, tsc, lint, build — чисто. Лишилось: ручна перевірка drag в адмінці | Kilo |
 | 2026-09-04 | Фаза 7.32 (уточнення): у напливі над фото рядок «назва + ціна» зупиняється за 16 px від нижньої межі фото (нова константа `TITLE_FLOAT_BOTTOM_GAP` у `lib/title-float.ts`) — раніше був упритул; градієнт тепер вкриває рядок разом із відступом. Тести оновлено (ті самі 7 кейсів, інші очікування cloneBottom/gradientHeight). 151 тест, `tsc --noEmit`, lint — чисто | Kilo |
 | 2026-09-04 | Performance-фікс: додано проп `sizes` усім `next/image` з `fill` (консольні попередження браузера у меню «Image … has fill but is missing sizes prop»). `sizes` підібрано за контейнерами: хедер-лого/лого входу (176–240px), категорії та товари в 2-колонковій сітці (46vw/424px), HeroBanner (100vw/896px), фото в ProductModal (100vw/512px + 112px для рекомендованих), мініатюри кошика/карток (96px), міні-категорія (36px), AdPopup (240/320px), NotAdminModal (128px), аватар (24px), прев'ю банер/лого/реклама в адмінці. 151 тест, `tsc --noEmit`, lint — чисто. CHANGELOG 0.4.0 → Changed | Kilo |
 | 2026-09-04 | Користувач підтвердив усі ручні перевірки адмінки: Google-вхід + збереження даних (6.5), збереження налаштувань реклами з Storage-фото (7.4), повторне відкриття оригіналу фото в масштабі 1 (7.5). У PLAN.md не лишилось жодного відкритого пункту `[ ]` | Kilo |

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { StrictMode } from 'react';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import { AdPopup } from '../menu/AdPopup';
+import type { Product } from '../../lib/supabase';
 
 // Keep every registered subscription: an "unsubscribed" (stale) one may still
 // fire later (its in-flight fetch resolves), mirroring the real subscribeAdvertising.
@@ -14,7 +15,7 @@ vi.mock('@/lib/supabase', () => ({
   }),
 }));
 
-function fireAd(ad: { photo?: string; delaySeconds?: number; enabled?: boolean }) {
+function fireAd(ad: { photo?: string; delaySeconds?: number; enabled?: boolean; categoryId?: string; productId?: string }) {
   subscribeCbs[subscribeCbs.length - 1]?.({
     photo: 'data:image/webp;base64,test',
     delaySeconds: 0,
@@ -44,7 +45,7 @@ describe('AdPopup', () => {
   };
 
   it('shows the popup when ad is enabled with photo after delay', () => {
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ delaySeconds: 0 }));
     act(() => { vi.runAllTimers(); });
@@ -53,7 +54,7 @@ describe('AdPopup', () => {
   });
 
   it('renders the close button', () => {
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ delaySeconds: 0 }));
     act(() => { vi.runAllTimers(); });
@@ -63,7 +64,7 @@ describe('AdPopup', () => {
 
   it('closes the popup when the close button is clicked', async () => {
     vi.useRealTimers();
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ delaySeconds: 0 }));
 
@@ -79,7 +80,7 @@ describe('AdPopup', () => {
   });
 
   it('does not show the popup when ad is disabled', () => {
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ enabled: false }));
     act(() => { vi.runAllTimers(); });
@@ -88,7 +89,7 @@ describe('AdPopup', () => {
   });
 
   it('does not show the popup when ad has no photo', () => {
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ photo: '' }));
     act(() => { vi.runAllTimers(); });
@@ -97,7 +98,7 @@ describe('AdPopup', () => {
   });
 
   it('respects the configured delay', () => {
-    render(<AdPopup t={mockT} />);
+    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
 
     act(() => fireAd({ delaySeconds: 5 }));
     act(() => { vi.advanceTimersByTime(1); });
@@ -115,7 +116,7 @@ describe('AdPopup', () => {
     // arrive later. It must not cancel the live subscription's pending timer.
     render(
       <StrictMode>
-        <AdPopup t={mockT} />
+        <AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />
       </StrictMode>
     );
 
@@ -129,5 +130,33 @@ describe('AdPopup', () => {
     act(() => { vi.runAllTimers(); });
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('opens the linked product when the popup is clicked and closes it', async () => {
+    vi.useRealTimers();
+    const linked: Product = {
+      id: 'p1', categoryId: 'c1',
+      nameUk: 'Флет Вайт', nameHu: 'Flat White', nameEn: 'Flat White',
+      descriptionUk: '', descriptionHu: '', descriptionEn: '',
+      ingredientsUk: '', ingredientsHu: '', ingredientsEn: '',
+      price: 100, photo: '', recommendedIds: [],
+    };
+    const onOpenProduct = vi.fn();
+    render(<AdPopup products={[linked]} onOpenProduct={onOpenProduct} t={mockT} />);
+
+    act(() => fireAd({ delaySeconds: 0, categoryId: 'c1', productId: 'p1' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    const openBtn = screen.getByRole('button', { name: /Флет Вайт/ });
+    fireEvent.click(openBtn);
+
+    expect(onOpenProduct).toHaveBeenCalledTimes(1);
+    expect(onOpenProduct).toHaveBeenCalledWith(linked);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

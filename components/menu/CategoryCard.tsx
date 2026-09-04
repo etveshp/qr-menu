@@ -33,6 +33,7 @@ export function CategoryCard({ category, index, name, onSelect }: CategoryCardPr
           src={category.photo}
           alt={category.nameUk}
           fill
+          loading="eager"
           sizes="(max-width: 640px) 46vw, 424px"
           className="object-cover opacity-60"
           referrerPolicy="no-referrer"

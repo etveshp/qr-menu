@@ -50,6 +50,7 @@ create table public.categories (
   photo_y integer not null default 50,
   photo_scale real not null default 1,
   photo_original text not null default '',
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -70,6 +71,7 @@ create table public.products (
   photo text not null default '',
   photo_original text not null default '',
   recommended_ids text[] not null default '{}',
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -89,6 +91,8 @@ create table public.advertising (
   delay_seconds integer not null default 5 check (delay_seconds >= 0),
   enabled boolean not null default false,
   show_until date,
+  category_id text,
+  product_id text,
   updated_at timestamptz not null default now()
 );
 

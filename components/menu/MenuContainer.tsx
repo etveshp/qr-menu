@@ -371,7 +371,6 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         products={products}
         headerHeight={headerHeight}
         onOpenProduct={openProductModal}
-        getProductName={getProductName}
         t={t}
       />
 
@@ -516,7 +515,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
       <ScrollToTop visible={showScrollTop} label={t('scrollToTop')} onClick={scrollToTop} />
 
-      <AdPopup t={t} />
+      <AdPopup products={products} onOpenProduct={openProductModal} t={t} />
 
       <NotAdminModal
         isOpen={showNotAdminPopup}

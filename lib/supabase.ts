@@ -9,6 +9,7 @@ import {
   dataUriMime,
   objectPublicUrl,
 } from './photo-storage';
+import { nextSortOrder } from './reorder';
 
 // Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
@@ -58,14 +59,14 @@ export const getRandomGreeting = (raw: string | undefined | null, rng: () => num
   if (list.length === 0) return '';
   return list[Math.floor(rng() * list.length) % list.length];
 };
-export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; photoOriginal?: string; }
+export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; photoOriginal?: string; sortOrder?: number; }
 export interface Product {
   id: string; categoryId: string;
   nameUk: string; nameHu: string; nameEn: string;
   descriptionUk: string; descriptionHu: string; descriptionEn: string;
   ingredientsUk: string; ingredientsHu: string; ingredientsEn: string;
   price: number; photo: string; recommendedIds: string[];
-  photoOriginal?: string;
+  photoOriginal?: string; sortOrder?: number;
 }
 export interface Advertising {
   photo: string;
@@ -73,6 +74,8 @@ export interface Advertising {
   delaySeconds: number;
   enabled: boolean;
   showUntil?: string;
+  categoryId?: string;
+  productId?: string;
 }
 export interface TextBanner {
   text: string;
@@ -208,6 +211,7 @@ const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
   photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
   photoOriginal: row.photo_original ?? '',
+  sortOrder: row.sort_order ?? 0,
 });
 const mapProduct = (row: any): Product => ({
   id: row.id, categoryId: row.category_id,
@@ -217,6 +221,7 @@ const mapProduct = (row: any): Product => ({
   price: Number(row.price), photo: row.photo,
   recommendedIds: Array.isArray(row.recommended_ids) ? row.recommended_ids : [],
   photoOriginal: row.photo_original ?? '',
+  sortOrder: row.sort_order ?? 0,
 });
 
 // 1. Cafe Info
@@ -281,32 +286,59 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
 // 2. Categories
 export const getCategories = async (): Promise<Category[]> => {
   if (supabase) {
-    const { data, error } = await supabase.from('categories').select('*');
+    const { data, error } = await supabase.from('categories').select('*').order('sort_order');
     if (!error && data?.length) { const cats = data.map(mapCategory); setLocal('categories', cats); return cats; }
   }
   return getLocal('categories', DEFAULT_CATEGORIES);
 };
 export const subscribeCategories = (callback: (cats: Category[]) => void): (() => void) => {
   if (!supabase) return () => {};
+  let fetchTimer: ReturnType<typeof setTimeout> | null = null;
+  const fetchAll = async () => {
+    const { data } = await supabase!.from('categories').select('*').order('sort_order');
+    const cats = (data ?? []).map(mapCategory);
+    setLocal('categories', cats); callback(cats);
+  };
   // Fetch current value first (Realtime only pushes changes, not the initial state)
-  supabase.from('categories').select('*').then(({ data, error }) => {
-    if (!error && data?.length) {
-      const cats = data.map(mapCategory); setLocal('categories', cats); callback(cats);
-    }
-  }, () => {});
+  fetchAll();
   const channel = supabase.channel('categories');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, async (payload) => {
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, (payload) => {
     if (payload.eventType === 'DELETE') {
       const current = getLocal('categories', DEFAULT_CATEGORIES) as Category[];
       const updated = current.filter(c => c.id !== payload.old?.id);
       setLocal('categories', updated); callback(updated);
-    } else {
-      const { data } = await supabase!.from('categories').select('*');
-      const cats = (data ?? []).map(mapCategory);
-      setLocal('categories', cats); callback(cats);
+      return;
     }
+    // Debounce batch updates (e.g. reorder writes many rows at once).
+    if (fetchTimer) clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(() => { fetchAll(); }, 250);
   }).subscribe();
-  return () => { supabase.removeChannel(channel); };
+  return () => {
+    if (fetchTimer) clearTimeout(fetchTimer);
+    supabase.removeChannel(channel);
+  };
+};
+export const reorderCategories = async (orderedIds: string[]): Promise<void> => {
+  if (!orderedIds.length) return;
+  const current = await getCategories();
+  const positions = new Map(orderedIds.map((id, i) => [id, i]));
+  const next = current.map(c => positions.has(c.id) ? { ...c, sortOrder: positions.get(c.id)! } : c);
+  setLocal('categories', next);
+  if (supabase) {
+    const rows = next.filter(c => positions.has(c.id)).map(c => ({ id: c.id, sort_order: c.sortOrder ?? 0 }));
+    const failed: string[] = [];
+    // Reorder only touches existing rows: a plain UPDATE per row is safer than a
+    // partial-column batch UPSERT (which PostgREST can reject when not all
+    // NOT NULL columns are provided).
+    for (const row of rows) {
+      const { error } = await supabase.from('categories').update({ sort_order: row.sort_order }).eq('id', row.id);
+      if (error) {
+        console.error('Supabase error reordering category', row.id, error);
+        failed.push(row.id);
+      }
+    }
+    if (failed.length) throw new Error('Помилка збереження порядку категорій');
+  }
 };
 export const saveCategory = async (category: Category): Promise<void> => {
   const validation = validateCategory(category);
@@ -314,13 +346,14 @@ export const saveCategory = async (category: Category): Promise<void> => {
   const paths = entityPhotoPaths('category', category.id);
   const photo = await storeOrKeep(category.photo, paths.photo);
   const photoOriginal = await storeOrKeep(category.photoOriginal ?? '', paths.photoOriginal);
-  const stored: Category = { ...category, photo, photoOriginal };
   const current = await getCategories();
-  const idx = current.findIndex(c => c.id === stored.id);
+  const idx = current.findIndex(c => c.id === category.id);
+  const sortOrder = idx >= 0 ? (category.sortOrder ?? current[idx].sortOrder ?? idx) : nextSortOrder(current);
+  const stored: Category = { ...category, photo, photoOriginal, sortOrder };
   if (idx >= 0) current[idx] = stored; else current.push(stored);
   setLocal('categories', current);
   if (supabase) {
-    const { error } = await supabase.from('categories').upsert({ id: stored.id, name_uk: stored.nameUk, name_hu: stored.nameHu, name_en: stored.nameEn, photo: stored.photo, photo_x: stored.photoX ?? 50, photo_y: stored.photoY ?? 50, photo_scale: stored.photoScale ?? 1, photo_original: stored.photoOriginal ?? '' });
+    const { error } = await supabase.from('categories').upsert({ id: stored.id, name_uk: stored.nameUk, name_hu: stored.nameHu, name_en: stored.nameEn, photo: stored.photo, photo_x: stored.photoX ?? 50, photo_y: stored.photoY ?? 50, photo_scale: stored.photoScale ?? 1, photo_original: stored.photoOriginal ?? '', sort_order: stored.sortOrder ?? 0 });
     if (error) { console.error('Supabase error saving category', error); throw new Error('Помилка збереження категорії'); }
   }
 };
@@ -336,26 +369,50 @@ export const deleteCategory = async (id: string): Promise<void> => {
 // 3. Products
 export const getProducts = async (): Promise<Product[]> => {
   if (supabase) {
-    const { data, error } = await supabase.from('products').select('*');
+    const { data, error } = await supabase.from('products').select('*').order('sort_order');
     if (!error && data?.length) { const prods = data.map(mapProduct); setLocal('products', prods); return prods; }
   }
   return getLocal('products', DEFAULT_PRODUCTS);
 };
 export const subscribeProducts = (callback: (prods: Product[]) => void): (() => void) => {
   if (!supabase) return () => {};
-  // Fetch current value first (Realtime only pushes changes, not the initial state)
-  supabase.from('products').select('*').then(({ data, error }) => {
-    if (!error && data?.length) {
-      const prods = data.map(mapProduct); setLocal('products', prods); callback(prods);
-    }
-  }, () => {});
-  const channel = supabase.channel('products');
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
-    const { data } = await supabase!.from('products').select('*');
+  let fetchTimer: ReturnType<typeof setTimeout> | null = null;
+  const fetchAll = async () => {
+    const { data } = await supabase!.from('products').select('*').order('sort_order');
     const prods = (data ?? []).map(mapProduct);
     setLocal('products', prods); callback(prods);
+  };
+  // Fetch current value first (Realtime only pushes changes, not the initial state)
+  fetchAll();
+  const channel = supabase.channel('products');
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+    // Debounce batch updates (e.g. reorder writes many rows at once).
+    if (fetchTimer) clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(() => { fetchAll(); }, 250);
   }).subscribe();
-  return () => { supabase.removeChannel(channel); };
+  return () => {
+    if (fetchTimer) clearTimeout(fetchTimer);
+    supabase.removeChannel(channel);
+  };
+};
+export const reorderProducts = async (orderedIds: string[]): Promise<void> => {
+  if (!orderedIds.length) return;
+  const current = await getProducts();
+  const positions = new Map(orderedIds.map((id, i) => [id, i]));
+  const next = current.map(p => positions.has(p.id) ? { ...p, sortOrder: positions.get(p.id)! } : p);
+  setLocal('products', next);
+  if (supabase) {
+    const rows = next.filter(p => positions.has(p.id)).map(p => ({ id: p.id, sort_order: p.sortOrder ?? 0 }));
+    const failed: string[] = [];
+    for (const row of rows) {
+      const { error } = await supabase.from('products').update({ sort_order: row.sort_order }).eq('id', row.id);
+      if (error) {
+        console.error('Supabase error reordering product', row.id, error);
+        failed.push(row.id);
+      }
+    }
+    if (failed.length) throw new Error('Помилка збереження порядку страв');
+  }
 };
 export const saveProduct = async (product: Product): Promise<void> => {
   const validation = validateProduct(product);
@@ -363,9 +420,16 @@ export const saveProduct = async (product: Product): Promise<void> => {
   const paths = entityPhotoPaths('product', product.id);
   const photo = await storeOrKeep(product.photo, paths.photo);
   const photoOriginal = await storeOrKeep(product.photoOriginal ?? '', paths.photoOriginal);
-  const stored: Product = { ...product, photo, photoOriginal };
   const current = await getProducts();
-  const idx = current.findIndex(p => p.id === stored.id);
+  const idx = current.findIndex(p => p.id === product.id);
+  const existing = idx >= 0 ? current[idx] : undefined;
+  let sortOrder: number;
+  if (!existing || existing.categoryId !== product.categoryId) {
+    sortOrder = nextSortOrder(current.filter(p => p.categoryId === product.categoryId));
+  } else {
+    sortOrder = product.sortOrder ?? existing.sortOrder ?? idx;
+  }
+  const stored: Product = { ...product, photo, photoOriginal, sortOrder };
   if (idx >= 0) current[idx] = stored; else current.push(stored);
   setLocal('products', current);
   if (supabase) {
@@ -376,6 +440,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       ingredients_uk: stored.ingredientsUk, ingredients_hu: stored.ingredientsHu, ingredients_en: stored.ingredientsEn,
       price: Number(stored.price), photo: stored.photo, photo_original: stored.photoOriginal ?? '',
       recommended_ids: stored.recommendedIds ?? [],
+      sort_order: stored.sortOrder ?? 0,
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
   }
@@ -390,13 +455,23 @@ export const deleteProduct = async (id: string): Promise<void> => {
 };
 
 // 4. Advertising
-const DEFAULT_ADVERTISING: Advertising = { photo: '', delaySeconds: 5, enabled: false, showUntil: '' };
+const DEFAULT_ADVERTISING: Advertising = { photo: '', delaySeconds: 5, enabled: false, showUntil: '', categoryId: '', productId: '' };
+
+const mapAdvertising = (row: any): Advertising => ({
+  photo: row.photo ?? '',
+  photoOriginal: row.photo_original ?? '',
+  delaySeconds: row.delay_seconds ?? 5,
+  enabled: row.enabled ?? false,
+  showUntil: row.show_until ?? '',
+  categoryId: row.category_id ?? '',
+  productId: row.product_id ?? '',
+});
 
 export const getAdvertising = async (): Promise<Advertising> => {
   if (supabase) {
     const { data, error } = await supabase.from('advertising').select('*').eq('id', 1).single();
     if (!error && data) {
-      const ad: Advertising = { photo: data.photo ?? '', photoOriginal: data.photo_original ?? '', delaySeconds: data.delay_seconds ?? 5, enabled: data.enabled ?? false, showUntil: data.show_until ?? '' };
+      const ad = mapAdvertising(data);
       setLocal('advertising', ad); return ad;
     }
   }
@@ -415,7 +490,7 @@ export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() =
   const topic = `advertising-${advertisingSubId++}`;
   supabase.from('advertising').select('*').eq('id', 1).single().then(({ data, error }) => {
     if (!error && data) {
-      const ad: Advertising = { photo: data.photo ?? '', photoOriginal: data.photo_original ?? '', delaySeconds: data.delay_seconds ?? 5, enabled: data.enabled ?? false, showUntil: data.show_until ?? '' };
+      const ad = mapAdvertising(data);
       setLocal('advertising', ad); callback(ad);
     }
   }, () => {});
@@ -423,7 +498,7 @@ export const subscribeAdvertising = (callback: (ad: Advertising) => void): (() =
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'advertising', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
     if (row) {
-      const ad: Advertising = { photo: row.photo ?? '', photoOriginal: row.photo_original ?? '', delaySeconds: row.delay_seconds ?? 5, enabled: row.enabled ?? false, showUntil: row.show_until ?? '' };
+      const ad = mapAdvertising(row);
       setLocal('advertising', ad); callback(ad);
     }
   }).subscribe();
@@ -443,6 +518,8 @@ export const saveAdvertising = async (ad: Advertising): Promise<void> => {
       delay_seconds: storedAd.delaySeconds ?? 5,
       enabled: storedAd.enabled ?? false,
       show_until: storedAd.showUntil || null,
+      category_id: storedAd.categoryId || null,
+      product_id: storedAd.productId || null,
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing advertising', error); throw new Error('Помилка збереження реклами'); }

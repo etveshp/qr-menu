@@ -19,8 +19,8 @@ export async function GET(): Promise<NextResponse> {
   try {
     const [cafeRes, catsRes, prodsRes] = await Promise.all([
       supabase.from('cafe_info').select('*').eq('id', 1).single(),
-      supabase.from('categories').select('*'),
-      supabase.from('products').select('*'),
+      supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('products').select('*').order('sort_order'),
     ]);
 
     const cafeRow = cafeRes.data;
@@ -46,7 +46,7 @@ export async function GET(): Promise<NextResponse> {
       : null;
 
     const categories = (catsRes.data ?? []).map((r: any) => ({
-      id: r.id, nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en, photo: r.photo,
+      id: r.id, nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en, photo: r.photo, sortOrder: r.sort_order ?? 0,
     }));
 
     const products = (prodsRes.data ?? []).map((r: any) => ({
@@ -54,7 +54,7 @@ export async function GET(): Promise<NextResponse> {
       nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en,
       descriptionUk: r.description_uk, descriptionHu: r.description_hu, descriptionEn: r.description_en,
       ingredientsUk: r.ingredients_uk, ingredientsHu: r.ingredients_hu, ingredientsEn: r.ingredients_en,
-      price: Number(r.price), photo: r.photo,
+      price: Number(r.price), photo: r.photo, sortOrder: r.sort_order ?? 0,
     }));
 
     return NextResponse.json({ cafeInfo, categories, products }, {
