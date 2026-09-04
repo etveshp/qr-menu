@@ -27,7 +27,6 @@ interface AdPopupProps {
 export function AdPopup({ t }: AdPopupProps) {
   const [ad, setAd] = useState<Advertising>(DEFAULT_AD);
   const [visible, setVisible] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const wasShownRef = useRef(false);
 
   // Show the popup once per page load, after the configured delay, once the ad
@@ -36,11 +35,15 @@ export function AdPopup({ t }: AdPopupProps) {
   // after it was already displayed.
   useEffect(() => {
     let cancelled = false;
+    // Timer is local to this effect run: under React StrictMode (dev) the
+    // effect runs twice, and a stale run's callback must not be able to clear
+    // the live run's pending timer via a shared ref.
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const schedule = (next: Advertising) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timer) clearTimeout(timer);
       if (!next.enabled || !next.photo || !isWithinShowWindow(next) || wasShownRef.current || cancelled) return;
-      timerRef.current = setTimeout(() => {
+      timer = setTimeout(() => {
         if (cancelled || wasShownRef.current) return;
         wasShownRef.current = true;
         setVisible(true);
@@ -54,7 +57,7 @@ export function AdPopup({ t }: AdPopupProps) {
 
     return () => {
       cancelled = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
@@ -74,7 +77,7 @@ export function AdPopup({ t }: AdPopupProps) {
         >
           {/* 9:16 popup with small outer margins (not full screen) */}
           <motion.div
-            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-auto sm:max-w-[240px] sm:pointer-events-auto sm:mb-2 sm:mr-2"
+            className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2"
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}

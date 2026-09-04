@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import { AdPopup } from '../menu/AdPopup';
 
-let subscribeCb: ((ad: any) => void) | null = null;
+// Keep every registered subscription: an "unsubscribed" (stale) one may still
+// fire later (its in-flight fetch resolves), mirroring the real subscribeAdvertising.
+let subscribeCbs: Array<(ad: any) => void> = [];
 
 vi.mock('@/lib/supabase', () => ({
   subscribeAdvertising: vi.fn((cb: (ad: any) => void) => {
-    subscribeCb = cb;
-    return () => { subscribeCb = null; };
+    subscribeCbs.push(cb);
+    return () => {};
   }),
 }));
 
 function fireAd(ad: { photo?: string; delaySeconds?: number; enabled?: boolean }) {
-  subscribeCb?.({
+  subscribeCbs[subscribeCbs.length - 1]?.({
     photo: 'data:image/webp;base64,test',
     delaySeconds: 0,
     enabled: true,
@@ -24,7 +27,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.useRealTimers();
-  subscribeCb = null;
+  subscribeCbs = [];
 });
 
 beforeEach(() => {
@@ -102,6 +105,28 @@ describe('AdPopup', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     act(() => { vi.advanceTimersByTime(5000); });
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('still shows the popup when a stale StrictMode subscription fires after the live one', () => {
+    // React StrictMode (dev) mounts the effect twice: the first subscription
+    // becomes stale after its cleanup, but its in-flight callback can still
+    // arrive later. It must not cancel the live subscription's pending timer.
+    render(
+      <StrictMode>
+        <AdPopup t={mockT} />
+      </StrictMode>
+    );
+
+    const stale = subscribeCbs[0];
+    const live = subscribeCbs[subscribeCbs.length - 1];
+
+    // Live subscription schedules the popup first, then the stale one fires
+    // afterwards (the order that used to clear the shared timer).
+    act(() => live?.({ photo: 'data:image/webp;base64,test', delaySeconds: 0, enabled: true }));
+    act(() => stale?.({ photo: 'data:image/webp;base64,test', delaySeconds: 0, enabled: true }));
+    act(() => { vi.runAllTimers(); });
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
