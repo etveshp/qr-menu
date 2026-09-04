@@ -254,12 +254,19 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 - [x] Переклад `requiredField` уже був в uk/hu/en — нових ключів не додано.
 - [x] 136 тестів, `tsc --noEmit`, lint — чисто.
 
+### 7.28 Фікс деплою на Vercel: `output: standalone` ламає збірку на Next 16.3 (зроблено)
+- [x] Знайдено: усі деплої на Vercel після апгрейду Next 16 падали з `ENOENT .next/next-server.js.nft.json` в `onBuildComplete`.
+- [x] Причина — відомий баг Next 16.3 (vercel/next.js #96646): `output: 'standalone'` у `next.config.ts` (пережиток Cloud Run) — Next 16.3 більше не пише `.nft.json`, а Vercel його очікує; локально збірка проходить, бо без `onBuildComplete`.
+- [x] Виправлено: `output: 'standalone'` видалено з `next.config.ts` (проєкт деплоїться тільки на Vercel, standalone не потрібен — немає ні Dockerfile, ні Cloud Run).
+- [x] `npm run build` — успішно, 136 тестів, `tsc --noEmit`, lint — чисто.
+
 ---
 
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-04 | Фаза 7.28 — Фікс деплою на Vercel після апгрейду Next 16: всі деплої падали з `ENOENT .next/next-server.js.nft.json` через `output: 'standalone'` у `next.config.ts` (пережиток Cloud Run; відомий баг Next 16.3 — vercel/next.js #96646). Видалено standalone-опцію; локальна збірка й перевірки чисті | Codebuff |
 | 2026-09-04 | Фаза 7.27 — Тости в палітрі застосунку (без зелених/червоних «системних» кольорів; на десктопі — праворуч знизу, на мобільних — по центру на всю ширину) + підсвічування незаповнених обов'язкових полів у формах зміни пароля (екран відновлення та налаштування). 136 тестів, tsc, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.19 — Виправлення футера в меню: контейнер → `flex flex-col`, `<main>` → `flex-1` — футер притискається до низу екрана. Адмінка, налаштування закладу: поля «Назва закладу» і «Instagram» на одному рівні на десктопі (невидимий бейдж-спейсер). 136 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-02 | Фаза 7.20 — Google-вхід: адмін одразу в кабінеті. `loginWithGoogle` редиректить на `/admin`; прибрано `PENDING_ADMIN_REDIRECT_KEY` з `lib/supabase.ts`, `app/admin/page.tsx`, `MenuContainer.tsx`. Не-адмін викидається в меню через `handleAuthUser`. 136 тестів, typecheck, lint — чисто | Kilo |
