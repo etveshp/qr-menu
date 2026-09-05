@@ -2100,9 +2100,14 @@ export default function AdminPage() {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeDescription')}</label>
-                        <span className="text-[10px] font-bold text-[#C09E6D]">
-                          {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider invisible">
+                            {LANG_CODE[lang] ?? lang.toUpperCase()}
+                          </span>
+                          <span className="text-[10px] font-bold text-[#C09E6D]">
+                            {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
+                          </span>
+                        </div>
                       </div>
                       {lang === 'uk' && (
                         <input
