@@ -79,7 +79,7 @@ export function Header({
 
           {/* Table chip (before language selector, same height as it) */}
           {cafeInfo?.showTableNumber && tableNumber && (
-            <span className="shrink-0 inline-flex items-center px-3 h-10 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-xs font-semibold text-[#3E2F26] whitespace-nowrap">
+            <span className="shrink-0 inline-flex items-center px-3 h-11 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-xs font-semibold text-[#3E2F26] whitespace-nowrap">
               {t('headerTableChip').replace('{number}', tableNumber)}
             </span>
           )}
