@@ -2020,11 +2020,49 @@ export default function AdminPage() {
             <div className="space-y-6">
               {/* Cafe Details Card */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-6 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {t('editCafeInfo')}
-                </h2>
+                <div className="flex items-center justify-between gap-4 border-b border-[#E6DFD5] pb-2 mb-6">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('editCafeInfo')}
+                  </h2>
 
-                <form onSubmit={handleSaveCafe} className="space-y-6">
+                  {/* Desktop: save button in the section header (right) */}
+                  <div className="hidden lg:block shrink-0 lg:-translate-y-[5px]">
+                    <button
+                      type="submit"
+                      form="cafe-settings-form"
+                      disabled={cafeSaveStatus === 'saving'}
+                      className={`relative overflow-hidden inline-flex items-center gap-2.5 px-6 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                        cafeSaveStatus === 'saving'
+                          ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                          : cafeSaveStatus === 'saved'
+                          ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                          : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+                      }`}
+                    >
+                      {cafeSaveStatus === 'saving' && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+                      )}
+                      {cafeSaveStatus === 'saving' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                          <span>{t('saving')}</span>
+                        </>
+                      ) : cafeSaveStatus === 'saved' ? (
+                        <>
+                          <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                          <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 text-[#C09E6D]" />
+                          <span>{t('saveBtn')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <form id="cafe-settings-form" onSubmit={handleSaveCafe} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <div className="mb-2 flex items-center justify-between">
@@ -2144,8 +2182,9 @@ export default function AdminPage() {
                         />
                       )}
                     </div>
-                  </div>
+                   </div>
 
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {/* Banner Upload & Positioning */}
                    <div className="space-y-3 pt-4 border-t border-[#E6DFD5]">
                      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeBanner')}</label>
@@ -2311,8 +2350,9 @@ export default function AdminPage() {
                       </p>
                     )}
                   </div>
+                  </div>
 
-                  <div className="pt-4 border-t border-[#E6DFD5]">
+                  <div className="pt-4 border-t border-[#E6DFD5] lg:hidden">
                     <button 
                       type="submit" 
                       disabled={cafeSaveStatus === 'saving'}
@@ -2350,12 +2390,51 @@ export default function AdminPage() {
 
               {/* Greetings */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {t('greetings')}
-                </h2>
+                <div className="flex items-center justify-between gap-4 border-b border-[#E6DFD5] pb-2 mb-2">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('greetings')}
+                  </h2>
+
+                  {/* Desktop: save button in the greetings header (right) */}
+                  <div className="hidden lg:block shrink-0 lg:-translate-y-[5px]">
+                    <button
+                      type="submit"
+                      form="greetings-form"
+                      disabled={cafeSaveStatus === 'saving'}
+                      className={`relative overflow-hidden inline-flex items-center gap-2.5 px-6 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                        cafeSaveStatus === 'saving'
+                          ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                          : cafeSaveStatus === 'saved'
+                          ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                          : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+                      }`}
+                    >
+                      {cafeSaveStatus === 'saving' && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+                      )}
+                      {cafeSaveStatus === 'saving' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                          <span>{t('saving')}</span>
+                        </>
+                      ) : cafeSaveStatus === 'saved' ? (
+                        <>
+                          <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                          <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 text-[#C09E6D]" />
+                          <span>{t('saveBtn')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
                 <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('greetingsSubtitle')}</p>
 
-                <form onSubmit={handleSaveCafe} className="space-y-8">
+                <form id="greetings-form" onSubmit={handleSaveCafe}>
+                  <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
                   {/* Customer greeting */}
                   <div>
                     <div className="flex items-center justify-between gap-4 mb-3">
@@ -2388,7 +2467,7 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       {lang === 'uk' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingCustomerUk ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerUk: e.target.value })}
                           placeholder={t('greetingCustomerPlaceholder')}
@@ -2397,7 +2476,7 @@ export default function AdminPage() {
                       )}
                       {lang === 'hu' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingCustomerHu ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerHu: e.target.value })}
                           placeholder={t('greetingCustomerPlaceholder')}
@@ -2406,7 +2485,7 @@ export default function AdminPage() {
                       )}
                       {lang === 'en' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingCustomerEn ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerEn: e.target.value })}
                           placeholder={t('greetingCustomerPlaceholder')}
@@ -2448,7 +2527,7 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       {lang === 'uk' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingAdminUk ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminUk: e.target.value })}
                           placeholder={t('greetingAdminPlaceholder')}
@@ -2457,7 +2536,7 @@ export default function AdminPage() {
                       )}
                       {lang === 'hu' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingAdminHu ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminHu: e.target.value })}
                           placeholder={t('greetingAdminPlaceholder')}
@@ -2466,7 +2545,7 @@ export default function AdminPage() {
                       )}
                       {lang === 'en' && (
                         <textarea
-                          rows={4}
+                          rows={8}
                           value={cafeForm.greetingAdminEn ?? ''}
                           onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminEn: e.target.value })}
                           placeholder={t('greetingAdminPlaceholder')}
@@ -2475,9 +2554,10 @@ export default function AdminPage() {
                       )}
                     </div>
                   </div>
+                  </div>
 
                   {/* Save */}
-                  <div className="pt-4 border-t border-[#E6DFD5]">
+                  <div className="mt-8 lg:hidden">
                     <button
                       type="submit"
                       disabled={cafeSaveStatus === 'saving'}
@@ -2515,9 +2595,24 @@ export default function AdminPage() {
 
               {/* Change Login Password */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {t('changePasswordTitle')}
-                </h2>
+                <div className="flex items-center justify-between gap-4 border-b border-[#E6DFD5] pb-2 mb-2">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('changePasswordTitle')}
+                  </h2>
+
+                  {/* Desktop: update-password button in the section header (right) */}
+                  <div className="hidden lg:block shrink-0 lg:-translate-y-[5px]">
+                    <button
+                      type="submit"
+                      form="password-settings-form"
+                      disabled={changePassLoading}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 shadow-sm cursor-pointer"
+                    >
+                      {changePassLoading && <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />}
+                      <span>{t('updatePasswordBtn')}</span>
+                    </button>
+                  </div>
+                </div>
                 <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('changePasswordDesc')}</p>
 
                 {changePassError && (
@@ -2527,9 +2622,9 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleChangePasswordSettings} className="space-y-4 text-left">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
+                <form id="password-settings-form" onSubmit={handleChangePasswordSettings} className="space-y-4 text-left">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 lg:col-span-1">
                       <label className="block text-xs uppercase tracking-wider text-[#8E7A68] mb-1.5 font-semibold">
                         {t('currentPasswordLabel')}
                       </label>
@@ -2582,7 +2677,7 @@ export default function AdminPage() {
                   <button
                     type="submit"
                     disabled={changePassLoading}
-                    className="w-full md:w-auto px-8 py-3 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                    className="w-full md:w-auto lg:hidden px-8 py-3 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
                     {changePassLoading && <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />}
                     <span>{t('updatePasswordBtn')}</span>
