@@ -10,7 +10,7 @@ import {
   triggerHapticFeedback,
 } from '@/lib/sound';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -26,6 +26,7 @@ import { ScrollToTop } from '@/components/menu/ScrollToTop';
 import { AdPopup } from '@/components/menu/AdPopup';
 import { TextBanner } from '@/components/menu/TextBanner';
 import { NotAdminModal } from '@/components/NotAdminModal';
+import { useToast } from '@/components/Toast';
 
 export interface MenuContainerProps {
   initialData?: {
@@ -64,18 +65,14 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
   const { currentUser, isAdmin: isAdminLoggedIn } = useAuth(() => setShowNotAdminPopup(true));
 
-  // Customer greeting popup: shown once per session when the cafe enabled a
-  // customer greeting. A random greeting (from the DB list) is displayed in a
-  // welcome popup similar to the admin cabinet popup.
-  const [showCustomerGreeting, setShowCustomerGreeting] = useState(false);
-  const [customerGreetingText, setCustomerGreetingText] = useState('');
+  // Customer greeting: shown once per session as a greeting toast when the cafe
+  // enabled a customer greeting. A random greeting is picked from the DB list.
   const greetingPopupRef = useRef(false);
   const CUSTOMER_GREETING_SHOWN_KEY = 'svk_customer_greeting_shown';
+  const { showGreetingToast } = useToast();
 
   const { cafeInfo, categories, products, loading } = useMenuData(initialData ?? undefined);
 
-  // Show the customer greeting popup once per session (needs cafeInfo, hence
-  // declared after useMenuData).
   useEffect(() => {
     if (isAdminLoggedIn || !cafeInfo?.greetingCustomerEnabled) return;
     if (greetingPopupRef.current) return;
@@ -83,15 +80,16 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     if (typeof window !== 'undefined' && sessionStorage.getItem(CUSTOMER_GREETING_SHOWN_KEY) === 'true') return;
     const random = getRandomGreeting(getCafeCustomerGreeting(cafeInfo, lang));
     if (!random) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCustomerGreetingText(random);
-    setShowCustomerGreeting(true);
+    const withTable = cafeInfo?.showTableNumber && tableNumber
+      ? `${random}\n${t('greetingTableLine').replace('{number}', tableNumber)}`
+      : random;
+    showGreetingToast(t('greetingPopupTitle'), withTable, 'customer');
     try {
       sessionStorage.setItem(CUSTOMER_GREETING_SHOWN_KEY, 'true');
     } catch {
       // ignore
     }
-  }, [cafeInfo, isAdminLoggedIn, lang]);
+  }, [cafeInfo, isAdminLoggedIn, lang, showGreetingToast, t, tableNumber]);
 
   const headerRef = useRef<HTMLElement>(null);
   const cartButtonRef = useRef<HTMLButtonElement>(null);
@@ -373,6 +371,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         cartButtonRef={cartButtonRef}
         onOpenCart={() => setIsCartOpen(true)}
         t={t}
+        tableNumber={tableNumber}
       />
 
       <TextBanner
@@ -396,17 +395,27 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
               transition={{ duration: 0.25 }}
             >
               <h3 className="text-sm uppercase tracking-widest text-[#8E7A68] font-bold mb-4">{t('categories')}</h3>
-              <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
-                {categories.map((cat, catIndex) => (
-                  <CategoryCard
-                    key={cat.id}
-                    category={cat}
-                    index={catIndex}
-                    name={getCategoryName(cat)}
-                    onSelect={setActiveCategory}
-                  />
-                ))}
-              </div>
+              {categories.length === 0 ? (
+                <div className="py-14 text-center flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] flex items-center justify-center">
+                    <Coffee className="w-8 h-8 text-[#C09E6D]" strokeWidth={1.6} />
+                  </div>
+                  <p className="font-display text-lg sm:text-xl font-semibold text-[#4A3B32]">{t('menuComingSoon')}</p>
+                  <p className="text-sm text-[#8E7A68] max-w-xs leading-relaxed">{t('menuComingSoonHint')}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                  {categories.map((cat, catIndex) => (
+                    <CategoryCard
+                      key={cat.id}
+                      category={cat}
+                      index={catIndex}
+                      name={getCategoryName(cat)}
+                      onSelect={setActiveCategory}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -538,16 +547,6 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         text={t('notAdminPopupText')}
         okLabel={t('notAdminOk')}
         onOk={() => setShowNotAdminPopup(false)}
-      />
-
-      {/* Customer greeting popup */}
-      <NotAdminModal
-        isOpen={showCustomerGreeting}
-        logo={cafeInfo?.logo ?? null}
-        title={t('greetingPopupTitle')}
-        text={customerGreetingText}
-        okLabel={t('greetingPopupOk')}
-        onOk={() => setShowCustomerGreeting(false)}
       />
     </div>
   );

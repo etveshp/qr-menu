@@ -8,6 +8,7 @@ import Cropper from 'react-easy-crop';
 import {
   getCafeInfo, 
   updateCafeInfo, 
+  saveTableNumberSetting, 
   getCategories, 
   saveCategory, 
   deleteCategory, 
@@ -20,6 +21,9 @@ import {
   saveAdvertising,
   getTextBanner,
   saveTextBanner,
+  getSavedQrs,
+  saveQr,
+  deleteQr,
   subscribeToAuth,
   loginWithEmail,
   loginWithGoogle,
@@ -34,16 +38,19 @@ import {
   Product,
   Advertising,
   TextBanner,
+  SavedQr,
   getCafeName,
   getCafeOwnerName,
   getCafeAdminGreeting,
   getRandomGreeting
 } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import type { Translator } from '@/lib/translator';
 import { TRANSLATIONS, ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
   Coffee, 
+  Download,
   Settings, 
   Grid, 
   ShoppingBag, 
@@ -68,6 +75,8 @@ import {
   Loader2,
   MoreVertical,
   Megaphone,
+  ChevronDown,
+  FileCode2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -76,7 +85,6 @@ import { DatePicker } from '@/components/admin/DatePicker';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
-import { ActionCard } from '@/components/admin/ActionCard';
 import { SortableActionCardGrid } from '@/components/admin/SortableActionCardGrid';
 import { RecommendedProductsPicker } from '@/components/admin/RecommendedProductsPicker';
 import { useLanguage } from '@/hooks/use-language';
@@ -87,10 +95,148 @@ const LANG_CODE: Record<string, string> = { uk: 'UA', hu: 'HU', en: 'EN' };
 
 const WELCOME_KEYS = ['welcomeMsg1', 'welcomeMsg2', 'welcomeMsg3', 'welcomeMsg4', 'welcomeMsg5'] as const;
 
+// Hint under section titles: renders the text and replaces the "[⋮]" marker
+// with an inline kebab icon.
+function SortHint({ text }: { text: string }) {
+  const parts = text.split('[⋮]');
+  return (
+    <p className="text-[11px] text-[#8E7A68] leading-relaxed">
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          {part}
+          {i < parts.length - 1 && (
+            <MoreVertical className="inline w-3.5 h-3.5 -mt-0.5 text-[#8E7A68]" />
+          )}
+        </React.Fragment>
+      ))}
+    </p>
+  );
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const a = document.createElement('a');
+  const objectUrl = URL.createObjectURL(blob);
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
+// Compact download control with PNG (hi-res) / SVG format menu — used on the
+// "Готові QR-коди" cards.
+function SavedQrDownload({ tableNumber, t }: { tableNumber: number; t: Translator }) {
+  const [open, setOpen] = useState(false);
+  const [downloading, setDownloading] = useState<'png' | 'svg' | null>(null);
+  const downloadBtnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  const toggleFormat = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = downloadBtnRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuPos({ top: rect.bottom + 6, left: Math.max(8, rect.left) });
+    }
+    setOpen(true);
+  };
+
+  const downloadPngHi = async () => {
+    if (downloading) return;
+    setDownloading('png');
+    try {
+      const dataUrl = await QRCode.toDataURL(`${window.location.origin}?table=${tableNumber}`, {
+        width: 2048,
+        margin: 2,
+        color: { dark: '#3E2F26', light: '#FAF6EE' },
+      });
+      const blob = await (await fetch(dataUrl)).blob();
+      triggerDownload(blob, `svit_kavy_menu_table_${tableNumber}.png`);
+    } catch (err) {
+      console.error('PNG export failed', err);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const downloadSvg = async () => {
+    if (downloading) return;
+    setDownloading('svg');
+    try {
+      const svg = await QRCode.toString(`${window.location.origin}?table=${tableNumber}`, {
+        type: 'svg',
+        margin: 2,
+        color: { dark: '#3E2F26', light: '#FAF6EE' },
+      });
+      triggerDownload(new Blob([svg], { type: 'image/svg+xml' }), `svit_kavy_menu_table_${tableNumber}.svg`);
+    } catch (err) {
+      console.error('SVG export failed', err);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        ref={downloadBtnRef}
+        type="button"
+        disabled={!!downloading}
+        onClick={toggleFormat}
+        className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#3E2F26] text-[#FAF6EE] text-[11px] uppercase tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl"
+      >
+        {downloading ? <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" /> : <Download className="w-4 h-4" />}
+        {downloading ? t('saving') : t('downloadQR')}
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && !downloading && menuPos && (
+        <>
+          <div className="fixed inset-0 z-[110]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[120] w-56 bg-[#FDFBF7] border border-[#E6DFD5] rounded-xl shadow-2xl overflow-hidden py-1"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                downloadPngHi();
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-xs font-semibold text-[#3E2F26] hover:bg-[#F1ECE3] transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-[#C09E6D] shrink-0" />
+              {t('downloadPngHi')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                downloadSvg();
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-xs font-semibold text-[#3E2F26] hover:bg-[#F1ECE3] transition-colors cursor-pointer"
+            >
+              <FileCode2 className="w-4 h-4 text-[#C09E6D] shrink-0" />
+              {t('downloadSvg')}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
-  const { showToast } = useToast();
+  const { showToast, showGreetingToast } = useToast();
   const { lang, changeLanguage, t } = useLanguage();
   const router = useRouter();
+
+  // Sidebar nav card height (used to match the QR generator section to it).
+  const sidebarCardRef = useRef<HTMLDivElement>(null);
+  const [qrSectionHeight, setQrSectionHeight] = useState(0);
 
   const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -132,9 +278,8 @@ export default function AdminPage() {
     setAuthRestored(true);
   }, []);
 
-  // Welcome popup: shown once per session when the admin enters the cabinet.
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [welcomeMsgKey, setWelcomeMsgKey] = useState<typeof WELCOME_KEYS[number]>('welcomeMsg1');
+  // Welcome greeting: shown once per session as a greeting toast when the admin
+  // enters the cabinet and the admin greeting toggle is enabled in cafe settings.
   const hasShownWelcomeRef = useRef(false);
 
   // Marks an in-flight email/password sign-in so the auto-detected (e.g.
@@ -244,8 +389,8 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Welcome popup: shown once per session when the admin enters the cabinet,
-  // but only when the admin greeting toggle is enabled in cafe settings.
+  // Welcome greeting toast: once per session, only when the admin greeting
+  // toggle is enabled in cafe settings.
   useEffect(() => {
     if (!isAuthenticated || !currentUser || hasShownWelcomeRef.current) return;
     if (!cafeInfo?.greetingAdminEnabled) return;
@@ -253,15 +398,49 @@ export default function AdminPage() {
     if (typeof window !== 'undefined' && sessionStorage.getItem('aura_admin_welcome_shown') === 'true') {
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWelcomeMsgKey(WELCOME_KEYS[Math.floor(Math.random() * WELCOME_KEYS.length)]);
-    setShowWelcome(true);
+    const fallbackKey = WELCOME_KEYS[Math.floor(Math.random() * WELCOME_KEYS.length)];
+    const message = getRandomGreeting(getCafeAdminGreeting(cafeInfo, lang)) || t(fallbackKey);
+    const owner = (getCafeOwnerName(cafeInfo, lang) || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '').trim().split(/\s+/)[0] || '';
+    showGreetingToast(t('welcomeTitle').replace('{name}', owner), message, 'admin');
     try {
       sessionStorage.setItem('aura_admin_welcome_shown', 'true');
     } catch {
       // ignore
     }
-  }, [isAuthenticated, currentUser, cafeInfo?.greetingAdminEnabled]);
+  }, [isAuthenticated, currentUser, cafeInfo, showGreetingToast, t, lang]);
+
+  // Match the QR generator section height to the sidebar nav card on lg+.
+  useEffect(() => {
+    if (activeTab !== 'qr' || typeof window === 'undefined') return;
+    const el = sidebarCardRef.current;
+    if (!el) return;
+    const compute = () => {
+      const lg = window.matchMedia('(min-width: 1024px)').matches;
+      setQrSectionHeight(lg ? el.offsetHeight : 0);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    window.addEventListener('resize', compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', compute);
+    };
+  }, [activeTab]);
+
+  // Saved QR codes ("Готові QR-коди")
+  const [savedQrs, setSavedQrs] = useState<SavedQr[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    getSavedQrs()
+      .then((list) => {
+        if (mounted) setSavedQrs(list);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Form states - Category
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -292,37 +471,18 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProdDrawerOpen, setIsProdDrawerOpen] = useState<boolean>(false);
 
-  // Category filter for the Menu (products) tab
-  const [menuFilterCategoryId, setMenuFilterCategoryId] = useState<string>('all');
+  // Category filter for the Menu (products) tab — only categories (no "all").
+  const [menuFilterCategoryId, setMenuFilterCategoryId] = useState<string>('');
 
-  // For the "all" view, group products by category in menu order (categories
-  // already sorted by sort_order); inside each category products keep sort_order.
-  const sortedAllProducts = useMemo(() => {
-    const byCategory = new Map<string, Product[]>();
-    for (const p of products) {
-      const arr = byCategory.get(p.categoryId) ?? [];
-      arr.push(p);
-      byCategory.set(p.categoryId, arr);
-    }
-    const sortByOrder = (a: Product, b: Product) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-    const result: Product[] = [];
-    for (const cat of categories) {
-      const group = byCategory.get(cat.id) ?? [];
-      group.sort(sortByOrder);
-      result.push(...group);
-    }
-    const included = new Set(result.map((p) => p.id));
-    for (const p of products) {
-      if (!included.has(p.id)) result.push(p);
-    }
-    return result;
-  }, [categories, products]);
+  // Defaults to the first category; stays in sync when categories are
+  // added/removed in the cabinet.
+  const activeMenuCategoryId = categories.some((c) => c.id === menuFilterCategoryId)
+    ? menuFilterCategoryId
+    : (categories[0]?.id ?? '');
 
-  const filteredMenuProducts = menuFilterCategoryId === 'all'
-    ? sortedAllProducts
-    : products
-        .filter((p) => p.categoryId === menuFilterCategoryId)
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const filteredMenuProducts = products
+    .filter((p) => p.categoryId === activeMenuCategoryId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   // Reorder categories (drag & drop) — optimistic update + persist.
   const handleReorderCategories = async (orderedIds: string[]) => {
@@ -1138,6 +1298,46 @@ export default function AdminPage() {
     }
   };
 
+  // Toggle "show table number in header/greeting" (QR generator tab)
+  const handleShowTableNumberChange = async (value: boolean) => {
+    const prev = cafeInfo?.showTableNumber ?? false;
+    setCafeInfo((info) => (info ? { ...info, showTableNumber: value } : info));
+    setCafeForm((form) => ({ ...form, showTableNumber: value }));
+    try {
+      await saveTableNumberSetting(value);
+    } catch (err) {
+      setCafeInfo((info) => (info ? { ...info, showTableNumber: prev } : info));
+      setCafeForm((form) => ({ ...form, showTableNumber: prev }));
+      showToast(err instanceof Error ? err.message : t('saveSettingsError'), 'error');
+    }
+  };
+
+  // Save the currently generated QR code into the DB / "Готові QR-коди".
+  const handleSaveCurrentQr = async () => {
+    const n = Number(qrTableNumber);
+    if (!qrCodeDataUrl || !Number.isInteger(n) || n < 1) {
+      showToast(t('requiredField'), 'error');
+      return;
+    }
+    try {
+      const saved = await saveQr(n, qrCodeDataUrl);
+      setSavedQrs((prev) => [...prev.filter((q) => q.tableNumber !== n), saved].sort((a, b) => a.tableNumber - b.tableNumber));
+      showToast(t('qrSavedMessage'), 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('saveSettingsError'), 'error');
+    }
+  };
+
+  const handleDeleteSavedQr = async (id: string) => {
+    try {
+      await deleteQr(id);
+      setSavedQrs((prev) => prev.filter((q) => q.id !== id));
+      showToast(t('qrDeletedMessage'), 'info');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('deleteCategoryError'), 'error');
+    }
+  };
+
   // Advertising Actions
   const handleSaveAdvertising = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1768,7 +1968,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 md:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Side Tab Navigation */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="bg-[#FDFBF7] p-5 border border-[#E6DFD5] premium-shadow rounded-2xl">
+          <div ref={sidebarCardRef} className="bg-[#FDFBF7] p-5 border border-[#E6DFD5] premium-shadow rounded-2xl">
             <h3 className="text-xs uppercase tracking-widest text-[#8E7A68] font-bold mb-4">{t('adminNav')}</h3>
             <div className="space-y-1">
               <button 
@@ -1813,7 +2013,7 @@ export default function AdminPage() {
         </div>
 
         {/* Right Side Working Canvas */}
-        <div className="lg:col-span-9 space-y-6">
+        <div className={`lg:col-span-9 space-y-6 ${activeTab === 'qr' ? 'lg:flex lg:flex-col' : ''}`}>
           
           {/* TAB 1: CAFE DETAILS */}
           {activeTab === 'cafe' && (
@@ -2411,6 +2611,12 @@ export default function AdminPage() {
                   </button>
                 </div>
 
+                {categories.length > 0 && (
+                  <div className="-mt-3 mb-5">
+                    <SortHint text={t('categorySortHint')} />
+                  </div>
+                )}
+
                 {categories.length === 0 ? (
                   <div className="py-10 text-center text-sm text-[#8E7A68] space-y-2">
                     <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
@@ -2430,10 +2636,9 @@ export default function AdminPage() {
                     onDragStart={() => setOpenActionsId(null)}
                     getAlt={(cat) => cat.nameUk}
                     renderContent={(cat) => (
-                      <>
-                        <p className="font-semibold text-sm text-[#231913]">{cat.nameUk}</p>
-                        <p className="text-[10px] text-[#8E7A68]">{cat.nameEn} • {cat.nameHu}</p>
-                      </>
+                      <p className="font-semibold text-sm text-[#231913]">
+                        {lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk}
+                      </p>
                     )}
                   />
                 )}
@@ -2460,6 +2665,12 @@ export default function AdminPage() {
                   </button>
                 </div>
 
+                {products.length > 0 && (
+                  <div className="-mt-3 mb-5">
+                    <SortHint text={t('productSortHint')} />
+                  </div>
+                )}
+
                 {/* Category filter pills */}
                 <div
                   ref={pillsScrollRef}
@@ -2469,35 +2680,22 @@ export default function AdminPage() {
                   onPointerMove={handlePillsPointerMove}
                   className="mb-6 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 no-scrollbar touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
                 >
+                  {categories.map((cat) => (
                   <button
+                    key={cat.id}
                     type="button"
                     onClick={() => {
-                      if (!pillsIsDragging) setMenuFilterCategoryId('all');
+                      if (!pillsIsDragging) setMenuFilterCategoryId(cat.id);
                     }}
                     className={`shrink-0 px-4 py-2 text-xs uppercase tracking-wider font-semibold rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                      menuFilterCategoryId === 'all'
+                      activeMenuCategoryId === cat.id
                         ? 'bg-[#3E2F26] text-[#FAF6EE] border-[#3E2F26]'
                         : 'bg-white text-[#3E2F26] border-[#E6DFD5] hover:border-[#C09E6D]'
                     }`}
                   >
-                    {t('all')}
+                    {lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk}
                   </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        if (!pillsIsDragging) setMenuFilterCategoryId(cat.id);
-                      }}
-                      className={`shrink-0 px-4 py-2 text-xs uppercase tracking-wider font-semibold rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                        menuFilterCategoryId === cat.id
-                          ? 'bg-[#3E2F26] text-[#FAF6EE] border-[#3E2F26]'
-                          : 'bg-white text-[#3E2F26] border-[#E6DFD5] hover:border-[#C09E6D]'
-                      }`}
-                    >
-                      {lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk}
-                    </button>
-                  ))}
+                ))}
                 </div>
 
                 {filteredMenuProducts.length === 0 ? (
@@ -2505,37 +2703,6 @@ export default function AdminPage() {
                     <Coffee className="w-8 h-8 text-[#E6DFD5] mx-auto" />
                     <p className="text-base">{products.length === 0 ? t('noProducts') : t('noCategoryProducts')}</p>
                   </div>
-                ) : menuFilterCategoryId === 'all' ? (
-                  <>
-                    <p className="mb-4 text-xs text-[#8E7A68]">{t('reorderPickCategory')}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredMenuProducts.map((p) => {
-                        const cat = categories.find(c => c.id === p.categoryId);
-                        return (
-                          <ActionCard
-                            key={p.id}
-                            photo={p.photo}
-                            alt={p.nameUk}
-                            isOpen={openActionsId === p.id}
-                            onToggle={() => setOpenActionsId(openActionsId === p.id ? null : p.id)}
-                            onEdit={() => {
-                              setOpenActionsId(null);
-                              handleEditProduct(p);
-                            }}
-                            onDelete={() => setDeleteTarget({ kind: 'product', id: p.id, name: lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk })}
-                          >
-                            <p className="font-semibold text-sm text-[#231913]">
-                              {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
-                            </p>
-                            <p className="text-xs font-semibold text-[#3E2F26]">
-                              {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')}
-                            </p>
-                            <p className="text-xs font-bold text-[#3E2F26]">{p.price} ₴</p>
-                          </ActionCard>
-                        );
-                      })}
-                    </div>
-                  </>
                 ) : (
                   <SortableActionCardGrid<Product>
                     items={filteredMenuProducts}
@@ -2549,20 +2716,14 @@ export default function AdminPage() {
                     onReorder={handleReorderProducts}
                     onDragStart={() => setOpenActionsId(null)}
                     getAlt={(p) => p.nameUk}
-                    renderContent={(p) => {
-                      const cat = categories.find(c => c.id === p.categoryId);
-                      return (
-                        <>
-                          <p className="font-semibold text-sm text-[#231913]">
-                            {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
-                          </p>
-                          <p className="text-xs font-semibold text-[#3E2F26]">
-                            {cat ? (lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk) : t('noCategory')}
-                          </p>
-                          <p className="text-xs font-bold text-[#3E2F26]">{p.price} ₴</p>
-                        </>
-                      );
-                    }}
+                    renderContent={(p) => (
+                      <>
+                        <p className="font-semibold text-sm text-[#231913]">
+                          {lang === 'hu' ? p.nameHu : lang === 'en' ? p.nameEn : p.nameUk}
+                        </p>
+                        <p className="text-base font-bold text-[#3E2F26]">{p.price} ₴</p>
+                      </>
+                    )}
                   />
                 )}
               </div>
@@ -2571,12 +2732,65 @@ export default function AdminPage() {
 
           {/* TAB 4: QR GENERATOR */}
           {activeTab === 'qr' && (
-            <QrGenerator
-              tableNumber={qrTableNumber}
-              qrCodeDataUrl={qrCodeDataUrl}
-              t={t}
-              onTableNumberChange={setQrTableNumber}
-            />
+            <>
+              <QrGenerator
+                tableNumber={qrTableNumber}
+                qrCodeDataUrl={qrCodeDataUrl}
+                t={t}
+                onTableNumberChange={setQrTableNumber}
+                fixedHeight={qrSectionHeight || undefined}
+                showTableNumber={!!cafeInfo?.showTableNumber}
+                onShowTableNumberChange={handleShowTableNumberChange}
+                onSaveQr={handleSaveCurrentQr}
+              />
+
+              {/* Saved QR codes */}
+              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
+                <h2 className="text-2xl font-display font-medium text-[#231913] mb-6 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                  {t('savedQrSectionTitle')}
+                </h2>
+
+                {savedQrs.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-[#8E7A68] space-y-2">
+                    <QrCode className="w-8 h-8 text-[#E6DFD5] mx-auto" />
+                    <p>{t('savedQrEmpty')}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {savedQrs.map((qr) => {
+                      const label = t('headerTableChip').replace('{number}', String(qr.tableNumber));
+                      return (
+                        <div key={qr.id} className="flex items-center bg-white border border-[#E6DFD5] rounded-xl overflow-hidden">
+                          {/* QR image: smaller square, flush to the left/top/bottom edges, no own rounding */}
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-[#FAF6EE] flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={qr.image} alt={label} className="w-full h-full object-contain" />
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col gap-2 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="flex-1 min-w-0 font-semibold text-sm text-[#231913] leading-snug">
+                                {label}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSavedQr(qr.id)}
+                                aria-label={`${t('deleteQr')} ${label}`}
+                                className="w-7 h-7 flex items-center justify-center rounded-full text-[#8E7A68] hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer shrink-0 -mr-1 -mt-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <SavedQrDownload tableNumber={qr.tableNumber} t={t} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* TAB 5: ADVERTISING */}
@@ -3739,16 +3953,6 @@ export default function AdminPage() {
         onCropComplete={onAdCropComplete}
         onClose={() => setIsAdCropModalOpen(false)}
         onApply={applyAdCrop}
-      />
-
-      {/* WELCOME POPUP */}
-      <NotAdminModal
-        isOpen={showWelcome}
-        logo={cafeInfo?.logo ?? null}
-        title={t('welcomeTitle').replace('{name}', (getCafeOwnerName(cafeInfo, lang) || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '').trim().split(/\s+/)[0] || '')}
-        text={(cafeInfo?.greetingAdminEnabled ? getRandomGreeting(getCafeAdminGreeting(cafeInfo, lang)) : '') || t(welcomeMsgKey)}
-        okLabel={t('toWork')}
-        onOk={() => setShowWelcome(false)}
       />
     </main>
   );

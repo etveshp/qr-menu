@@ -24,6 +24,8 @@ export interface CafeInfo {
   greetingCustomerEnabled?: boolean;
   greetingAdminUk?: string; greetingAdminHu?: string; greetingAdminEn?: string;
   greetingAdminEnabled?: boolean;
+  /** Show the QR table number in the menu header and customer greeting toast. */
+  showTableNumber?: boolean;
 }
 
 export const getCafeName = (info: CafeInfo | null, lang: string): string => {
@@ -206,7 +208,54 @@ const mapCafeInfo = (row: any): CafeInfo => ({
   greetingCustomerEnabled: row.greeting_customer_enabled ?? false,
   greetingAdminUk: row.greeting_admin_uk ?? '', greetingAdminHu: row.greeting_admin_hu ?? '', greetingAdminEn: row.greeting_admin_en ?? '',
   greetingAdminEnabled: row.greeting_admin_enabled ?? false,
+  showTableNumber: row.show_table_number ?? false,
 });
+
+export interface SavedQr {
+  id: string;
+  tableNumber: number;
+  image: string;
+  createdAt?: string;
+}
+
+const mapQr = (row: any): SavedQr => ({
+  id: row.id,
+  tableNumber: row.table_number,
+  image: row.image,
+  createdAt: row.created_at ?? '',
+});
+
+// Saved QR codes (admin cabinet, "Готові QR-коди")
+export const getSavedQrs = async (): Promise<SavedQr[]> => {
+  if (supabase) {
+    const { data, error } = await supabase.from('qr_codes').select('*').order('table_number');
+    if (!error && data) return data.map(mapQr);
+  }
+  return [];
+};
+
+export const saveQr = async (tableNumber: number, image: string): Promise<SavedQr> => {
+  if (!supabase) throw new Error('Помилка збереження QR');
+  const { data, error } = await supabase
+    .from('qr_codes')
+    .upsert({ table_number: tableNumber, image }, { onConflict: 'table_number' })
+    .select('*')
+    .single();
+  if (error || !data) {
+    console.error('Supabase error saving QR', error);
+    throw new Error('Помилка збереження QR');
+  }
+  return mapQr(data);
+};
+
+export const deleteQr = async (id: string): Promise<void> => {
+  if (!supabase) throw new Error('Помилка видалення QR');
+  const { error } = await supabase.rpc('delete_saved_qr', { p_id: id });
+  if (error) {
+    console.error('Supabase error deleting QR', error);
+    throw new Error('Помилка видалення QR');
+  }
+};
 
 /**
  * On-demand ISR revalidation of the public menu page (Variant 3).
@@ -306,9 +355,25 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       greeting_customer_enabled: storedInfo.greetingCustomerEnabled ?? false,
       greeting_admin_uk: storedInfo.greetingAdminUk ?? '', greeting_admin_hu: storedInfo.greetingAdminHu ?? '', greeting_admin_en: storedInfo.greetingAdminEn ?? '',
       greeting_admin_enabled: storedInfo.greetingAdminEnabled ?? false,
+      show_table_number: storedInfo.showTableNumber ?? false,
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
+    triggerMenuRevalidation();
+  }
+};
+
+/**
+ * Quick toggle for the "show table number in menu header/greeting" setting
+ * (used from the QR generator tab). Updates only this column + local cache.
+ */
+export const saveTableNumberSetting = async (enabled: boolean): Promise<void> => {
+  const current = await getCafeInfo();
+  const updated: CafeInfo = { ...current, showTableNumber: enabled };
+  setLocal('cafeInfo', updated);
+  if (supabase) {
+    const { error } = await supabase.from('cafe_info').update({ show_table_number: enabled }).eq('id', 1);
+    if (error) { console.error('Supabase error saving table number setting', error); throw new Error('Помилка збереження налаштувань'); }
     triggerMenuRevalidation();
   }
 };

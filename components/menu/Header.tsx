@@ -22,6 +22,7 @@ interface HeaderProps {
   cartButtonRef: RefObject<HTMLButtonElement | null>;
   onOpenCart: () => void;
   t: Translator;
+  tableNumber: string | null;
 }
 
 export function Header({
@@ -35,6 +36,7 @@ export function Header({
   cartButtonRef,
   onOpenCart,
   t,
+  tableNumber,
 }: HeaderProps) {
   return (
     <header
@@ -64,6 +66,11 @@ export function Header({
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {cafeInfo?.showTableNumber && tableNumber && (
+            <span className="hidden sm:inline-flex items-center px-3 h-9 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-[11px] font-bold uppercase tracking-wider text-[#3E2F26] whitespace-nowrap">
+              {t('headerTableChip').replace('{number}', tableNumber)}
+            </span>
+          )}
           {/* Admin Key */}
           {isAdminLoggedIn && (
             <Link

@@ -44,6 +44,7 @@ export async function GET(): Promise<NextResponse> {
           greetingCustomerEnabled: cafeRow.greeting_customer_enabled ?? false,
           greetingAdminUk: cafeRow.greeting_admin_uk ?? '', greetingAdminHu: cafeRow.greeting_admin_hu ?? '', greetingAdminEn: cafeRow.greeting_admin_en ?? '',
           greetingAdminEnabled: cafeRow.greeting_admin_enabled ?? false,
+          showTableNumber: cafeRow.show_table_number ?? false,
         }
       : null;
 

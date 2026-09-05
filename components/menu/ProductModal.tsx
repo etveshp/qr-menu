@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, Minus, Plus, ConciergeBell } from 'lucide-react';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface ProductModalProps {
   product: Product | null;
@@ -65,12 +66,20 @@ export function ProductModal({
   const contentRef = useRef<HTMLDivElement>(null);
   const titleRowRef = useRef<HTMLDivElement>(null);
 
+  // Desktop / tablet-landscape (≥1024px) use the horizontal layout. SSR and the
+  // first client render always report `false` (hydration-safe); after hydration
+  // the real breakpoint value is applied.
+  const isWide = useMediaQuery('(min-width: 1024px)');
+
   const [float, setFloat] = useState<TitleFloatState>(() =>
     computeTitleFloat({ scrollTop: 0, paddingTop: 20, rowHeight: 60 })
   );
   const [cloneLayout, setCloneLayout] = useState({ left: 20, width: 0, height: 60 });
 
+  // Vertical ("title floats over the photo while scrolling") behavior is only
+  // used by the mobile bottom-sheet layout.
   useEffect(() => {
+    if (isWide) return;
     const content = contentRef.current;
     const row = titleRowRef.current;
     if (!product || !content || !row) return;
@@ -111,7 +120,7 @@ export function ProductModal({
       window.removeEventListener('resize', measure);
       ro.disconnect();
     };
-  }, [product]);
+  }, [product, isWide]);
 
   useEffect(() => {
     if (!product || !dialogRef.current) return;
@@ -132,12 +141,325 @@ export function ProductModal({
     };
     document.addEventListener('keydown', handleTab);
     return () => document.removeEventListener('keydown', handleTab);
-  }, [product]);
+  }, [product, isWide]);
 
   if (!product) return null;
 
   const ingredients = getProductIngredients(product);
 
+  const renderDescription = () =>
+    getProductDesc(product) ? (
+      <div>
+        <p className="text-[#4A3B32] text-sm sm:text-base leading-relaxed">
+          {getProductDesc(product)}
+        </p>
+      </div>
+    ) : null;
+
+  const renderIngredients = () =>
+    ingredients.length > 0 ? (
+      <div className="pt-2">
+        <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-xs mb-2">
+          {t('ingredients')}
+        </span>
+        <ul className="space-y-1.5 pl-0.5">
+          {ingredients.map((ingredient, idx) => (
+            <li
+              key={idx}
+              className="flex items-start gap-2.5 text-[#4A3B32] text-sm sm:text-base leading-relaxed"
+            >
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#C09E6D] mt-2 shrink-0" />
+              <span>{ingredient}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+
+  const renderRecommended = () =>
+    recommendedProducts.length > 0 ? (
+      <div className="pt-3 border-t border-[#E6DFD5]/60">
+        <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-xs mb-2.5">
+          {t('recommendedWith')}
+        </span>
+        <div
+          ref={recScrollRef}
+          onPointerDown={onRecPointerDown}
+          onPointerLeave={onRecPointerUp}
+          onPointerUp={onRecPointerUp}
+          onPointerMove={onRecPointerMove}
+          className="flex gap-3 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1 touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
+        >
+          {recommendedProducts.map((rec) => (
+            <button
+              key={rec.id}
+              onClick={() => {
+                if (!recIsDragging) {
+                  onOpenProduct(rec);
+                }
+              }}
+              className="flex-shrink-0 w-28 bg-[#FDFBF7] hover:bg-[#F5EFE6] border border-[#E6DFD5] rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-start select-none"
+            >
+              <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
+                <Image
+                  src={rec.photo}
+                  alt={getProductName(rec)}
+                  fill
+                  sizes="112px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="p-2 w-full">
+                <h4 className="font-sans font-medium text-xs text-[#231913] leading-snug line-clamp-2 pointer-events-none">
+                  {getProductName(rec)}
+                </h4>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
+  const renderFooter = () => (
+    <>
+      <div className="flex items-center bg-[#F1ECE3] border border-[#E6DFD5] rounded-full overflow-hidden shrink-0 h-12 shadow-sm">
+        <button
+          onClick={onDecrementQty}
+          disabled={modalQty <= 1}
+          className={`w-10 h-12 flex items-center justify-center text-[#3E2F26] transition-all ${
+            modalQty <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#E6DFD5] active:scale-95'
+          }`}
+          aria-label="Decrease quantity"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+        <span className="w-8 text-center font-bold text-base text-[#231913] select-none lining-nums">
+          {modalQty}
+        </span>
+        <button
+          onClick={onIncrementQty}
+          className="w-10 h-12 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
+          aria-label="Increase quantity"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      <motion.button
+        onClick={onAddToCart}
+        whileTap={{ scale: 0.97 }}
+        className={`flex-1 h-12 text-sm uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 rounded-full shadow-md ${
+          isJustAdded ? 'bg-[#C09E6D] text-white' : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
+        }`}
+      >
+        {isJustAdded ? (
+          <>
+            <Check className="w-4.5 h-4.5 stroke-[2.5]" />
+            <span>{t('addedToCart')}</span>
+          </>
+        ) : (
+          <>
+            <ConciergeBell className="w-4.5 h-4.5" />
+            <span>{t('addToCart')}</span>
+          </>
+        )}
+      </motion.button>
+    </>
+  );
+
+  // ---------------------------------------------------------------------------
+  // Desktop / tablet-landscape (≥1024px): horizontal card — photo left,
+  // sticky title+price at the top of the right column, scrollable content,
+  // quantity/add-to-cart footer pinned to the bottom of the right column.
+  // ---------------------------------------------------------------------------
+  if (isWide) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          />
+
+          {/* Cart Order Button & Toast positioned above backdrop */}
+          {cartButtonRect && (
+            <div
+              style={{
+                top: cartButtonRect.top,
+                right: cartButtonRect.right,
+                height: cartButtonRect.height
+              }}
+              className="fixed z-[60] flex items-center justify-end gap-2 sm:gap-2.5 pointer-events-none"
+            >
+              <AnimatePresence>
+                {cartToast && (
+                  <motion.div
+                    key={cartToast.id}
+                    initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 15, scale: 0.92, transition: { duration: 0.2, ease: 'easeIn' } }}
+                    transition={{ type: 'spring', damping: 24, stiffness: 350 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenCart();
+                    }}
+                    className="pointer-events-auto flex items-center gap-2.5 h-11 px-4 bg-[#231913]/95 hover:bg-[#3E2F26] border border-[#C09E6D]/60 rounded-full text-[#FAF6EE] shadow-2xl shadow-black/40 backdrop-blur-md cursor-pointer select-none transition-colors active:scale-95"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-[#C09E6D] text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </div>
+                    <span className="font-sans font-medium text-xs sm:text-sm text-[#FAF6EE] whitespace-nowrap">
+                      {cartToast.message}
+                    </span>
+                    {cartToast.qty > 1 && (
+                      <span className="font-sans font-bold text-xs bg-[#C09E6D]/30 border border-[#C09E6D]/50 text-[#FAF6EE] px-2 py-1 rounded-full leading-tight">
+                        +{cartToast.qty}
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenCart();
+                }}
+                animate={bouncingCart
+                  ? { scale: [1, 1.25, 0.92, 1.12, 1], rotate: [0, -8, 8, -4, 0] }
+                  : { scale: 1, rotate: 0 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="pointer-events-auto relative flex items-center justify-center w-10 h-10 rounded-full bg-[#C09E6D] hover:bg-[#ad8b5b] text-white shadow-md active:scale-90 transition-all cursor-pointer border border-[#FAF6EE]/40 shrink-0"
+                aria-label={t('cart')}
+              >
+                <ConciergeBell className="w-5 h-5 text-white stroke-[2.2]" />
+                {totalCartItemsCount > 0 && (
+                  <motion.span
+                    key={totalCartItemsCount}
+                    initial={{ scale: 0.4 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-white text-[#231913] text-[11px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow-md border border-[#E6DFD5]"
+                  >
+                    {totalCartItemsCount}
+                  </motion.span>
+                )}
+              </motion.button>
+            </div>
+          )}
+
+          {/* Horizontal Modal Card */}
+          <motion.div
+            ref={dialogRef}
+              initial={{ opacity: 0, scale: 0.96, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10, transition: { duration: 0.16, ease: 'easeIn' } }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="relative w-full max-w-4xl h-[476px] bg-[#FAF6EE] rounded-3xl shadow-2xl flex overflow-hidden z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Left column: photo flush to the top-left corner (rounded tl + br), recommended rail below */}
+              <div className="relative w-[46%] shrink-0 bg-[#F1ECE3]/70 flex flex-col overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden shrink-0 mr-4 rounded-tl-[24px] rounded-br-[24px]">
+                  <Image
+                    src={product.photo}
+                    alt={getProductName(product)}
+                    fill
+                    priority
+                    sizes="(max-width: 1280px) 45vw, 460px"
+                    className="object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                {recommendedProducts.length > 0 && (
+                  <div className="w-full mt-6 px-4 pb-4 min-h-0">
+                    <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-[11px] mb-2">
+                      {t('recommendedWith')}
+                    </span>
+                    <div
+                      ref={recScrollRef}
+                      onPointerDown={onRecPointerDown}
+                      onPointerLeave={onRecPointerUp}
+                      onPointerUp={onRecPointerUp}
+                      onPointerMove={onRecPointerMove}
+                      className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1 touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
+                    >
+                      {recommendedProducts.map((rec) => (
+                        <button
+                          key={rec.id}
+                          onClick={() => {
+                            if (!recIsDragging) {
+                              onOpenProduct(rec);
+                            }
+                          }}
+                          className="flex-shrink-0 w-24 bg-[#FDFBF7] hover:bg-[#F5EFE6] border border-[#E6DFD5] rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-start select-none"
+                        >
+                          <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
+                            <Image
+                              src={rec.photo}
+                              alt={getProductName(rec)}
+                              fill
+                              sizes="96px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          <div className="p-1.5 w-full">
+                            <h4 className="font-sans font-medium text-[11px] text-[#231913] leading-snug line-clamp-2 pointer-events-none">
+                              {getProductName(rec)}
+                            </h4>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right column: sticky title + scrollable content + pinned footer */}
+              <div className="flex flex-col flex-1 min-w-0 bg-[#FAF6EE]">
+                <div className="shrink-0 flex items-start justify-between gap-4 px-7 pr-16 pt-5 pb-3.5 border-b border-[#E6DFD5]/70 bg-[#FAF6EE]">
+                  <h3 className="font-display font-bold text-3xl text-[#231913] leading-tight">
+                    {getProductName(product)}
+                  </h3>
+                  <span className="font-bold text-3xl text-[#C09E6D] shrink-0 tracking-tight">
+                    {product.price} {t('priceCurrency')}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-7 py-4 space-y-4 min-h-0">
+                  {renderDescription()}
+                  {renderIngredients()}
+                </div>
+
+                <div className="shrink-0 px-7 py-4 border-t border-[#E6DFD5] bg-[#FDFBF7] flex items-center gap-3">
+                  {renderFooter()}
+                </div>
+              </div>
+
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-[#3E2F26]/80 text-white backdrop-blur-md flex items-center justify-center hover:bg-[#3E2F26] active:scale-95 transition-all shadow-lg border border-white/10"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mobile (<1024px): bottom-sheet card — photo on top (4:3), the title/price
+  // floats over the photo while scrolling, scrollable content, footer pinned.
+  // ---------------------------------------------------------------------------
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end justify-center p-0">
@@ -216,11 +538,9 @@ export function ProductModal({
           </div>
         )}
 
-        {/* Modal Dialog */}
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={product.id}
-            ref={dialogRef}
+        {/* Modal Dialog (mobile bottom sheet) */}
+        <motion.div
+          ref={dialogRef}
             initial={{ y: '100%', opacity: 0.5 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
@@ -285,125 +605,16 @@ export function ProductModal({
                 </span>
               </div>
 
-              {getProductDesc(product) && (
-                <div>
-                  <p className="text-[#4A3B32] text-sm sm:text-base leading-relaxed">
-                    {getProductDesc(product)}
-                  </p>
-                </div>
-              )}
-
-              {ingredients.length > 0 && (
-                <div className="pt-2">
-                  <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-xs mb-2">
-                    {t('ingredients')}
-                  </span>
-                  <ul className="space-y-1.5 pl-0.5">
-                    {ingredients.map((ingredient, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2.5 text-[#4A3B32] text-sm sm:text-base leading-relaxed"
-                      >
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#C09E6D] mt-2 shrink-0" />
-                        <span>{ingredient}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {recommendedProducts.length > 0 && (
-                <div className="pt-3 border-t border-[#E6DFD5]/60">
-                  <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-xs mb-2.5">
-                    {t('recommendedWith')}
-                  </span>
-                  <div
-                    ref={recScrollRef}
-                    onPointerDown={onRecPointerDown}
-                    onPointerLeave={onRecPointerUp}
-                    onPointerUp={onRecPointerUp}
-                    onPointerMove={onRecPointerMove}
-                    className="flex gap-3 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1 touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
-                  >
-                    {recommendedProducts.map((rec) => (
-                      <button
-                        key={rec.id}
-                        onClick={() => {
-                          if (!recIsDragging) {
-                            onOpenProduct(rec);
-                          }
-                        }}
-                        className="flex-shrink-0 w-28 bg-[#FDFBF7] hover:bg-[#F5EFE6] border border-[#E6DFD5] rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-start select-none"
-                      >
-                        <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
-                          <Image
-                            src={rec.photo}
-                            alt={getProductName(rec)}
-                            fill
-                            sizes="112px"
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                        <div className="p-2 w-full">
-                          <h4 className="font-sans font-medium text-xs text-[#231913] leading-snug line-clamp-2 pointer-events-none">
-                            {getProductName(rec)}
-                          </h4>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {renderDescription()}
+              {renderIngredients()}
+              {renderRecommended()}
             </div>
 
             {/* Footer Actions */}
             <div className="p-4 sm:p-5 border-t border-[#E6DFD5] bg-[#FDFBF7] flex items-center gap-3">
-              <div className="flex items-center bg-[#F1ECE3] border border-[#E6DFD5] rounded-full overflow-hidden shrink-0 h-12 shadow-sm">
-                <button
-                  onClick={onDecrementQty}
-                  disabled={modalQty <= 1}
-                  className={`w-10 h-12 flex items-center justify-center text-[#3E2F26] transition-all ${
-                    modalQty <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#E6DFD5] active:scale-95'
-                  }`}
-                  aria-label="Decrease quantity"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <span className="w-8 text-center font-bold text-base text-[#231913] select-none lining-nums">
-                  {modalQty}
-                </span>
-                <button
-                  onClick={onIncrementQty}
-                  className="w-10 h-12 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
-                  aria-label="Increase quantity"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              <motion.button
-                onClick={onAddToCart}
-                whileTap={{ scale: 0.97 }}
-                className={`flex-1 h-12 text-sm uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 rounded-full shadow-md ${
-                  isJustAdded ? 'bg-[#C09E6D] text-white' : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
-                }`}
-              >
-                {isJustAdded ? (
-                  <>
-                    <Check className="w-4.5 h-4.5 stroke-[2.5]" />
-                    <span>{t('addedToCart')}</span>
-                  </>
-                ) : (
-                  <>
-                    <ConciergeBell className="w-4.5 h-4.5" />
-                    <span>{t('addToCart')}</span>
-                  </>
-                )}
-              </motion.button>
+              {renderFooter()}
             </div>
-          </motion.div>
-        </AnimatePresence>
+        </motion.div>
       </div>
     </AnimatePresence>
   );

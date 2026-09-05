@@ -36,6 +36,7 @@ create table public.cafe_info (
   greeting_admin_hu text not null default '',
   greeting_admin_en text not null default '',
   greeting_admin_enabled boolean not null default false,
+  show_table_number boolean not null default false,
   updated_at timestamptz not null default now()
 );
 
@@ -165,6 +166,38 @@ as $$
   select exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
 $$;
 
+-- qr_codes: admin only (saved QR images per table)
+create table public.qr_codes (
+  id uuid primary key default gen_random_uuid(),
+  table_number integer not null unique,
+  image text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.qr_codes enable row level security;
+create policy "qr_codes read: admin" on public.qr_codes for select
+  using (is_admin_true());
+create policy "qr_codes write: admin" on public.qr_codes for all
+  using (is_admin_true())
+  with check (is_admin_true());
+
+-- Robust admin-only delete for saved QR codes (security-definer RPC).
+create or replace function public.delete_saved_qr(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin_true() then
+    raise exception 'Forbidden';
+  end if;
+  delete from public.qr_codes where id = p_id;
+end;
+$$;
+
+revoke all on function public.delete_saved_qr(uuid) from public;
+grant execute on function public.delete_saved_qr(uuid) to authenticated;
+
 -- ============================================================
 -- 3. Auto-create profile on signup
 -- ============================================================
@@ -199,7 +232,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['public.cafe_info', 'public.categories', 'public.products', 'public.advertising', 'public.text_banner'] loop
+  foreach t in array array['public.cafe_info', 'public.categories', 'public.products', 'public.advertising', 'public.text_banner', 'public.qr_codes'] loop
     begin
       execute format('alter publication supabase_realtime add table %s', t);
     exception when duplicate_object then
