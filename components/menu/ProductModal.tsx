@@ -183,7 +183,7 @@ export function ProductModal({
           {t('recommendedWith')}
         </span>
         <div
-          ref={recScrollRef}
+          ref={(node) => { if (node) recScrollRef.current = node; }}
           onPointerDown={onRecPointerDown}
           onPointerLeave={onRecPointerUp}
           onPointerUp={onRecPointerUp}
@@ -353,11 +353,13 @@ export function ProductModal({
           )}
 
           {/* Horizontal Modal Card */}
-          <motion.div
-            ref={dialogRef}
-              initial={{ opacity: 0, scale: 0.96, y: 14 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10, transition: { duration: 0.16, ease: 'easeIn' } }}
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={product.id}
+              ref={dialogRef}
+              initial={{ opacity: 0, y: 80 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40, transition: { duration: 0.2, ease: 'easeIn' } }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="relative w-full max-w-4xl h-[476px] bg-[#FAF6EE] rounded-3xl shadow-2xl flex overflow-hidden z-10"
               onClick={(e) => e.stopPropagation()}
@@ -382,7 +384,7 @@ export function ProductModal({
                       {t('recommendedWith')}
                     </span>
                     <div
-                      ref={recScrollRef}
+                      ref={(node) => { if (node) recScrollRef.current = node; }}
                       onPointerDown={onRecPointerDown}
                       onPointerLeave={onRecPointerUp}
                       onPointerUp={onRecPointerUp}
@@ -451,6 +453,7 @@ export function ProductModal({
                 <X className="w-5 h-5" />
               </button>
           </motion.div>
+          </AnimatePresence>
         </div>
       </AnimatePresence>
     );
@@ -539,11 +542,13 @@ export function ProductModal({
         )}
 
         {/* Modal Dialog (mobile bottom sheet) */}
-        <motion.div
-          ref={dialogRef}
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            key={product.id}
+            ref={dialogRef}
             initial={{ y: '100%', opacity: 0.5 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
+            exit={{ opacity: 0, y: 50, transition: { duration: 0.2, ease: 'easeIn' } }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             style={{ height: `calc(100dvh - ${headerHeight + 10}px)` }}
             className="relative w-full max-w-lg bg-[#FAF6EE] rounded-t-3xl flex flex-col overflow-hidden shadow-2xl border-t border-x border-[#E6DFD5] z-10"
@@ -615,6 +620,7 @@ export function ProductModal({
               {renderFooter()}
             </div>
         </motion.div>
+        </AnimatePresence>
       </div>
     </AnimatePresence>
   );
