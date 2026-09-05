@@ -549,7 +549,7 @@ export function ProductModal({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ opacity: 0, y: 60, transition: { duration: 0.16, ease: 'easeIn' } }}
-            transition={{ duration: 0.34, ease: [0.32, 0.72, 0.25, 1] }}
+            transition={{ duration: 0.45, ease: [0.32, 0.72, 0.25, 1] }}
             style={{ height: `calc(100dvh - ${headerHeight + 10}px)`, willChange: 'transform' }}
             className="relative w-full max-w-lg bg-[#FAF6EE] rounded-t-3xl flex flex-col overflow-hidden shadow-2xl border-t border-x border-[#E6DFD5] z-10"
             onClick={(e) => e.stopPropagation()}
