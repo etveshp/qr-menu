@@ -61,7 +61,7 @@ export function QrGenerator({ tableNumber, qrCodeDataUrl, t, onTableNumberChange
       const dataUrl = await QRCode.toDataURL(qrUrl(), {
         width: 2048,
         margin: 2,
-        color: { dark: '#3E2F26', light: '#FAF6EE' },
+        color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
       const res = await fetch(dataUrl);
       const blob = await res.blob();
@@ -80,7 +80,7 @@ export function QrGenerator({ tableNumber, qrCodeDataUrl, t, onTableNumberChange
       const svg = await QRCode.toString(qrUrl(), {
         type: 'svg',
         margin: 2,
-        color: { dark: '#3E2F26', light: '#FAF6EE' },
+        color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
       triggerDownload(new Blob([svg], { type: 'image/svg+xml' }), `svit_kavy_menu_table_${tableNumber}.svg`);
     } catch (err) {

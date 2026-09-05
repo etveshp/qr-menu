@@ -151,7 +151,7 @@ function SavedQrDownload({ tableNumber, t }: { tableNumber: number; t: Translato
       const dataUrl = await QRCode.toDataURL(`${window.location.origin}?table=${tableNumber}`, {
         width: 2048,
         margin: 2,
-        color: { dark: '#3E2F26', light: '#FAF6EE' },
+        color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
       const blob = await (await fetch(dataUrl)).blob();
       triggerDownload(blob, `svit_kavy_menu_table_${tableNumber}.png`);
@@ -169,7 +169,7 @@ function SavedQrDownload({ tableNumber, t }: { tableNumber: number; t: Translato
       const svg = await QRCode.toString(`${window.location.origin}?table=${tableNumber}`, {
         type: 'svg',
         margin: 2,
-        color: { dark: '#3E2F26', light: '#FAF6EE' },
+        color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
       triggerDownload(new Blob([svg], { type: 'image/svg+xml' }), `svit_kavy_menu_table_${tableNumber}.svg`);
     } catch (err) {
@@ -430,6 +430,7 @@ export default function AdminPage() {
 
   // Saved QR codes ("Готові QR-коди")
   const [savedQrs, setSavedQrs] = useState<SavedQr[]>([]);
+  const [viewQrImage, setViewQrImage] = useState<string | null>(null);
   useEffect(() => {
     let mounted = true;
     getSavedQrs()
@@ -904,7 +905,7 @@ export default function AdminPage() {
         margin: 2,
         color: {
           dark: '#3E2F26', // Brand dark
-          light: '#FAF6EE' // Brand ivory
+          light: '#FFFFFF' // Brand ivory
         }
       })
       .then(url => {
@@ -2881,10 +2882,15 @@ export default function AdminPage() {
                       return (
                         <div key={qr.id} className="flex items-center bg-white border border-[#E6DFD5] rounded-xl overflow-hidden">
                           {/* QR image: smaller square, flush to the left/top/bottom edges, no own rounding */}
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-[#FAF6EE] flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setViewQrImage(qr.image)}
+                            aria-label={`${t('viewQrCode')} ${label}`}
+                            className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-white flex items-center justify-center pl-2 cursor-pointer"
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={qr.image} alt={label} className="w-full h-full object-contain" />
-                          </div>
+                            <img src={qr.image} alt={label} className="w-full h-full object-contain pointer-events-none" />
+                          </button>
 
                           <div className="flex-1 min-w-0 flex flex-col gap-2 p-3">
                             <div className="flex items-start justify-between gap-2">
@@ -4073,6 +4079,30 @@ export default function AdminPage() {
         onClose={() => setIsAdCropModalOpen(false)}
         onApply={applyAdCrop}
       />
+
+      {/* Enlarged saved QR code viewer */}
+      {viewQrImage && (
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm"
+          onClick={() => setViewQrImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setViewQrImage(null)}
+            aria-label={t('cancel')}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 text-[#3E2F26] flex items-center justify-center shadow-lg hover:bg-white active:scale-95 transition-all cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div
+            className="bg-white rounded-2xl p-4 shadow-2xl w-full max-w-[min(90vw,440px)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={viewQrImage} alt={t('viewQrCode')} className="w-full h-auto object-contain" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

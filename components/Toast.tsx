@@ -74,7 +74,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                     <GreetingIcon className="w-6 h-6" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold tracking-wide font-display leading-snug">{toast.title}</p>
+                    <p className={`font-bold tracking-wide font-display leading-snug ${toast.kind === 'admin' ? 'text-lg' : 'text-sm'}`}>{toast.title}</p>
                     <p className="mt-1 text-xs font-medium text-[#E6DFD5]/90 font-sans leading-relaxed whitespace-pre-line">
                       {toast.message}
                     </p>
