@@ -47,12 +47,12 @@ export function Header({
         {/* Logo area */}
         <div className="flex items-center justify-start">
           {cafeInfo?.logo ? (
-            <div className="relative h-14 sm:h-16 w-44 sm:w-60 overflow-hidden shrink-0 flex items-center justify-start">
+            <div className="relative h-14 sm:h-16 w-40 sm:w-56 overflow-hidden shrink-0 flex items-center justify-start">
               <Image
                 src={cafeInfo.logo}
                 alt={getCafeName(cafeInfo, lang) || 'Logo'}
                 fill
-                sizes="(min-width: 640px) 240px, 176px"
+                sizes="(min-width: 640px) 224px, 160px"
                 className="object-contain !object-left"
                 referrerPolicy="no-referrer"
               />
@@ -62,15 +62,15 @@ export function Header({
               <Coffee className="w-8 h-8 text-[#3E2F26]" />
             </div>
           )}
+          {cafeInfo?.showTableNumber && tableNumber && (
+            <span className="shrink-0 inline-flex items-center px-2.5 sm:px-3 h-8 sm:h-9 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#3E2F26] whitespace-nowrap">
+              {t('headerTableChip').replace('{number}', tableNumber)}
+            </span>
+          )}
         </div>
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {cafeInfo?.showTableNumber && tableNumber && (
-            <span className="hidden sm:inline-flex items-center px-3 h-9 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] text-[11px] font-bold uppercase tracking-wider text-[#3E2F26] whitespace-nowrap">
-              {t('headerTableChip').replace('{number}', tableNumber)}
-            </span>
-          )}
           {/* Admin Key */}
           {isAdminLoggedIn && (
             <Link

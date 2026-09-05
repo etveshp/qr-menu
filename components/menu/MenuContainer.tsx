@@ -382,7 +382,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         t={t}
       />
 
-      <HeroBanner cafeInfo={cafeInfo} tableNumber={tableNumber} lang={lang} t={t} />
+      <HeroBanner cafeInfo={cafeInfo} lang={lang} t={t} />
 
       <main className="w-full max-w-4xl mx-auto px-4 py-8 flex-1">
         <AnimatePresence mode="wait">
