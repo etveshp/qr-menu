@@ -38,7 +38,7 @@ export function TextBanner({
       animate={{ height: 'auto', opacity: 1 }}
       transition={{ duration: 0.25, ease: 'easeInOut' }}
       className="sticky z-30 w-full border-b border-[#E6DFD5]"
-      style={{ top: headerHeight }}
+      style={{ top: Math.max(0, headerHeight - 1) }}
     >
       <button
         type="button"
