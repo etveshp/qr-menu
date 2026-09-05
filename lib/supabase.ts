@@ -532,7 +532,27 @@ export const saveProduct = async (product: Product): Promise<void> => {
   }
   const stored: Product = { ...product, photo, photoOriginal, sortOrder };
   if (idx >= 0) current[idx] = stored; else current.push(stored);
+
+  // Mutual recommendations: if the saved product now recommends product X and
+  // it didn't before, X also starts recommending the saved product back.
+  const previousIds = new Set(existing?.recommendedIds ?? []);
+  const addedIds = (stored.recommendedIds ?? []).filter(id => id !== stored.id && !previousIds.has(id));
+  const mutualUpdates: Product[] = [];
+  if (addedIds.length > 0) {
+    const indexById = new Map(current.map((p, i) => [p.id, i]));
+    for (const rid of addedIds) {
+      const targetIdx = indexById.get(rid);
+      const target = targetIdx === undefined ? undefined : current[targetIdx];
+      if (!target || target.id === stored.id) continue;
+      const ids = target.recommendedIds ?? [];
+      if (ids.includes(stored.id)) continue;
+      const updatedTarget: Product = { ...target, recommendedIds: [...ids, stored.id] };
+      current[targetIdx!] = updatedTarget;
+      mutualUpdates.push(updatedTarget);
+    }
+  }
   setLocal('products', current);
+
   if (supabase) {
     const { error } = await supabase.from('products').upsert({
       id: stored.id, category_id: stored.categoryId,
@@ -544,6 +564,19 @@ export const saveProduct = async (product: Product): Promise<void> => {
       sort_order: stored.sortOrder ?? 0,
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
+
+    if (mutualUpdates.length > 0) {
+      for (const m of mutualUpdates) {
+        const { error: mError } = await supabase
+          .from('products')
+          .update({ recommended_ids: m.recommendedIds ?? [] })
+          .eq('id', m.id);
+        if (mError) {
+          console.error('Supabase error updating mutual recommendations', m.id, mError);
+          throw new Error('Помилка збереження взаємних рекомендацій');
+        }
+      }
+    }
     triggerMenuRevalidation();
   }
 };
