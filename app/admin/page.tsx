@@ -602,6 +602,7 @@ export default function AdminPage() {
 
   // Save button action animation states
   const [cafeSaveStatus, setCafeSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [greetingSaveStatus, setGreetingSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [catSaveStatus, setCatSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [prodSaveStatus, setProdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [cropBannerStatus, setCropBannerStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1294,6 +1295,24 @@ export default function AdminPage() {
       }, 2200);
     } catch (err: any) {
       setCafeSaveStatus('idle');
+      showToast(err?.message || t('saveSettingsError'), 'error');
+    }
+  };
+
+  // Save Greetings section independently (own status → buttons act separately).
+  const handleSaveGreetings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGreetingSaveStatus('saving');
+    try {
+      await updateCafeInfo(cafeForm);
+      await fetchData();
+      setGreetingSaveStatus('saved');
+      showToast(t('updateSuccess'), 'success');
+      setTimeout(() => {
+        setGreetingSaveStatus('idle');
+      }, 2200);
+    } catch (err: any) {
+      setGreetingSaveStatus('idle');
       showToast(err?.message || t('saveSettingsError'), 'error');
     }
   };
@@ -2405,24 +2424,24 @@ export default function AdminPage() {
                     <button
                       type="submit"
                       form="greetings-form"
-                      disabled={cafeSaveStatus === 'saving'}
+                      disabled={greetingSaveStatus === 'saving'}
                       className={`relative overflow-hidden inline-flex items-center gap-2.5 px-6 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
-                        cafeSaveStatus === 'saving'
+                        greetingSaveStatus === 'saving'
                           ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
-                          : cafeSaveStatus === 'saved'
+                          : greetingSaveStatus === 'saved'
                           ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
                           : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
                       }`}
                     >
-                      {cafeSaveStatus === 'saving' && (
+                      {greetingSaveStatus === 'saving' && (
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
                       )}
-                      {cafeSaveStatus === 'saving' ? (
+                      {greetingSaveStatus === 'saving' ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
                           <span>{t('saving')}</span>
                         </>
-                      ) : cafeSaveStatus === 'saved' ? (
+                      ) : greetingSaveStatus === 'saved' ? (
                         <>
                           <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
                           <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
@@ -2438,7 +2457,7 @@ export default function AdminPage() {
                 </div>
                 <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('greetingsSubtitle')}</p>
 
-                <form id="greetings-form" onSubmit={handleSaveCafe}>
+                <form id="greetings-form" onSubmit={handleSaveGreetings}>
                   <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
                   {/* Customer greeting */}
                   <div>
@@ -2565,24 +2584,24 @@ export default function AdminPage() {
                   <div className="mt-8 lg:hidden">
                     <button
                       type="submit"
-                      disabled={cafeSaveStatus === 'saving'}
+                      disabled={greetingSaveStatus === 'saving'}
                       className={`relative overflow-hidden w-full flex justify-center items-center gap-2.5 px-6 py-3.5 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
-                        cafeSaveStatus === 'saving'
+                        greetingSaveStatus === 'saving'
                           ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
-                          : cafeSaveStatus === 'saved'
+                          : greetingSaveStatus === 'saved'
                           ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
                           : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
                       }`}
                     >
-                      {cafeSaveStatus === 'saving' && (
+                      {greetingSaveStatus === 'saving' && (
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
                       )}
-                      {cafeSaveStatus === 'saving' ? (
+                      {greetingSaveStatus === 'saving' ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
                           <span>{t('saving')}</span>
                         </>
-                      ) : cafeSaveStatus === 'saved' ? (
+                      ) : greetingSaveStatus === 'saved' ? (
                         <>
                           <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
                           <span className="font-bold tracking-wider text-[#FAF6EE]">{t('saved')}</span>
