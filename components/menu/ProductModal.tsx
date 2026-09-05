@@ -546,11 +546,11 @@ export function ProductModal({
           <motion.div
             key={product.id}
             ref={dialogRef}
-            initial={{ y: '100%', opacity: 0.5 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ opacity: 0, y: 50, transition: { duration: 0.2, ease: 'easeIn' } }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            style={{ height: `calc(100dvh - ${headerHeight + 10}px)` }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ opacity: 0, y: 60, transition: { duration: 0.16, ease: 'easeIn' } }}
+            transition={{ duration: 0.34, ease: [0.32, 0.72, 0.25, 1] }}
+            style={{ height: `calc(100dvh - ${headerHeight + 10}px)`, willChange: 'transform' }}
             className="relative w-full max-w-lg bg-[#FAF6EE] rounded-t-3xl flex flex-col overflow-hidden shadow-2xl border-t border-x border-[#E6DFD5] z-10"
             onClick={(e) => e.stopPropagation()}
           >
@@ -560,6 +560,7 @@ export function ProductModal({
                 src={product.photo}
                 alt={getProductName(product)}
                 fill
+                priority
                 sizes="(max-width: 512px) 100vw, 512px"
                 className="object-cover"
                 referrerPolicy="no-referrer"
