@@ -101,7 +101,7 @@ const WELCOME_KEYS = ['welcomeMsg1', 'welcomeMsg2', 'welcomeMsg3', 'welcomeMsg4'
 function SortHint({ text }: { text: string }) {
   const parts = text.split('[⋮]');
   return (
-    <p className="text-[11px] text-[#8E7A68] leading-relaxed">
+    <p className="text-sm text-[#8E7A68] leading-relaxed">
       {parts.map((part, i) => (
         <React.Fragment key={i}>
           {part}
@@ -3259,69 +3259,12 @@ export default function AdminPage() {
       {/* PRODUCT FORM DRAWER */}
       <AdminDrawer
         isOpen={isProdDrawerOpen}
-        title={editingProduct ? `${t('edit')} ${t('menu').toLowerCase()}` : t('addProduct')}
+        title={editingProduct ? t('editDishTitle') : t('addDishTitle')}
         subtitle={t('productSubtitle')}
         headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
         onClose={resetProdForm}
       >
         <form onSubmit={handleSaveProduct} className="space-y-5">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productCategory')} *</label>
-              <select 
-                value={prodForm.categoryId}
-                onChange={(e) => setProdForm({...prodForm, categoryId: e.target.value})}
-                className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                required
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPrice')} *</label>
-              <input 
-                type="number"
-                value={prodForm.price || ''}
-                onChange={(e) => setProdForm({...prodForm, price: Number(e.target.value)})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Product badge (single choice) */}
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('badgeLabel')}</label>
-            <div className="space-y-2">
-              <label className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${!prodForm.badge ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
-                <input
-                  type="radio"
-                  name="productBadge"
-                  checked={!prodForm.badge}
-                  onChange={() => setProdForm({ ...prodForm, badge: '' })}
-                  className="accent-[#C09E6D]"
-                />
-                <span className="text-xs font-semibold text-[#4A3B32]">{t('noBadge')}</span>
-              </label>
-              {PRODUCT_BADGES.map((b) => (
-                <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${prodForm.badge === b.id ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
-                  <input
-                    type="radio"
-                    name="productBadge"
-                    checked={prodForm.badge === b.id}
-                    onChange={() => setProdForm({ ...prodForm, badge: b.id })}
-                    className="accent-[#C09E6D]"
-                  />
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${b.className}`}>
-                    {t(PRODUCT_BADGE_KEYS[b.id])}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
@@ -3364,6 +3307,32 @@ export default function AdminPage() {
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productCategory')} *</label>
+              <select 
+                value={prodForm.categoryId}
+                onChange={(e) => setProdForm({...prodForm, categoryId: e.target.value})}
+                className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                required
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.nameUk}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPrice')} *</label>
+              <input 
+                type="number"
+                value={prodForm.price || ''}
+                onChange={(e) => setProdForm({...prodForm, price: Number(e.target.value)})}
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                required
+              />
+            </div>
+          </div>
+
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
@@ -3402,6 +3371,7 @@ export default function AdminPage() {
             )}
           </div>
 
+          {/* Ingredients (multiline) */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
@@ -3413,34 +3383,62 @@ export default function AdminPage() {
             </div>
 
             {lang === 'uk' && (
-              <input 
-                type="text"
+              <textarea 
                 value={prodForm.ingredientsUk}
                 onChange={(e) => setProdForm({...prodForm, ingredientsUk: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
                 placeholder={t('productIngredientsPlaceholder')}
               />
             )}
 
             {lang === 'hu' && (
-              <input 
-                type="text"
+              <textarea 
                 value={prodForm.ingredientsHu}
                 onChange={(e) => setProdForm({...prodForm, ingredientsHu: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
                 placeholder="pl. kávé, tej, cukor"
               />
             )}
 
             {lang === 'en' && (
-              <input 
-                type="text"
+              <textarea 
                 value={prodForm.ingredientsEn}
                 onChange={(e) => setProdForm({...prodForm, ingredientsEn: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs rounded-xl"
+                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
                 placeholder="e.g. coffee, milk, sugar"
               />
             )}
+          </div>
+
+          {/* Product badge (single choice) */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('badgeLabel')}</label>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${!prodForm.badge ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+                <input
+                  type="radio"
+                  name="productBadge"
+                  checked={!prodForm.badge}
+                  onChange={() => setProdForm({ ...prodForm, badge: '' })}
+                  className="accent-[#C09E6D]"
+                />
+                <span className="text-xs font-semibold text-[#4A3B32]">{t('noBadge')}</span>
+              </label>
+              {PRODUCT_BADGES.map((b) => (
+                <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${prodForm.badge === b.id ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+                  <input
+                    type="radio"
+                    name="productBadge"
+                    checked={prodForm.badge === b.id}
+                    onChange={() => setProdForm({ ...prodForm, badge: b.id })}
+                    className="accent-[#C09E6D]"
+                  />
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${b.className}`}>
+                    {t(PRODUCT_BADGE_KEYS[b.id])}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -3510,6 +3508,8 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+
+          <div className="border-t border-[#E6DFD5]" />
 
           {/* Recommended products (Ідеально смакує разом) */}
           <div>
@@ -3583,8 +3583,8 @@ export default function AdminPage() {
                 </>
               ) : (
                 <>
-                  {editingProduct ? <Save className="w-4 h-4 text-[#C09E6D]" /> : <Plus className="w-4 h-4 text-[#C09E6D]" />}
-                  <span>{editingProduct ? t('saveBtn') : t('addProduct')}</span>
+                  <Save className="w-4 h-4 text-[#C09E6D]" />
+                  <span>{t('saveProduct')}</span>
                 </>
               )}
             </button>

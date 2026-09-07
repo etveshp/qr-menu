@@ -53,11 +53,8 @@ export function ImageCropModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E6DFD5] flex items-center justify-between bg-[#FAF6EE]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#C09E6D]/15 flex items-center justify-center text-[#C09E6D]">
-              <CameraIcon />
-            </div>
             <div>
-              <h3 className="font-display font-medium text-lg text-[#231913]">{title}</h3>
+              <h3 className="font-display font-medium text-2xl text-[#231913]">{title}</h3>
               <p className="text-[11px] text-[#8E7A68]">{subtitle}</p>
             </div>
           </div>
@@ -147,14 +144,5 @@ export function ImageCropModal({
         </div>
       </div>
     </div>
-  );
-}
-
-function CameraIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-      <circle cx="12" cy="13" r="3" />
-    </svg>
   );
 }
