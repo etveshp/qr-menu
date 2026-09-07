@@ -57,7 +57,7 @@ export async function GET(): Promise<NextResponse> {
       nameUk: r.name_uk, nameHu: r.name_hu, nameEn: r.name_en,
       descriptionUk: r.description_uk, descriptionHu: r.description_hu, descriptionEn: r.description_en,
       ingredientsUk: r.ingredients_uk, ingredientsHu: r.ingredients_hu, ingredientsEn: r.ingredients_en,
-      price: Number(r.price), photo: r.photo, sortOrder: r.sort_order ?? 0,
+      price: Number(r.price), photo: r.photo, badge: r.badge ?? '', sortOrder: r.sort_order ?? 0,
     }));
 
     // Single-row settings for the photo banner and the text banner. These are

@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
+import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, t }: ProductCardProps) {
+  const badgeDef = productBadgeById(product.badge);
   return (
     <motion.div
       initial={{ opacity: 0, y: 28, scale: 0.97 }}
@@ -41,6 +43,11 @@ export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, 
           className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           referrerPolicy="no-referrer"
         />
+        {badgeDef && (
+          <span className={`absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
+            {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
+          </span>
+        )}
         {qty > 0 && (
           <div className="absolute top-2 right-2 bg-[#3E2F26] text-[#FAF6EE] text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-[#E6DFD5]">
             {qty}
@@ -49,12 +56,12 @@ export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, 
       </div>
 
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
-        <h4 className="font-display font-bold text-base sm:text-lg text-[#231913] leading-snug line-clamp-2 group-hover:text-[#8E7A68] transition-colors">
+        <h4 className="font-display font-bold text-xl md:text-2xl lg:text-[26px] text-[#231913] leading-snug line-clamp-2 group-hover:text-[#8E7A68] transition-colors">
           {name}
         </h4>
 
         <div className="flex items-center justify-between gap-1.5 mt-2.5 pt-2 border-t border-[#E6DFD5]/40">
-          <span className="font-bold text-sm sm:text-base text-[#3E2F26] whitespace-nowrap">
+          <span className="font-bold text-lg md:text-xl lg:text-2xl text-[#3E2F26] whitespace-nowrap">
             {product.price} {priceCurrency}
           </span>
 

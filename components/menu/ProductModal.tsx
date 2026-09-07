@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, Minus, Plus, ConciergeBell } from 'lucide-react';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
+import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface ProductModalProps {
@@ -75,6 +76,47 @@ export function ProductModal({
     computeTitleFloat({ scrollTop: 0, paddingTop: 20, rowHeight: 60 })
   );
   const [cloneLayout, setCloneLayout] = useState({ left: 20, width: 0, height: 60 });
+  const [recPage, setRecPage] = useState(0);
+  const [recPages, setRecPages] = useState(1);
+
+  const updateRecDots = (el: HTMLDivElement) => {
+    const { scrollLeft, clientWidth, scrollWidth } = el;
+    if (clientWidth <= 0 || scrollWidth <= clientWidth) {
+      setRecPages(1);
+      setRecPage(0);
+      return;
+    }
+    const pages = Math.max(1, Math.ceil(scrollWidth / clientWidth));
+    const ratio = Math.min(1, Math.max(0, scrollLeft / (scrollWidth - clientWidth)));
+    setRecPages(pages);
+    setRecPage(Math.round(ratio * (pages - 1)));
+  };
+
+  const renderRecDots = () =>
+    recPages > 1 ? (
+      <div className="flex justify-center items-center gap-1.5 pt-2">
+        {Array.from({ length: recPages }).map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all ${i === recPage ? 'w-5 bg-[#C09E6D]' : 'w-1.5 bg-[#E6DFD5]'}`}
+          />
+        ))}
+      </div>
+    ) : null;
+
+  // Initialize/refresh the scroll dots after the rail mounts or its content
+  // changes (scroll events only fire once the user actually scrolls).
+  useEffect(() => {
+    const update = () => {
+      if (recScrollRef.current) updateRecDots(recScrollRef.current);
+    };
+    const raf = requestAnimationFrame(update);
+    const timer = setTimeout(update, 120);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [recommendedProducts, recScrollRef]);
 
   // Vertical ("title floats over the photo while scrolling") behavior is only
   // used by the mobile bottom-sheet layout.
@@ -146,6 +188,7 @@ export function ProductModal({
   if (!product) return null;
 
   const ingredients = getProductIngredients(product);
+  const badgeDef = productBadgeById(product.badge);
 
   const renderDescription = () =>
     getProductDesc(product) ? (
@@ -179,7 +222,7 @@ export function ProductModal({
   const renderRecommended = () =>
     recommendedProducts.length > 0 ? (
       <div className="pt-3 border-t border-[#E6DFD5]/60">
-        <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-xs mb-2.5">
+        <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-sm mb-2.5">
           {t('recommendedWith')}
         </span>
         <div
@@ -188,6 +231,7 @@ export function ProductModal({
           onPointerLeave={onRecPointerUp}
           onPointerUp={onRecPointerUp}
           onPointerMove={onRecPointerMove}
+          onScroll={(e) => updateRecDots(e.currentTarget)}
           className="flex gap-3 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1 touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
         >
           {recommendedProducts.map((rec) => (
@@ -218,6 +262,7 @@ export function ProductModal({
             </button>
           ))}
         </div>
+        {renderRecDots()}
       </div>
     ) : null;
 
@@ -376,11 +421,16 @@ export function ProductModal({
                     className="object-cover"
                     referrerPolicy="no-referrer"
                   />
+                  {badgeDef && (
+                    <span className={`absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
+                      {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
+                    </span>
+                  )}
                 </div>
 
                 {recommendedProducts.length > 0 && (
-                  <div className="w-full mt-6 px-4 pb-4 min-h-0">
-                    <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-[11px] mb-2">
+                  <div className="w-full mt-3 px-4 pb-2 min-h-0">
+                    <span className="block font-bold uppercase tracking-wider text-[#8E7A68] text-[13px] mb-2">
                       {t('recommendedWith')}
                     </span>
                     <div
@@ -389,6 +439,7 @@ export function ProductModal({
                       onPointerLeave={onRecPointerUp}
                       onPointerUp={onRecPointerUp}
                       onPointerMove={onRecPointerMove}
+                      onScroll={(e) => updateRecDots(e.currentTarget)}
                       className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1 touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing"
                     >
                       {recommendedProducts.map((rec) => (
@@ -419,6 +470,7 @@ export function ProductModal({
                         </button>
                       ))}
                     </div>
+                    {renderRecDots()}
                   </div>
                 )}
               </div>
@@ -565,6 +617,11 @@ export function ProductModal({
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
+              {badgeDef && (
+                <span className={`absolute top-3 left-3 z-[6] px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
+                  {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
+                </span>
+              )}
 
               {/* Title float overlay: gradient + light copy of the title/price rising over the photo */}
               <div className="absolute inset-0 z-[5] overflow-hidden pointer-events-none" aria-hidden="true">

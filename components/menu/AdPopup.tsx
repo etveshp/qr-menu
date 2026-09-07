@@ -87,7 +87,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
       {visible && ad.photo && (
         <motion.div
           key="ad-popup"
-          className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6 sm:items-end sm:justify-end sm:bg-transparent sm:backdrop-blur-none sm:pointer-events-none bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 sm:items-end sm:justify-end sm:bg-transparent sm:backdrop-blur-none sm:pointer-events-none bg-black/60 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           role="dialog"
@@ -96,7 +96,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
         >
           {/* 9:16 photo banner with small outer margins (not full screen) */}
           <motion.div
-            className={`relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${product ? 'cursor-pointer' : ''}`}
+            className={`relative w-full max-w-[min(92vw,380px)] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${product ? 'cursor-pointer' : ''}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
@@ -105,7 +105,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
               src={ad.photo}
               alt={t('advertising')}
               fill
-              sizes="(min-width: 640px) 240px, 320px"
+              sizes="(min-width: 640px) 240px, min(92vw,380px)"
               className="object-cover"
               referrerPolicy="no-referrer"
               unoptimized={ad.photo.startsWith('data:')}
@@ -126,9 +126,9 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
               type="button"
               onClick={close}
               aria-label={t('adClose')}
-              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-red-700/90 text-white/90 hover:text-white backdrop-blur-md border border-white/25 flex items-center justify-center transition-all shadow-md active:scale-90 cursor-pointer"
+              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-white/90 text-[#3E2F26] hover:bg-white shadow-md border border-[#E6DFD5] flex items-center justify-center transition-all active:scale-90 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" strokeWidth={3} />
             </button>
           </motion.div>
         </motion.div>

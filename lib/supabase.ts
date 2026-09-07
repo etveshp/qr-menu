@@ -69,6 +69,8 @@ export interface Product {
   ingredientsUk: string; ingredientsHu: string; ingredientsEn: string;
   price: number; photo: string; recommendedIds: string[];
   photoOriginal?: string; sortOrder?: number;
+  /** Single product badge id ('' = none). */
+  badge?: string;
 }
 export interface Advertising {
   photo: string;
@@ -296,6 +298,7 @@ const mapProduct = (row: any): Product => ({
   price: Number(row.price), photo: row.photo,
   recommendedIds: Array.isArray(row.recommended_ids) ? row.recommended_ids : [],
   photoOriginal: row.photo_original ?? '',
+  badge: row.badge ?? '',
   sortOrder: row.sort_order ?? 0,
 });
 
@@ -561,6 +564,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       ingredients_uk: stored.ingredientsUk, ingredients_hu: stored.ingredientsHu, ingredients_en: stored.ingredientsEn,
       price: Number(stored.price), photo: stored.photo, photo_original: stored.photoOriginal ?? '',
       recommended_ids: stored.recommendedIds ?? [],
+      badge: stored.badge ?? '',
       sort_order: stored.sortOrder ?? 0,
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }

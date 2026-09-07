@@ -46,6 +46,7 @@ import {
 } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Translator } from '@/lib/translator';
+import { PRODUCT_BADGES, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 import { TRANSLATIONS, ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
@@ -576,6 +577,7 @@ export default function AdminPage() {
     photo: string;
     photoOriginal: string;
     recommendedIds: string[];
+    badge: string;
   }>({
     id: '',
     categoryId: '',
@@ -591,7 +593,8 @@ export default function AdminPage() {
     price: 0,
     photo: '',
     photoOriginal: '',
-    recommendedIds: []
+    recommendedIds: [],
+    badge: '',
   });
 
   // QR Code generator states
@@ -1526,7 +1529,8 @@ export default function AdminPage() {
       price: 0,
       photo: '',
       photoOriginal: '',
-      recommendedIds: []
+      recommendedIds: [],
+      badge: '',
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(false);
@@ -1549,7 +1553,8 @@ export default function AdminPage() {
       price: 0,
       photo: '',
       photoOriginal: '',
-      recommendedIds: []
+      recommendedIds: [],
+      badge: '',
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -1578,7 +1583,8 @@ export default function AdminPage() {
       price: Number(prodForm.price) || 0,
       photo: prodForm.photo,
       photoOriginal: prodForm.photoOriginal,
-      recommendedIds: prodForm.recommendedIds
+      recommendedIds: prodForm.recommendedIds,
+      badge: prodForm.badge
     };
 
     setProdSaveStatus('saving');
@@ -1613,7 +1619,8 @@ export default function AdminPage() {
       price: prod.price,
       photo: prod.photo,
       photoOriginal: prod.photoOriginal ?? '',
-      recommendedIds: prod.recommendedIds ?? []
+      recommendedIds: prod.recommendedIds ?? [],
+      badge: prod.badge ?? '',
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -3281,6 +3288,37 @@ export default function AdminPage() {
                 className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
                 required
               />
+            </div>
+          </div>
+
+          {/* Product badge (single choice) */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('badgeLabel')}</label>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${!prodForm.badge ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+                <input
+                  type="radio"
+                  name="productBadge"
+                  checked={!prodForm.badge}
+                  onChange={() => setProdForm({ ...prodForm, badge: '' })}
+                  className="accent-[#C09E6D]"
+                />
+                <span className="text-xs font-semibold text-[#4A3B32]">{t('noBadge')}</span>
+              </label>
+              {PRODUCT_BADGES.map((b) => (
+                <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${prodForm.badge === b.id ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+                  <input
+                    type="radio"
+                    name="productBadge"
+                    checked={prodForm.badge === b.id}
+                    onChange={() => setProdForm({ ...prodForm, badge: b.id })}
+                    className="accent-[#C09E6D]"
+                  />
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${b.className}`}>
+                    {t(PRODUCT_BADGE_KEYS[b.id])}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
 

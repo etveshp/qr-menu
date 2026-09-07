@@ -394,7 +394,11 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.25 }}
             >
-              <h3 className="text-sm uppercase tracking-widest text-[#8E7A68] font-bold mb-4">{t('categories')}</h3>
+              <div className="flex justify-center mb-8">
+                <span className="inline-flex items-center px-4 py-2 text-sm sm:text-base uppercase tracking-wider font-bold text-[#FAF6EE] bg-[#C09E6D] rounded-full shadow-sm">
+                  {t('menuHeaderTitle')}
+                </span>
+              </div>
               {categories.length === 0 ? (
                 <div className="py-14 text-center flex flex-col items-center gap-3">
                   <div className="w-16 h-16 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] flex items-center justify-center">

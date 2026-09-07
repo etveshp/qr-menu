@@ -72,6 +72,7 @@ create table public.products (
   photo text not null default '',
   photo_original text not null default '',
   recommended_ids text[] not null default '{}',
+  badge text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
