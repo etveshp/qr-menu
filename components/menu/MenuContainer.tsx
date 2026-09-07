@@ -238,6 +238,15 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedProductModal, isCartOpen]);
 
+  // Apply the cafe's default language unless the guest already picked one.
+  useEffect(() => {
+    const dl = cafeInfo?.defaultLang;
+    if (dl !== 'uk' && dl !== 'hu' && dl !== 'en') return;
+    if (typeof window !== 'undefined' && localStorage.getItem('aura_lang')) return;
+    if (lang === dl) return;
+    changeLanguage(dl as 'uk' | 'hu' | 'en');
+  }, [cafeInfo?.defaultLang, lang, changeLanguage]);
+
   const openProductModal = (prod: Product) => {
     setSelectedProductModal(prod);
     setModalQty(getQty(prod.id) > 0 ? getQty(prod.id) : 1);

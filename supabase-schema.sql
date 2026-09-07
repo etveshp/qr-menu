@@ -37,6 +37,7 @@ create table public.cafe_info (
   greeting_admin_en text not null default '',
   greeting_admin_enabled boolean not null default false,
   show_table_number boolean not null default false,
+  default_lang text not null default 'uk',
   updated_at timestamptz not null default now()
 );
 

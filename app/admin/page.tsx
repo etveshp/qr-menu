@@ -82,6 +82,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
 import { DatePicker } from '@/components/admin/DatePicker';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
@@ -96,6 +97,8 @@ import { NotAdminModal } from '@/components/NotAdminModal';
 const LANG_CODE: Record<string, string> = { uk: 'UA', hu: 'HU', en: 'EN' };
 
 const WELCOME_KEYS = ['welcomeMsg1', 'welcomeMsg2', 'welcomeMsg3', 'welcomeMsg4', 'welcomeMsg5'] as const;
+
+const defLang = (value?: string): LangCode => (value === 'hu' || value === 'en' ? (value as LangCode) : 'uk');
 
 // Hint under section titles: renders the text and replaces the "[⋮]" marker
 // with an inline kebab icon.
@@ -630,6 +633,9 @@ export default function AdminPage() {
 
   // Save button action animation states
   const [cafeSaveStatus, setCafeSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [langSaveStatus, setLangSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  // Auto-translation session overrides (fieldId:lang -> translated text).
+  const [autoSession, setAutoSession] = useState<Record<string, string>>({});
   const [greetingSaveStatus, setGreetingSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [catSaveStatus, setCatSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [prodSaveStatus, setProdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -1327,6 +1333,24 @@ export default function AdminPage() {
     }
   };
 
+  // Save the Languages section (default language) independently.
+  const handleSaveLang = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLangSaveStatus('saving');
+    try {
+      await updateCafeInfo(cafeForm);
+      await fetchData();
+      setLangSaveStatus('saved');
+      showToast(t('updateSuccess'), 'success');
+      setTimeout(() => {
+        setLangSaveStatus('idle');
+      }, 2200);
+    } catch (err: any) {
+      setLangSaveStatus('idle');
+      showToast(err?.message || t('saveSettingsError'), 'error');
+    }
+  };
+
   // Save Greetings section independently (own status → buttons act separately).
   const handleSaveGreetings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1969,7 +1993,7 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-xl font-display font-medium text-[#231913] tracking-wide">{getCafeName(cafeInfo, lang) || t('adminCabinet')}</h1>
+              <h1 className="text-2xl font-display font-bold text-[#231913] tracking-wide">{getCafeName(cafeInfo, lang) || t('adminCabinet')}</h1>
               {getCafeName(cafeInfo, lang) && (
                 <p className="text-[10px] uppercase tracking-widest text-[#8E7A68]">{t('adminCabinet')}</p>
               )}
@@ -2128,89 +2152,44 @@ export default function AdminPage() {
 
                 <form id="cafe-settings-form" onSubmit={handleSaveCafe} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeName')}</label>
-                        <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                          {LANG_CODE[lang] ?? lang.toUpperCase()}
-                        </span>
-                      </div>
-                      {lang === 'uk' && (
-                        <input
-                          type="text"
-                          value={cafeForm.nameUk}
-                          onChange={(e) => setCafeForm({...cafeForm, nameUk: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          required
-                        />
-                      )}
-                      {lang === 'hu' && (
-                        <input
-                          type="text"
-                          value={cafeForm.nameHu}
-                          onChange={(e) => setCafeForm({...cafeForm, nameHu: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        />
-                      )}
-                      {lang === 'en' && (
-                        <input
-                          type="text"
-                          value={cafeForm.nameEn}
-                          onChange={(e) => setCafeForm({...cafeForm, nameEn: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeDescription')}</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider invisible">
-                            {LANG_CODE[lang] ?? lang.toUpperCase()}
-                          </span>
-                          <span className="text-[10px] font-bold text-[#C09E6D]">
-                            {(lang === 'uk' ? cafeForm.descriptionUk : lang === 'hu' ? cafeForm.descriptionHu : cafeForm.descriptionEn).length} / 40
-                          </span>
-                        </div>
-                      </div>
-                      {lang === 'uk' && (
-                        <input
-                          type="text"
-                          value={cafeForm.descriptionUk}
-                          onChange={(e) => setCafeForm({...cafeForm, descriptionUk: e.target.value.slice(0, 40)})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          maxLength={40}
-                          required
-                        />
-                      )}
-                      {lang === 'hu' && (
-                        <input
-                          type="text"
-                          value={cafeForm.descriptionHu}
-                          onChange={(e) => setCafeForm({...cafeForm, descriptionHu: e.target.value.slice(0, 40)})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          maxLength={40}
-                        />
-                      )}
-                      {lang === 'en' && (
-                        <input
-                          type="text"
-                          value={cafeForm.descriptionEn}
-                          onChange={(e) => setCafeForm({...cafeForm, descriptionEn: e.target.value.slice(0, 40)})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                          maxLength={40}
-                        />
-                      )}
-                    </div>
+                    <AutoTransField
+                      label={t('cafeName')}
+                      sourceText={defLang(cafeForm.defaultLang) === 'hu' ? cafeForm.nameHu : defLang(cafeForm.defaultLang) === 'en' ? cafeForm.nameEn : cafeForm.nameUk}
+                      currentValue={lang === 'hu' ? cafeForm.nameHu : lang === 'en' ? cafeForm.nameEn : cafeForm.nameUk}
+                      sourceLang={defLang(cafeForm.defaultLang)}
+                      currentLang={lang as LangCode}
+                      baseId="cafe-name"
+                      session={autoSession}
+                      onSession={setAutoSession}
+                      onChange={(text) => {
+                        if (lang === 'uk') setCafeForm({ ...cafeForm, nameUk: text });
+                        else if (lang === 'hu') setCafeForm({ ...cafeForm, nameHu: text });
+                        else setCafeForm({ ...cafeForm, nameEn: text });
+                      }}
+                      required
+                    />
+                    <AutoTransField
+                      label={t('cafeDescription')}
+                      sourceText={defLang(cafeForm.defaultLang) === 'hu' ? cafeForm.descriptionHu : defLang(cafeForm.defaultLang) === 'en' ? cafeForm.descriptionEn : cafeForm.descriptionUk}
+                      currentValue={lang === 'hu' ? cafeForm.descriptionHu : lang === 'en' ? cafeForm.descriptionEn : cafeForm.descriptionUk}
+                      sourceLang={defLang(cafeForm.defaultLang)}
+                      currentLang={lang as LangCode}
+                      baseId="cafe-desc"
+                      session={autoSession}
+                      onSession={setAutoSession}
+                      onChange={(text) => {
+                        const value = text.slice(0, 40);
+                        if (lang === 'uk') setCafeForm({ ...cafeForm, descriptionUk: value });
+                        else if (lang === 'hu') setCafeForm({ ...cafeForm, descriptionHu: value });
+                        else setCafeForm({ ...cafeForm, descriptionEn: value });
+                      }}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <div className="mb-2 flex items-center justify-between">
                         <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeInstagram')}</label>
-                        <span className="text-[10px] bg-transparent px-2.5 py-1 rounded-full font-bold uppercase tracking-wider invisible">
-                          {LANG_CODE[lang] ?? lang.toUpperCase()}
-                        </span>
                       </div>
                       <input
                         type="text"
@@ -2219,38 +2198,21 @@ export default function AdminPage() {
                         className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
                       />
                     </div>
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('cafeOwnerName')}</label>
-                        <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                          {LANG_CODE[lang] ?? lang.toUpperCase()}
-                        </span>
-                      </div>
-                      {lang === 'uk' && (
-                        <input
-                          type="text"
-                          value={cafeForm.ownerNameUk}
-                          onChange={(e) => setCafeForm({...cafeForm, ownerNameUk: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        />
-                      )}
-                      {lang === 'hu' && (
-                        <input
-                          type="text"
-                          value={cafeForm.ownerNameHu}
-                          onChange={(e) => setCafeForm({...cafeForm, ownerNameHu: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        />
-                      )}
-                      {lang === 'en' && (
-                        <input
-                          type="text"
-                          value={cafeForm.ownerNameEn}
-                          onChange={(e) => setCafeForm({...cafeForm, ownerNameEn: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl"
-                        />
-                      )}
-                    </div>
+                    <AutoTransField
+                      label={t('cafeOwnerName')}
+                      sourceText={defLang(cafeForm.defaultLang) === 'hu' ? cafeForm.ownerNameHu : defLang(cafeForm.defaultLang) === 'en' ? cafeForm.ownerNameEn : cafeForm.ownerNameUk}
+                      currentValue={lang === 'hu' ? cafeForm.ownerNameHu : lang === 'en' ? cafeForm.ownerNameEn : cafeForm.ownerNameUk}
+                      sourceLang={defLang(cafeForm.defaultLang)}
+                      currentLang={lang as LangCode}
+                      baseId="cafe-owner"
+                      session={autoSession}
+                      onSession={setAutoSession}
+                      onChange={(text) => {
+                        if (lang === 'uk') setCafeForm({ ...cafeForm, ownerNameUk: text });
+                        else if (lang === 'hu') setCafeForm({ ...cafeForm, ownerNameHu: text });
+                        else setCafeForm({ ...cafeForm, ownerNameEn: text });
+                      }}
+                    />
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2533,35 +2495,24 @@ export default function AdminPage() {
                       </button>
                     </div>
 
-                    <div className="space-y-3">
-                      {lang === 'uk' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingCustomerUk ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerUk: e.target.value })}
-                          placeholder={t('greetingCustomerPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                      {lang === 'hu' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingCustomerHu ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerHu: e.target.value })}
-                          placeholder={t('greetingCustomerPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                      {lang === 'en' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingCustomerEn ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingCustomerEn: e.target.value })}
-                          placeholder={t('greetingCustomerPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                    </div>
+                    <AutoTransField
+                      sourceText={defLang(cafeForm.defaultLang) === 'hu' ? (cafeForm.greetingCustomerHu ?? '') : defLang(cafeForm.defaultLang) === 'en' ? (cafeForm.greetingCustomerEn ?? '') : (cafeForm.greetingCustomerUk ?? '')}
+                      currentValue={lang === 'hu' ? (cafeForm.greetingCustomerHu ?? '') : lang === 'en' ? (cafeForm.greetingCustomerEn ?? '') : (cafeForm.greetingCustomerUk ?? '')}
+                      sourceLang={defLang(cafeForm.defaultLang)}
+                      currentLang={lang as LangCode}
+                      baseId="greeting-customer"
+                      session={autoSession}
+                      onSession={setAutoSession}
+                      onChange={(text) => {
+                        if (lang === 'uk') setCafeForm({ ...cafeForm, greetingCustomerUk: text });
+                        else if (lang === 'hu') setCafeForm({ ...cafeForm, greetingCustomerHu: text });
+                        else setCafeForm({ ...cafeForm, greetingCustomerEn: text });
+                      }}
+                      multiline
+                      rows={8}
+                      biggerText
+                      placeholder={t('greetingCustomerPlaceholder')}
+                    />
                   </div>
 
                   {/* Admin greeting */}
@@ -2593,35 +2544,24 @@ export default function AdminPage() {
                       </button>
                     </div>
 
-                    <div className="space-y-3">
-                      {lang === 'uk' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingAdminUk ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminUk: e.target.value })}
-                          placeholder={t('greetingAdminPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                      {lang === 'hu' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingAdminHu ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminHu: e.target.value })}
-                          placeholder={t('greetingAdminPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                      {lang === 'en' && (
-                        <textarea
-                          rows={8}
-                          value={cafeForm.greetingAdminEn ?? ''}
-                          onChange={(e) => setCafeForm({ ...cafeForm, greetingAdminEn: e.target.value })}
-                          placeholder={t('greetingAdminPlaceholder')}
-                          className="w-full px-4 py-2.5 bg-[#FAF6EE] border border-[#E6DFD5] text-[#231913] focus:outline-none focus:border-[#C09E6D] text-sm rounded-xl resize-y"
-                        />
-                      )}
-                    </div>
+                    <AutoTransField
+                      sourceText={defLang(cafeForm.defaultLang) === 'hu' ? (cafeForm.greetingAdminHu ?? '') : defLang(cafeForm.defaultLang) === 'en' ? (cafeForm.greetingAdminEn ?? '') : (cafeForm.greetingAdminUk ?? '')}
+                      currentValue={lang === 'hu' ? (cafeForm.greetingAdminHu ?? '') : lang === 'en' ? (cafeForm.greetingAdminEn ?? '') : (cafeForm.greetingAdminUk ?? '')}
+                      sourceLang={defLang(cafeForm.defaultLang)}
+                      currentLang={lang as LangCode}
+                      baseId="greeting-admin"
+                      session={autoSession}
+                      onSession={setAutoSession}
+                      onChange={(text) => {
+                        if (lang === 'uk') setCafeForm({ ...cafeForm, greetingAdminUk: text });
+                        else if (lang === 'hu') setCafeForm({ ...cafeForm, greetingAdminHu: text });
+                        else setCafeForm({ ...cafeForm, greetingAdminEn: text });
+                      }}
+                      multiline
+                      rows={8}
+                      biggerText
+                      placeholder={t('greetingAdminPlaceholder')}
+                    />
                   </div>
                   </div>
 
@@ -2659,6 +2599,63 @@ export default function AdminPage() {
                       )}
                     </button>
                   </div>
+                </form>
+              </div>
+
+              {/* Languages */}
+              <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
+                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
+                  {t('languagesTitle')}
+                </h2>
+                <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('defaultLangHint')}</p>
+
+                <form onSubmit={handleSaveLang} className="space-y-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1.5">
+                      {t('defaultLangLabel')}
+                    </label>
+                    <select
+                      value={cafeForm.defaultLang ?? 'uk'}
+                      onChange={(e) => setCafeForm({ ...cafeForm, defaultLang: e.target.value })}
+                      className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
+                    >
+                      <option value="uk">Українська</option>
+                      <option value="hu">Magyar</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={langSaveStatus === 'saving'}
+                    className={`relative overflow-hidden w-full md:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                      langSaveStatus === 'saving'
+                        ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
+                        : langSaveStatus === 'saved'
+                        ? 'bg-[#231913] text-[#FAF6EE] ring-2 ring-[#C09E6D] shadow-md animate-btn-pop'
+                        : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913] hover:shadow-lg'
+                    }`}
+                  >
+                    {langSaveStatus === 'saving' && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-btn-shimmer pointer-events-none" />
+                    )}
+                    {langSaveStatus === 'saving' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                        <span>{t('saving')}</span>
+                      </>
+                    ) : langSaveStatus === 'saved' ? (
+                      <>
+                        <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                        <span>{t('saved')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 text-[#C09E6D]" />
+                        <span>{t('saveLangBtn')}</span>
+                      </>
+                    )}
+                  </button>
                 </form>
               </div>
 
@@ -3127,47 +3124,23 @@ export default function AdminPage() {
         onClose={resetCatForm}
       >
         <form onSubmit={handleSaveCategory} className="space-y-5">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                {t('categoryNameMain')}
-              </label>
-              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                {LANG_CODE[lang] ?? lang.toUpperCase()}
-              </span>
-            </div>
-
-            {lang === 'uk' && (
-              <input 
-                type="text"
-                value={catForm.nameUk}
-                onChange={(e) => setCatForm({...catForm, nameUk: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder={t('categoryNamePlaceholder')}
-                required
-              />
-            )}
-
-            {lang === 'hu' && (
-              <input 
-                type="text"
-                value={catForm.nameHu}
-                onChange={(e) => setCatForm({...catForm, nameHu: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder="Írja be a kategória nevét magyarul"
-              />
-            )}
-
-            {lang === 'en' && (
-              <input 
-                type="text"
-                value={catForm.nameEn}
-                onChange={(e) => setCatForm({...catForm, nameEn: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder="Enter category name in English"
-              />
-            )}
-          </div>
+          <AutoTransField
+            label={t('categoryNameMain')}
+            sourceText={defLang(cafeForm.defaultLang) === 'hu' ? catForm.nameHu : defLang(cafeForm.defaultLang) === 'en' ? catForm.nameEn : catForm.nameUk}
+            currentValue={lang === 'hu' ? catForm.nameHu : lang === 'en' ? catForm.nameEn : catForm.nameUk}
+            sourceLang={defLang(cafeForm.defaultLang)}
+            currentLang={lang as LangCode}
+            baseId="cat-name"
+            session={autoSession}
+            onSession={setAutoSession}
+            onChange={(text) => {
+              if (lang === 'uk') setCatForm({ ...catForm, nameUk: text });
+              else if (lang === 'hu') setCatForm({ ...catForm, nameHu: text });
+              else setCatForm({ ...catForm, nameEn: text });
+            }}
+            placeholder={lang === 'uk' ? t('categoryNamePlaceholder') : undefined}
+            required
+          />
 
           <div>
             <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')} *</label>
@@ -3302,47 +3275,23 @@ export default function AdminPage() {
         onClose={resetProdForm}
       >
         <form onSubmit={handleSaveProduct} className="space-y-5">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                {t('productNameMain')}
-              </label>
-              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                {LANG_CODE[lang] ?? lang.toUpperCase()}
-              </span>
-            </div>
-
-            {lang === 'uk' && (
-              <input 
-                type="text"
-                value={prodForm.nameUk}
-                onChange={(e) => setProdForm({...prodForm, nameUk: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder={t('productNamePlaceholder')}
-                required
-              />
-            )}
-
-            {lang === 'hu' && (
-              <input 
-                type="text"
-                value={prodForm.nameHu}
-                onChange={(e) => setProdForm({...prodForm, nameHu: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder="Írja be a termék nevét magyarul"
-              />
-            )}
-
-            {lang === 'en' && (
-              <input 
-                type="text"
-                value={prodForm.nameEn}
-                onChange={(e) => setProdForm({...prodForm, nameEn: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                placeholder="Enter product name in English"
-              />
-            )}
-          </div>
+          <AutoTransField
+            label={t('productNameMain')}
+            sourceText={defLang(cafeForm.defaultLang) === 'hu' ? prodForm.nameHu : defLang(cafeForm.defaultLang) === 'en' ? prodForm.nameEn : prodForm.nameUk}
+            currentValue={lang === 'hu' ? prodForm.nameHu : lang === 'en' ? prodForm.nameEn : prodForm.nameUk}
+            sourceLang={defLang(cafeForm.defaultLang)}
+            currentLang={lang as LangCode}
+            baseId="prod-name"
+            session={autoSession}
+            onSession={setAutoSession}
+            onChange={(text) => {
+              if (lang === 'uk') setProdForm({ ...prodForm, nameUk: text });
+              else if (lang === 'hu') setProdForm({ ...prodForm, nameHu: text });
+              else setProdForm({ ...prodForm, nameEn: text });
+            }}
+            placeholder={lang === 'uk' ? t('productNamePlaceholder') : undefined}
+            required
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -3370,82 +3319,42 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                {t('productDescMain')}
-              </label>
-              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                {LANG_CODE[lang] ?? lang.toUpperCase()}
-              </span>
-            </div>
-
-            {lang === 'uk' && (
-              <textarea 
-                value={prodForm.descriptionUk}
-                onChange={(e) => setProdForm({...prodForm, descriptionUk: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder={t('productDescPlaceholder')}
-              />
-            )}
-
-            {lang === 'hu' && (
-              <textarea 
-                value={prodForm.descriptionHu}
-                onChange={(e) => setProdForm({...prodForm, descriptionHu: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder="Termék leírása magyarul"
-              />
-            )}
-
-            {lang === 'en' && (
-              <textarea 
-                value={prodForm.descriptionEn}
-                onChange={(e) => setProdForm({...prodForm, descriptionEn: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder="Product description in English"
-              />
-            )}
-          </div>
+          <AutoTransField
+            label={t('productDescMain')}
+            sourceText={defLang(cafeForm.defaultLang) === 'hu' ? prodForm.descriptionHu : defLang(cafeForm.defaultLang) === 'en' ? prodForm.descriptionEn : prodForm.descriptionUk}
+            currentValue={lang === 'hu' ? prodForm.descriptionHu : lang === 'en' ? prodForm.descriptionEn : prodForm.descriptionUk}
+            sourceLang={defLang(cafeForm.defaultLang)}
+            currentLang={lang as LangCode}
+            baseId="prod-desc"
+            session={autoSession}
+            onSession={setAutoSession}
+            onChange={(text) => {
+              if (lang === 'uk') setProdForm({ ...prodForm, descriptionUk: text });
+              else if (lang === 'hu') setProdForm({ ...prodForm, descriptionHu: text });
+              else setProdForm({ ...prodForm, descriptionEn: text });
+            }}
+            multiline
+            placeholder={lang === 'uk' ? t('productDescPlaceholder') : undefined}
+          />
 
           {/* Ingredients (multiline) */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">
-                {t('productIngredientsMain')}
-              </label>
-              <span className="text-[10px] bg-[#C09E6D]/15 text-[#3E2F26] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                {LANG_CODE[lang] ?? lang.toUpperCase()}
-              </span>
-            </div>
-
-            {lang === 'uk' && (
-              <textarea 
-                value={prodForm.ingredientsUk}
-                onChange={(e) => setProdForm({...prodForm, ingredientsUk: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder={t('productIngredientsPlaceholder')}
-              />
-            )}
-
-            {lang === 'hu' && (
-              <textarea 
-                value={prodForm.ingredientsHu}
-                onChange={(e) => setProdForm({...prodForm, ingredientsHu: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder="pl. kávé, tej, cukor"
-              />
-            )}
-
-            {lang === 'en' && (
-              <textarea 
-                value={prodForm.ingredientsEn}
-                onChange={(e) => setProdForm({...prodForm, ingredientsEn: e.target.value})}
-                className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-xs min-h-[80px] rounded-xl"
-                placeholder="e.g. coffee, milk, sugar"
-              />
-            )}
-          </div>
+          <AutoTransField
+            label={t('productIngredientsMain')}
+            sourceText={defLang(cafeForm.defaultLang) === 'hu' ? prodForm.ingredientsHu : defLang(cafeForm.defaultLang) === 'en' ? prodForm.ingredientsEn : prodForm.ingredientsUk}
+            currentValue={lang === 'hu' ? prodForm.ingredientsHu : lang === 'en' ? prodForm.ingredientsEn : prodForm.ingredientsUk}
+            sourceLang={defLang(cafeForm.defaultLang)}
+            currentLang={lang as LangCode}
+            baseId="prod-ingredients"
+            session={autoSession}
+            onSession={setAutoSession}
+            onChange={(text) => {
+              if (lang === 'uk') setProdForm({ ...prodForm, ingredientsUk: text });
+              else if (lang === 'hu') setProdForm({ ...prodForm, ingredientsHu: text });
+              else setProdForm({ ...prodForm, ingredientsEn: text });
+            }}
+            multiline
+            placeholder={lang === 'uk' ? t('productIngredientsPlaceholder') : undefined}
+          />
 
           {/* Product badge (single choice) */}
           <div>

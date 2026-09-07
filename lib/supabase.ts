@@ -26,6 +26,8 @@ export interface CafeInfo {
   greetingAdminEnabled?: boolean;
   /** Show the QR table number in the menu header and customer greeting toast. */
   showTableNumber?: boolean;
+  /** Default app language (uk/hu/en). */
+  defaultLang?: string;
 }
 
 export const getCafeName = (info: CafeInfo | null, lang: string): string => {
@@ -211,6 +213,7 @@ const mapCafeInfo = (row: any): CafeInfo => ({
   greetingAdminUk: row.greeting_admin_uk ?? '', greetingAdminHu: row.greeting_admin_hu ?? '', greetingAdminEn: row.greeting_admin_en ?? '',
   greetingAdminEnabled: row.greeting_admin_enabled ?? false,
   showTableNumber: row.show_table_number ?? false,
+  defaultLang: row.default_lang ?? 'uk',
 });
 
 export interface SavedQr {
@@ -359,6 +362,7 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       greeting_admin_uk: storedInfo.greetingAdminUk ?? '', greeting_admin_hu: storedInfo.greetingAdminHu ?? '', greeting_admin_en: storedInfo.greetingAdminEn ?? '',
       greeting_admin_enabled: storedInfo.greetingAdminEnabled ?? false,
       show_table_number: storedInfo.showTableNumber ?? false,
+      default_lang: storedInfo.defaultLang ?? 'uk',
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
