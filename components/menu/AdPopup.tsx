@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { subscribeAdvertising, type Advertising, type Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
+import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 
 const DEFAULT_AD: Advertising = { photo: '', delaySeconds: 5, enabled: false };
 
@@ -75,6 +76,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
   const close = () => setVisible(false);
 
   const product = products.find((p) => p.id === ad.productId);
+  const badgeDef = productBadgeById(product?.badge);
 
   const openLinkedProduct = () => {
     if (!product) return;
@@ -110,6 +112,12 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
               referrerPolicy="no-referrer"
               unoptimized={ad.photo.startsWith('data:')}
             />
+
+            {badgeDef && (
+              <span className={`absolute top-3 left-3 z-[11] pointer-events-none px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
+                {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
+              </span>
+            )}
 
             {/* Whole photo banner opens the linked dish (click-through area) */}
             {product && (

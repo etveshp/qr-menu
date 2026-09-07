@@ -24,6 +24,7 @@ import {
   getSavedQrs,
   saveQr,
   deleteQr,
+  updateProductBadge,
   subscribeToAuth,
   loginWithEmail,
   loginWithGoogle,
@@ -111,6 +112,29 @@ function SortHint({ text }: { text: string }) {
         </React.Fragment>
       ))}
     </p>
+  );
+}
+
+// Badge radio group shared by the product drawer and the ad drawers.
+function BadgeRadioGroup({ value, onChange, t }: { value: string; onChange: (badge: string) => void; t: Translator }) {
+  return (
+    <div>
+      <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('badgeLabel')}</label>
+      <div className="space-y-2">
+        <label className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${!value ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+          <input type="radio" name="productBadgeGroup" checked={!value} onChange={() => onChange('')} className="accent-[#C09E6D]" />
+          <span className="text-xs font-semibold text-[#4A3B32]">{t('noBadge')}</span>
+        </label>
+        {PRODUCT_BADGES.map((b) => (
+          <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-colors ${value === b.id ? 'border-[#C09E6D] bg-[#F5EFE6]' : 'border-[#E6DFD5] bg-white hover:border-[#C09E6D]'}`}>
+            <input type="radio" name="productBadgeGroup" checked={value === b.id} onChange={() => onChange(b.id)} className="accent-[#C09E6D]" />
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${b.className}`}>
+              {t(PRODUCT_BADGE_KEYS[b.id])}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1358,6 +1382,19 @@ export default function AdminPage() {
       showToast(t('qrDeletedMessage'), 'info');
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('deleteCategoryError'), 'error');
+    }
+  };
+
+  // Quick badge update for the dish linked to an ad (ad drawers)
+  const handleSetLinkedProductBadge = async (productId: string | undefined, badge: string) => {
+    if (!productId) return;
+    const prev = products.find((p) => p.id === productId)?.badge ?? '';
+    setProducts((list) => list.map((p) => (p.id === productId ? { ...p, badge } : p)));
+    try {
+      await updateProductBadge(productId, badge);
+    } catch (err) {
+      setProducts((list) => list.map((p) => (p.id === productId ? { ...p, badge: prev } : p)));
+      showToast(err instanceof Error ? err.message : t('saveProductError'), 'error');
     }
   };
 
@@ -3754,6 +3791,17 @@ export default function AdminPage() {
             </select>
           </div>
 
+          {/* Badge for the advertised dish */}
+          {adForm.productId && (
+            <div className="pt-4 border-t border-[#E6DFD5]">
+              <BadgeRadioGroup
+                value={products.find((p) => p.id === adForm.productId)?.badge ?? ''}
+                onChange={(badge) => handleSetLinkedProductBadge(adForm.productId, badge)}
+                t={t}
+              />
+            </div>
+          )}
+
           {/* Enabled toggle */}
           <div className="pt-4 border-t border-[#E6DFD5]">
             <div className="flex items-center justify-between gap-4">
@@ -3886,6 +3934,17 @@ export default function AdminPage() {
 
             <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerLinkHint')}</p>
           </div>
+
+          {/* Badge for the advertised dish */}
+          {textBannerForm.productId && (
+            <div className="pt-4 border-t border-[#E6DFD5]">
+              <BadgeRadioGroup
+                value={products.find((p) => p.id === textBannerForm.productId)?.badge ?? ''}
+                onChange={(badge) => handleSetLinkedProductBadge(textBannerForm.productId, badge)}
+                t={t}
+              />
+            </div>
+          )}
 
           {/* Enabled toggle */}
           <div className="pt-4 border-t border-[#E6DFD5]">

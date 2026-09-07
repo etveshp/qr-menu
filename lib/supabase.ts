@@ -584,6 +584,24 @@ export const saveProduct = async (product: Product): Promise<void> => {
     triggerMenuRevalidation();
   }
 };
+/** Quickly set/clear the badge of an existing product (used from ad drawers). */
+export const updateProductBadge = async (productId: string, badge: string): Promise<void> => {
+  const current = await getProducts();
+  const idx = current.findIndex((p) => p.id === productId);
+  if (idx === -1) return;
+  const updatedTarget: Product = { ...current[idx], badge };
+  current[idx] = updatedTarget;
+  setLocal('products', current);
+  if (supabase) {
+    const { error } = await supabase.from('products').update({ badge }).eq('id', productId);
+    if (error) {
+      console.error('Supabase error updating product badge', error);
+      throw new Error('Помилка збереження бейджа');
+    }
+    triggerMenuRevalidation();
+  }
+};
+
 export const deleteProduct = async (id: string): Promise<void> => {
   const current = await getProducts();
   setLocal('products', current.filter(p => p.id !== id));
