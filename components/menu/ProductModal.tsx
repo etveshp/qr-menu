@@ -618,7 +618,7 @@ export function ProductModal({
                 referrerPolicy="no-referrer"
               />
               {badgeDef && (
-                <span className={`absolute top-3 left-3 z-[6] px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
+                <span className={`absolute top-3 left-3 sm:top-3.5 sm:left-3.5 z-[6] px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
                   {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
                 </span>
               )}
