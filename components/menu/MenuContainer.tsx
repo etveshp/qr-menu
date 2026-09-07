@@ -462,20 +462,30 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5">
-                {filteredProducts.map((prod, index) => (
-                  <ProductCard
-                    key={prod.id}
-                    product={prod}
-                    qty={getProductQty(prod.id)}
-                    index={index}
-                    name={getProductName(prod)}
-                    priceCurrency={t('priceCurrency')}
-                    onOpen={openProductModal}
-                    t={t}
-                  />
-                ))}
-              </div>
+              {filteredProducts.length === 0 ? (
+                <div className="py-16 text-center flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-[#F1ECE3] border border-[#E6DFD5] flex items-center justify-center">
+                    <Coffee className="w-8 h-8 text-[#C09E6D]" strokeWidth={1.6} />
+                  </div>
+                  <p className="font-display text-lg sm:text-xl font-semibold text-[#4A3B32]">{t('dishesEmpty')}</p>
+                  <p className="text-sm text-[#8E7A68] max-w-xs leading-relaxed">{t('dishesEmptyHint')}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+                  {filteredProducts.map((prod, index) => (
+                    <ProductCard
+                      key={prod.id}
+                      product={prod}
+                      qty={getProductQty(prod.id)}
+                      index={index}
+                      name={getProductName(prod)}
+                      priceCurrency={t('priceCurrency')}
+                      onOpen={openProductModal}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
