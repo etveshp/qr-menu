@@ -1,38 +1,6 @@
 import type { Language } from './translations';
 
 const MESSAGES: Record<string, Record<Language, string>> = {
-  // Firebase error codes (legacy, harmless to keep)
-  'auth/invalid-email': {
-    uk: 'Некоректна адреса електронної пошти',
-    hu: 'Érvénytelen e-mail cím',
-    en: 'Invalid email address',
-  },
-  'auth/user-disabled': {
-    uk: 'Цей обліковий запис вимкнено',
-    hu: 'Ez a fiók le van tiltva',
-    en: 'This account has been disabled',
-  },
-  'auth/user-not-found': {
-    uk: 'Користувача з такою адресою не знайдено',
-    hu: 'Nem található felhasználó ezzel az e-mail címmel',
-    en: 'No user found with this email address',
-  },
-  'auth/email-already-in-use': {
-    uk: 'Ця електронна адреса вже використовується',
-    hu: 'Ez az e-mail cím már használatban van',
-    en: 'This email is already in use',
-  },
-  'auth/weak-password': {
-    uk: 'Пароль занадто слабкий (мінімум 6 символів)',
-    hu: 'A jelszó túl gyenge (minimum 6 karakter)',
-    en: 'Password is too weak (minimum 6 characters)',
-  },
-  'auth/network-request-failed': {
-    uk: 'Помилка мережі. Перевірте з\'єднання',
-    hu: 'Hálózati hiba. Ellenőrizze a kapcsolatot',
-    en: 'Network error. Please check your connection',
-  },
-
   // Supabase auth error codes
   'invalid_credentials': {
     uk: 'Неправильна електронна адреса або пароль',

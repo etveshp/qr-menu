@@ -100,7 +100,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey) : null;
-export const useSupabase = !!supabase;
 
 // Stores an inline data: photo into Supabase Storage and returns its public
 // URL. Non-data values (already-stored URLs, empty strings) pass through

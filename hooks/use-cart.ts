@@ -7,7 +7,6 @@ import {
   decrementCartItem,
   removeCartItem,
   getCartItemQty,
-  getCartItemsCount,
   getCartTotalPrice,
   type Cart,
 } from '@/lib/cart';

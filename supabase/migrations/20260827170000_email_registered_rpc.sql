@@ -1,9 +1,3 @@
--- Migration: RPC email_registered — чи існує користувач з таким email.
--- Потрібно, щоб відрізнити «невірний пароль» (email зареєстровано) від
--- «пошта не зареєстрована» (Supabase повертає invalid_credentials в обох випадках).
--- SECURITY DEFINER: читає auth.users в обхід RLS.
--- Увага: розкриває факт реєстрації email — прийнятно для адмін-входу.
-
 create or replace function public.email_registered(p_email text)
 returns boolean
 language sql
@@ -16,4 +10,4 @@ as $$
   )
 $$;
 
-grant execute on function public.email_registered(text) to anon, authenticated;
+-- Initial grant; later migration 20260908100000 restricts to authenticated only.

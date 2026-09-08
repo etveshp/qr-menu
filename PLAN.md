@@ -417,10 +417,353 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 
 ---
 
+---
+
+## Фаза 14 — АУДИТ ТА ВИПРАВЛЕННЯ (branch `fix/audit-security-quality`)
+
+Мета: усунути всі недоліки, знайдені під час аудиту коду (AUDIT.md + додаткові знахідки).
+
+Порядок виконання — строго за пріоритетом (безпека → гігієна → дублювання → баги).
+
+### 14.1 Security headers (S1 — HIGH)
+
+**Проблема:** `next.config.ts` не містить `headers()`. Немає CSP, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`.
+
+**Завдання:**
+- [ ] Додати в `next.config.ts` функцію `headers()`:
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `X-Content-Type-Options: nosniff`
+  - Content-Security-Policy (базовий: `default-src 'self'`, `img-src 'self' https: data:`, `style-src 'self' 'unsafe-inline'`, `script-src 'self'`, `font-src 'self' data:`, `connect-src 'self' https://*.supabase.co wss://*.supabase.co`)
+- [ ] Застосувати до всіх шляхів (`source: '/(.*)'`)
+- [ ] Перевірити: `curl -I http://localhost:3001` → заголовки присутні
+
+**Перевірка:** `npm test`, `npx tsc --noEmit`, `npm run lint`
+
+### 14.2 email_registered RPC — rate-limit (S2 — MEDIUM)
+
+**Проблема:** `email_registered()` — SECURITY DEFINER, доступний **anon**, без rate-limit → oracle перебору email.
+
+**Завдання:**
+- [ ] Створити міграцію `20260908100000_fix_email_registered_anon.sql`:
+  ```sql
+  revoke execute on function public.email_registered(text) from anon, public;
+  grant execute on function public.email_registered(text) to authenticated;
+  ```
+- [ ] Застосувати до live-БД (`supabase db push`)
+
+**Перевірка:** `supabase migration list --linked` → нова міграція присутня
+
+### 14.3 is_admin_true() — порядок у схемі (S3 — MEDIUM)
+
+**Проблема:** `supabase-schema.sql:153` використовує `is_admin_true()` до її створення (ряд. 162).
+
+**Завдання:**
+- [ ] Перенести `CREATE FUNCTION is_admin_true()` на початок RLS-секції (перед політикою `profiles read: own`)
+- [ ] Додати `revoke execute on function is_admin_true() from anon, public; grant execute to authenticated;` (S8)
+
+**Перевірка:** чистий прогін `supabase-schema.sql` з нуля не падає
+
+### 14.4 Гігієна git — прибрати артефакти (G1, G5 — MEDIUM)
+
+**Проблема:** `supabase/.temp/` (9 файлів CLI-артефактів) та `.freebuff/` закомічено в git.
+
+**Завдання:**
+- [ ] Додати в `.gitignore`:
+  ```
+  supabase/.temp/
+  .freebuff/
+  ```
+- [ ] `git rm -r --cached supabase/.temp/ .freebuff/`
+- [ ] Коміт
+- [ ] Видалити `firebase-debug.log`, `tsconfig.tsbuildinfo` з диска (в git не потрапляють, але засмічують теку)
+
+**Перевірка:** `git ls-files supabase/.temp/ .freebuff/` → порожньо
+
+### 14.5 Мертві залежності (G2, G3 — MEDIUM)
+
+**Проблема:** `@hookform/resolvers` у dependencies — ніде не використовується. `lib/utils.ts` (cn) — мертвий модуль. Разом з ним мертві `clsx` і `tailwind-merge`.
+
+**Завдання:**
+- [ ] `npm uninstall @hookform/resolvers clsx tailwind-merge`
+- [ ] Видалити `lib/utils.ts` та його тест `lib/__tests__/utils.test.ts`
+- [ ] Перевірити, чи ніде не імпортується `@/lib/utils` (grep)
+
+**Перевірка:** `npm test`, `npx tsc --noEmit`, `npm run lint`
+
+### 14.6 Firebase-спадок у lib/errors.ts (G7 — LOW)
+
+**Проблема:** Коди `auth/invalid-email`, `auth/user-not-found` тощо — Firebase, на Supabase ніколи не спрацюють.
+
+**Завдання:**
+- [ ] Видалити блок `// Firebase error codes (legacy, harmless to keep)` (рядки 4-35): `auth/invalid-email`, `auth/user-disabled`, `auth/user-not-found`, `auth/email-already-in-use`, `auth/weak-password`, `auth/network-request-failed`
+- [ ] Залишити Supabase-коди + shared коди
+
+**Перевірка:** `npm test` (перевірити, що тести errors не падають)
+
+### 14.7 Інші мертві експорти (G6, G8 — LOW)
+
+**Проблема:** Невикористані імпорти/експорти: `incrementCartItem`, `useSupabase`, `dataUriToBase64`, `storagePathFromPublicUrl`, `triggerAddToCartHaptic`, `useMemo` (admin/page.tsx), `TRANSLATIONS` (admin/page.tsx), мертвий стан `loading` (admin/page.tsx:377).
+
+**Завдання:**
+- [ ] `lib/cart.ts:13`: `incrementCartItem = addToCart` — видалити (або лишити як аліас, якщо десь імпортується; перевірити grep)
+- [ ] `lib/supabase.ts:103`: `export const useSupabase = !!supabase;` — перевірити, чи хтось імпортує (grep); якщо ні — видалити
+- [ ] `lib/photo-storage.ts:41,51`: `dataUriToBase64`, `storagePathFromPublicUrl` — перевірити; якщо не використовуються — видалити
+- [ ] `lib/sound.ts:20,45`: `triggerAddToCartHaptic` — перевірити; якщо використовується лише всередині — прибрати export
+- [ ] `app/admin/page.tsx:3`: прибрати `useMemo` з імпорту React
+- [ ] `app/admin/page.tsx:51`: прибрати `TRANSLATIONS` з імпорту (якщо не використовується)
+- [ ] `app/admin/page.tsx:377`: розділити два statement на одному рядку (`const [products, setProducts] = useState<Product[]>([]); const [loading, setLoading] = useState<boolean>(true);`); перевірити, чи `loading` реально використовується (grep)
+- [ ] `app/admin/page.tsx:144-153`: `triggerDownload` — дубль з QrGenerator.tsx — вирішити в 14.9
+
+**Перевірка:** `npx tsc --noEmit`, `npm run lint`
+
+### 14.8 ProductModal: early return до AnimatePresence (R1 — HIGH)
+
+**Проблема:** `ProductModal.tsx:188` — `if (!product) return null;` стоїть **до** `AnimatePresence` → exit-анімації мертві.
+
+**Завдання:**
+- [ ] Перенести early-return всередину анімованого дерева: загорнути весь JSX в AnimatePresence, а умовний рендеринг зробити через `{product && (...) }` всередині, або перенести return null після AnimatePresence
+- [ ] Найпростіше: обгорнути `AnimatePresence` навколо всього return, а всередині — `{product && (JSX модалки)}`
+
+**Перевірка:** візуальна — закриття модалки має exit-анімацію; `npm test`
+
+### 14.9 Дублікат QR-download (D4 — HIGH)
+
+**Проблема:** `admin/page.tsx:157-258` (SavedQrDownload) vs `QrGenerator.tsx:24-91` — ідентична логіка downloadPngHi, downloadSvg, triggerDownload, menuPos.
+
+**Завдання:**
+- [ ] Винести спільний компонент `QrDownloadMenu` (або хук `useQrDownload`) в окремий файл `components/admin/QrDownloadMenu.tsx`
+- [ ] Використати його в обох місцях
+- [ ] `triggerDownload` — винести в `lib/utils.ts` (або photo-storage.ts) як спільну функцію
+
+**Перевірка:** `npm test`, `npx tsc --noEmit`
+
+### 14.10 Дублікат маперів в API (D5 — HIGH)
+
+**Проблема:** Мапери в `app/api/menu/route.ts:29-82` дублюють мапери з `lib/supabase.ts`, вже розходяться — API втрачає `bannerOriginal/logoOriginal/photoOriginal/photoScale/photoX/photoY`, `recommendedIds`, `ingredients*`.
+
+**Завдання:**
+- [ ] Імпортувати `mapCafeInfo`, `mapCategory`, `mapProduct` з `lib/supabase.ts` в `app/api/menu/route.ts`
+- [ ] Замінити inline-мапери на імпортовані (або винести мапери в окремий файл `lib/mappers.ts`, який використовують обидва)
+- [ ] Переконатися, що всі поля (включно з `bannerOriginal`, `logoOriginal`, `photoOriginal`, `photoScale`, `photoX`, `photoY`, `recommendedIds`, `ingredients*`) присутні в API-відповіді
+
+**Перевірка:** `npx tsc --noEmit`, ручна перевірка `/api/menu` → всі поля присутні
+
+### 14.11 Дублікат focus-trap (D6 — HIGH)
+
+**Проблема:** Focus-trap × 3 копії: `CartDrawer.tsx:39-58`, `ProductModal.tsx:167-186`, `AdminDrawer.tsx:35-63`.
+
+**Завдання:**
+- [ ] Створити хук `hooks/use-focus-trap.ts`:
+  ```ts
+  export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean)
+  ```
+- [ ] Перенести логіку focus-trap (querySelectorAll focusables, Tab-обробка, перший focus)
+- [ ] Замінити 3 копії на виклик хука
+- [ ] Додати тести
+
+**Перевірка:** `npm test`, ручна перевірка focus-trap у CartDrawer, ProductModal, AdminDrawer
+
+### 14.12 setState після unmount — cleanup таймерів (R2 — MEDIUM)
+
+**Проблема:** Усі `setTimeout(..., 2200)` для save-статусів в admin (рядки 1327…1489) і таймери в `MenuContainer.tsx:275-296` — без cleanup.
+
+**Завдання:**
+- [ ] У `app/admin/page.tsx`: для кожного `setTimeout` зберегти ref, додати cleanup в `useEffect` return
+- [ ] У `components/menu/MenuContainer.tsx:275-296`: замінити голі `setTimeout` на refs + cleanup
+- [ ] Рекомендація: zustand або custom hook для save-статусів, але для прототипу достатньо cleanup
+
+**Перевірка:** `npm test`, консоль без помилок React strict mode
+
+### 14.13 Scroll performance — getBoundingClientRect без rAF (R3 — MEDIUM)
+
+**Проблема:** `MenuContainer.tsx:119-141` — `getBoundingClientRect` на кожен scroll-евент без rAF/throttle.
+
+**Завдання:**
+- [ ] Додати rAF-тротлінг у scroll-обробник:
+  ```ts
+  let ticking = false;
+  const onScroll = () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        // поточний код
+        ticking = false;
+      });
+      ticking = true;
+    }
+  };
+  ```
+
+**Перевірка:** профіль продуктивності в DevTools
+
+### 14.14 Видалення `any` типів (R4 — MEDIUM)
+
+**Проблема:** 14× `catch (err: any)` в admin/page.tsx, 3× `payload.new as any`, 5× `onCropComplete(: any, : any)`.
+
+**Завдання:**
+- [ ] `catch (err: any)` → `catch (err: unknown)` + використати `getFriendlyErrorMessage(err)` з `lib/errors.ts`
+- [ ] `payload.new as any` → типізувати через `typeof` або generic Supabase type
+- [ ] `onCropComplete(: any, : any)` → використати `import { type Area } from 'react-easy-crop'`
+
+**Перевірка:** `npx tsc --noEmit`
+
+### 14.15 setTimeout(…, 0) без cleanup (R5 — MEDIUM)
+
+**Проблема:** `admin/page.tsx:924-928` — `setTimeout(() => fetchData(), 0)` з eslint-disable, без cleanup.
+
+**Завдання:**
+- [ ] Додати ref для таймера, cleanup при unmount
+- [ ] Або замінити на `useEffect` з відповідними залежностями
+
+**Перевірка:** `npm test`, React strict mode без попереджень
+
+### 14.16 Rate-limit на /api/translate (S4 — MEDIUM)
+
+**Проблема:** Відкритий проксі до Google Translate без rate-limit.
+
+**Завдання:**
+- [ ] Додати простий in-memory rate-limit по IP (Map<string, { count: number; resetAt: number }>):
+  - максимум 20 запитів за хвилину з одного IP
+  - при перевищенні — `429 Too Many Requests`
+- [ ] Обмежити розмір тіла запиту (наприклад, `body.length <= 10000`)
+
+**Перевірка:** 20+ швидких запитів → 429
+
+### 14.17 Звузити remotePatterns (S6 — LOW)
+
+**Проблема:** `**.supabase.co`, `*.googleusercontent.com`, `picsum.photos`, `images.unsplash.com` — широкі дозволи.
+
+**Завдання:**
+- [ ] `**.supabase.co` → `lwzmfrbgoivbhicwzepn.supabase.co`
+- [ ] `*.googleusercontent.com` + `lh3.googleusercontent.com` — об'єднати в `lh3.googleusercontent.com`
+- [ ] Видалити `picsum.photos` та `images.unsplash.com` (плейсхолдери більше не використовуються)
+
+**Перевірка:** `npm run build` — збірка не падає через помилки оптимізації зображень
+
+### 14.18 ADMIN_EMAILS — прибрати з клієнтського бандла (S7 — LOW)
+
+**Проблема:** `ADMIN_EMAILS` хардкод у `lib/supabase.ts:187` — потрапляє в публічний JS-бандл.
+
+**Завдання:**
+- [ ] Винести перевірку email адміна в server-side код (або env):
+  - Варіант 1: створити `app/api/check-admin/route.ts`, який перевіряє через RLS
+  - Варіант 2: використовувати перевірку через `profiles.is_admin` (вже є в `hasAdminAccess`) — переконатися, що `isUserAdmin` не використовується для безпеки
+- [ ] Якщо `isUserAdmin` потрібен для UI (показати/сховати кнопку), то хоча б закоментувати, що це не security-захист
+
+**Перевірка:** `ADMIN_EMAILS` не з'являється в `.next/static/chunks/...`
+
+### 14.19 Залежності не в тих секціях (I1 — MEDIUM)
+
+**Проблема:** `@types/qrcode`, `autoprefixer`, `postcss` — у `dependencies` замість `devDependencies`.
+
+**Завдання:**
+- [ ] Перенести в `devDependencies`: `@types/qrcode`, `autoprefixer`, `postcss`
+- [ ] Перевірити, чи потрібен `autoprefixer` з Tailwind v4 (вбудований) — якщо ні, видалити
+
+**Перевірка:** `npm test`, `npm run build`
+
+### 14.20 UseImageCrop хук (D2 — HIGH)
+
+**Проблема:** 5 копій crop-станів + ~20 хендлерів (banner/logo/category/ad/product, рядки 660–870) — ~200 рядків копіпасту.
+
+**Завдання:**
+- [ ] Створити хук `hooks/use-image-crop.ts`:
+  ```ts
+  export function useImageCrop(aspect: number, quality?: number) {
+    // crop, zoom, tempImg, isModalOpen, pendingCropData
+    // onCropChange, onZoomChange, onCropComplete
+    // openModal(imageSrc), applyCrop(), reset()
+  }
+  ```
+- [ ] Замінити 5 копій у `admin/page.tsx` на виклики хука
+- [ ] Додати тести
+
+**Перевірка:** `npm test`, функціональність кропу не зламана
+
+### 14.21 SaveButton компонент (D3 — HIGH)
+
+**Проблема:** 7–9 копій save-кнопки з idle/saving/saved-анімацією.
+
+**Завдання:**
+- [ ] Створити компонент `components/admin/SaveButton.tsx`:
+  ```tsx
+  type SaveStatus = 'idle' | 'saving' | 'saved';
+  interface SaveButtonProps {
+    status: SaveStatus;
+    onClick: () => void;
+    idleText: string;
+    savingText?: string;
+    savedText?: string;
+    disabled?: boolean;
+  }
+  ```
+- [ ] Замінити всі копії в `admin/page.tsx` на `<SaveButton>`
+
+**Перевірка:** `npm test`, візуальна перевірка
+
+### 14.22 metadataBase (додаткова знахідка)
+
+**Проблема:** `app/layout.tsx` не має `metadataBase`.
+
+**Завдання:**
+- [ ] Додати в `metadata`:
+  ```ts
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://svitkavyqrmenu-five.vercel.app'),
+  ```
+
+**Перевірка:** `npm run build` — без помилок SEO
+
+### 14.23 .env.example — додати відсутні ключі (додаткова знахідка)
+
+**Проблема:** `.env.example` не документує `GITHUB_TOKEN` та `SUPABASE_SERVICE_ROLE_KEY`.
+
+**Завдання:**
+- [ ] Додати в `.env.example`:
+  ```
+  # GitHub token for backfill scripts (optional)
+  GITHUB_TOKEN="YOUR_GITHUB_TOKEN"
+  # Supabase service role key (for backfill scripts only, NEVER expose to client)
+  SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVICE_ROLE_KEY"
+  ```
+
+**Перевірка:** `.env.example` містить усі ключі з `.env.local` (крім реальних значень)
+
+### 14.24 validateCafeInfo — додати пропущені поля (додаткова знахідка)
+
+**Проблема:** `lib/validation.ts` не перевіряє `showTableNumber` та `defaultLang`.
+
+**Завдання:**
+- [ ] Додати валідацію:
+  ```ts
+  if (typeof info.showTableNumber !== 'boolean' && info.showTableNumber !== undefined) {
+    return { ok: false, error: 'Поле "показувати номер столика" некоректне' };
+  }
+  if (info.defaultLang && !['uk', 'hu', 'en'].includes(info.defaultLang)) {
+    return { ok: false, error: 'Мова за замовчуванням некоректна' };
+  }
+  ```
+- [ ] Додати тести
+
+**Перевірка:** `npm test`
+
+### 14.25 /api/menu мапери — додати втрачені поля (додаткова знахідка)
+
+**Проблема:** Мапери в `app/api/menu/route.ts` втрачають `photoX/photoY/photoScale`, `recommendedIds`, `photoOriginal`, `ingredients*` (див. 14.10 — вирішується заміною на спільні мапери з `lib/supabase.ts`).
+
+**Завдання:**
+- [ ] Виконати після 14.10
+- [ ] Додатково: переконатися, що API повертає `recommendedIds` (потрібно для SSR-рендеру рекомендацій)
+
+**Перевірка:** `curl /api/menu` → всі поля присутні
+
+---
+
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-08 | Фаза 14 — Аудит та виправлення (14.1–14.25): додано план виправлення всіх недоліків з AUDIT.md + додаткові знахідки | Kilo |
 | 2026-09-07 | Фаза 13 — Автопереклад текстів (у гілці `feat/default-language`): /api/translate + AutoTransField у Кабінеті (основна мова → кнопка перекладу в інших), покриті тексти закладу/привітань/категорій/страв. 167 тестів, tsc, lint, build — чисто | Kilo |
 | 2026-09-07 | Фаза 12 — Мова по замовчуванню (гілка `feat/default-language`): `cafe_info.default_lang`, секція «Мови» в налаштуваннях, застосування в меню для нових гостей. Міграція live | Kilo |
 | 2026-09-07 | Фаза 11 — Бейджі страв (гілка `feat/product-badges`): колонка `products.badge`, каталог + переклади, радіокнопки в налаштуваннях страви, чіп на картці в меню, тести (167). Міграція застосована до live-БД | Kilo |

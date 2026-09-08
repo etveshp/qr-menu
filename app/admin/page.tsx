@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -48,7 +48,7 @@ import {
 import type { User } from '@supabase/supabase-js';
 import type { Translator } from '@/lib/translator';
 import { PRODUCT_BADGES, PRODUCT_BADGE_KEYS } from '@/lib/badges';
-import { TRANSLATIONS, ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
+import { ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
   Coffee, 
@@ -374,7 +374,8 @@ export default function AdminPage() {
   // App Data State
   const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr' | 'advertising'>('cafe');

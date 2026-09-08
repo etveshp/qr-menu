@@ -113,6 +113,21 @@ create table public.text_banner (
 -- 2. Row Level Security
 -- ============================================================
 
+-- Helper: is the current user an admin?
+-- SECURITY DEFINER required: the function reads profiles while RLS
+-- policies on profiles also use it — otherwise infinite recursion (54001).
+create or replace function public.is_admin_true()
+returns boolean
+language sql
+stable
+security definer set search_path = public
+as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+$$;
+
+revoke execute on function public.is_admin_true() from anon, public;
+grant execute on function public.is_admin_true() to authenticated;
+
 -- cafe_info: public read, admin write (via profiles)
 alter table public.cafe_info enable row level security;
 create policy "cafe_info read: public" on public.cafe_info for select using (true);
@@ -155,18 +170,6 @@ create policy "profiles read: own" on public.profiles for select
 create policy "profiles update: admin" on public.profiles for update
   using (auth.uid() in (select id from public.profiles where is_admin = true))
   with check (auth.uid() in (select id from public.profiles where is_admin = true));
-
--- Helper: is the current user an admin?
--- SECURITY DEFINER required: the function reads profiles while RLS
--- policies on profiles also use it — otherwise infinite recursion (54001).
-create or replace function public.is_admin_true()
-returns boolean
-language sql
-stable
-security definer set search_path = public
-as $$
-  select exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
-$$;
 
 -- qr_codes: admin only (saved QR images per table)
 create table public.qr_codes (
