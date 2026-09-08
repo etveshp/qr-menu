@@ -64,3 +64,44 @@ export const triggerDownload = (blob: Blob, filename: string): void => {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 };
+
+/** Crop an image to WebP using canvas. Enforces exact aspect ratio. */
+export const cropImageToWebP = (
+  imageSrc: string,
+  pixels: { x: number; y: number; width: number; height: number },
+  aspect: number,
+  quality: number = 0.8
+): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    if (!imageSrc.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let srcX = pixels.x;
+      let srcY = pixels.y;
+      let srcW = pixels.width;
+      let srcH = pixels.height;
+      if (srcW / srcH > aspect) {
+        srcW = Math.round(srcH * aspect);
+      } else {
+        srcH = Math.round(srcW / aspect);
+      }
+      srcX += Math.round((pixels.width - srcW) / 2);
+      srcY += Math.round((pixels.height - srcH) / 2);
+      srcW = Math.max(1, Math.min(srcW, img.width - srcX));
+      srcH = Math.max(1, Math.min(srcH, img.height - srcY));
+      const outW = Math.max(1, Math.round(srcW));
+      const outH = Math.max(1, Math.round(outW / aspect));
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(imageSrc); return; }
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+      resolve(canvas.toDataURL('image/webp', quality));
+    };
+    img.onerror = () => { resolve(imageSrc); };
+    img.src = imageSrc;
+  });
+};

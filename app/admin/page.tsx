@@ -81,8 +81,9 @@ import {
   FileCode2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { triggerDownload } from '@/lib/photo-storage';
+import { triggerDownload, cropImageToWebP } from '@/lib/photo-storage';
 import { SaveButton } from '@/components/admin/SaveButton';
+import { useImageCrop } from '@/hooks/use-image-crop';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
@@ -648,237 +649,61 @@ export default function AdminPage() {
   const prodFileInputRef = useRef<HTMLInputElement>(null);
   const adFileInputRef = useRef<HTMLInputElement>(null);
 
-  // react-easy-crop states for Banner
-  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState<number>(1);
-  const [tempBannerImg, setTempBannerImg] = useState<string | null>(null);
-  const [isBannerCropModalOpen, setIsBannerCropModalOpen] = useState<boolean>(false);
-  const [isDeleteBannerModalOpen, setIsDeleteBannerModalOpen] = useState<boolean>(false);
-  const [pendingCropData, setPendingCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
+  const bannerCrop = useImageCrop();
+  const logoCrop = useImageCrop();
+  const catCrop = useImageCrop();
+  const adCrop = useImageCrop();
+  const prodCrop = useImageCrop();
 
-  // react-easy-crop states for Logo
-  const [logoCrop, setLogoCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [logoZoom, setLogoZoom] = useState<number>(1);
-  const [tempLogoImg, setTempLogoImg] = useState<string | null>(null);
-  const [isLogoCropModalOpen, setIsLogoCropModalOpen] = useState<boolean>(false);
-  const [isDeleteLogoModalOpen, setIsDeleteLogoModalOpen] = useState<boolean>(false);
-  const [pendingLogoCropData, setPendingLogoCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
-
-  // react-easy-crop states for Category photo (4:3)
-  const [catCrop, setCatCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [catZoom, setCatZoom] = useState<number>(1);
-  const [tempCatImg, setTempCatImg] = useState<string | null>(null);
-  const [isCatCropModalOpen, setIsCatCropModalOpen] = useState<boolean>(false);
-  const [isDeleteCatPhotoModalOpen, setIsDeleteCatPhotoModalOpen] = useState<boolean>(false);
-  const [pendingCatCropData, setPendingCatCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
-
-  // react-easy-crop states for Advertising photo (9:16)
-  const [adCrop, setAdCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [adZoom, setAdZoom] = useState<number>(1);
-  const [tempAdImg, setTempAdImg] = useState<string | null>(null);
-  const [isAdCropModalOpen, setIsAdCropModalOpen] = useState<boolean>(false);
-  const [isDeleteAdPhotoModalOpen, setIsDeleteAdPhotoModalOpen] = useState<boolean>(false);
-  const [pendingAdCropData, setPendingAdCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
-
-  // react-easy-crop states for Product photo (4:3)
-  const [prodCrop, setProdCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [prodZoom, setProdZoom] = useState<number>(1);
-  const [tempProdImg, setTempProdImg] = useState<string | null>(null);
-  const [isProdCropModalOpen, setIsProdCropModalOpen] = useState<boolean>(false);
-  const [isDeleteProdPhotoModalOpen, setIsDeleteProdPhotoModalOpen] = useState<boolean>(false);
-  const [pendingProdCropData, setPendingProdCropData] = useState<{ pixels: { x: number; y: number; width: number; height: number } | null }>({ pixels: null });
-
-  const onCropChange = (newCrop: { x: number; y: number }) => {
-    setCrop(newCrop);
-  };
-
-  const onZoomChange = (newZoom: number) => {
-    setZoom(newZoom);
-  };
-
-  const onCropComplete = (croppedArea: Area, croppedAreaPixels: Area) => {
-    if (croppedAreaPixels) {
-      setPendingCropData({ pixels: croppedAreaPixels });
-    }
-  };
+  const [isDeleteBannerModalOpen, setIsDeleteBannerModalOpen] = useState(false);
+  const [isDeleteLogoModalOpen, setIsDeleteLogoModalOpen] = useState(false);
+  const [isDeleteCatPhotoModalOpen, setIsDeleteCatPhotoModalOpen] = useState(false);
+  const [isDeleteProdPhotoModalOpen, setIsDeleteProdPhotoModalOpen] = useState(false);
+  const [isDeleteAdPhotoModalOpen, setIsDeleteAdPhotoModalOpen] = useState(false);
 
   const openBannerCropModal = (imageSrc?: string) => {
-    // Re-open the full pre-crop image at default scale so the admin can adjust
-    // the crop again from the original, not from the already-cropped result.
-    const srcToUse = imageSrc || cafeForm.bannerOriginal || cafeForm.banner;
-    if (!srcToUse) return;
-    setTempBannerImg(srcToUse);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setPendingCropData({ pixels: null });
-    setIsBannerCropModalOpen(true);
+    bannerCrop.openModal(imageSrc || cafeForm.bannerOriginal || cafeForm.banner);
   };
 
   const applyBannerCrop = async () => {
-    if (tempBannerImg && pendingCropData.pixels) {
-      const cropped = await cropImageToWebP(tempBannerImg, pendingCropData.pixels, 16 / 9, 0.75);
-      if (cropped) {
-        setCafeForm(prev => ({
-          ...prev,
-          banner: cropped,
-          bannerX: 50,
-          bannerY: 50,
-          bannerScale: 1
-        }));
-      }
-    }
-    setIsBannerCropModalOpen(false);
-  };
-
-  const onLogoCropChange = (newCrop: { x: number; y: number }) => {
-    setLogoCrop(newCrop);
-  };
-
-  const onLogoZoomChange = (newZoom: number) => {
-    setLogoZoom(newZoom);
-  };
-
-  const onLogoCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    if (croppedAreaPixels) {
-      setPendingLogoCropData({ pixels: croppedAreaPixels });
-    }
+    const cropped = await bannerCrop.applyCrop(16 / 9, 0.75);
+    if (cropped) setCafeForm(prev => ({ ...prev, banner: cropped, bannerX: 50, bannerY: 50, bannerScale: 1 }));
   };
 
   const openLogoCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || cafeForm.logoOriginal || cafeForm.logo;
-    if (!srcToUse) return;
-    setTempLogoImg(srcToUse);
-    setLogoCrop({ x: 0, y: 0 });
-    setLogoZoom(1);
-    setPendingLogoCropData({ pixels: null });
-    setIsLogoCropModalOpen(true);
+    logoCrop.openModal(imageSrc || cafeForm.logoOriginal || cafeForm.logo);
   };
 
   const applyLogoCrop = async () => {
-    if (tempLogoImg && pendingLogoCropData.pixels) {
-      const cropped = await cropImageToWebP(tempLogoImg, pendingLogoCropData.pixels, 16 / 9, 0.85);
-      if (cropped) {
-        setCafeForm(prev => ({
-          ...prev,
-          logo: cropped,
-          logoX: 50,
-          logoY: 50,
-          logoScale: 1
-        }));
-      }
-    }
-    setIsLogoCropModalOpen(false);
-  };
-
-  // Category photo crop handlers
-  const onCatCropChange = (newCrop: { x: number; y: number }) => {
-    setCatCrop(newCrop);
-  };
-
-  const onCatZoomChange = (newZoom: number) => {
-    setCatZoom(newZoom);
-  };
-
-  const onCatCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    if (croppedAreaPixels) {
-      setPendingCatCropData({ pixels: croppedAreaPixels });
-    }
+    const cropped = await logoCrop.applyCrop(16 / 9, 0.85);
+    if (cropped) setCafeForm(prev => ({ ...prev, logo: cropped, logoX: 50, logoY: 50, logoScale: 1 }));
   };
 
   const openCatCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || catForm.photoOriginal || catForm.photo;
-    if (!srcToUse) return;
-    setTempCatImg(srcToUse);
-    setCatCrop({ x: 0, y: 0 });
-    setCatZoom(1);
-    setPendingCatCropData({ pixels: null });
-    setIsCatCropModalOpen(true);
+    catCrop.openModal(imageSrc || catForm.photoOriginal || catForm.photo);
   };
 
   const applyCatCrop = async () => {
-    if (tempCatImg && pendingCatCropData.pixels) {
-      const cropped = await cropImageToWebP(tempCatImg, pendingCatCropData.pixels, 4 / 3, 0.75);
-      if (cropped) {
-        setCatForm(prev => ({
-          ...prev,
-          photo: cropped,
-          photoX: 50,
-          photoY: 50,
-          photoScale: 1
-        }));
-      }
-    }
-    setIsCatCropModalOpen(false);
-  };
-
-  // Advertising photo crop handlers (9:16)
-  const onAdCropChange = (newCrop: { x: number; y: number }) => {
-    setAdCrop(newCrop);
-  };
-
-  const onAdZoomChange = (newZoom: number) => {
-    setAdZoom(newZoom);
-  };
-
-  const onAdCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    if (croppedAreaPixels) {
-      setPendingAdCropData({ pixels: croppedAreaPixels });
-    }
+    const cropped = await catCrop.applyCrop(4 / 3);
+    if (cropped) setCatForm(prev => ({ ...prev, photo: cropped, photoX: 50, photoY: 50, photoScale: 1 }));
   };
 
   const openAdCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || adForm.photoOriginal || adForm.photo;
-    if (!srcToUse) return;
-    setTempAdImg(srcToUse);
-    setAdCrop({ x: 0, y: 0 });
-    setAdZoom(1);
-    setPendingAdCropData({ pixels: null });
-    setIsAdCropModalOpen(true);
+    adCrop.openModal(imageSrc || adForm.photoOriginal || adForm.photo);
   };
 
   const applyAdCrop = async () => {
-    if (tempAdImg && pendingAdCropData.pixels) {
-      const cropped = await cropImageToWebP(tempAdImg, pendingAdCropData.pixels, 9 / 16, 0.8);
-      if (cropped) {
-        setAdForm(prev => ({ ...prev, photo: cropped }));
-      }
-    }
-    setIsAdCropModalOpen(false);
-  };
-
-  // Product photo crop handlers (4:3)
-  const onProdCropChange = (newCrop: { x: number; y: number }) => {
-    setProdCrop(newCrop);
-  };
-
-  const onProdZoomChange = (newZoom: number) => {
-    setProdZoom(newZoom);
-  };
-
-  const onProdCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    if (croppedAreaPixels) {
-      setPendingProdCropData({ pixels: croppedAreaPixels });
-    }
+    const cropped = await adCrop.applyCrop(9 / 16, 0.8);
+    if (cropped) setAdForm(prev => ({ ...prev, photo: cropped }));
   };
 
   const openProdCropModal = (imageSrc?: string) => {
-    const srcToUse = imageSrc || prodForm.photoOriginal || prodForm.photo;
-    if (!srcToUse) return;
-    setTempProdImg(srcToUse);
-    setProdCrop({ x: 0, y: 0 });
-    setProdZoom(1);
-    setPendingProdCropData({ pixels: null });
-    setIsProdCropModalOpen(true);
+    prodCrop.openModal(imageSrc || prodForm.photoOriginal || prodForm.photo);
   };
 
   const applyProdCrop = async () => {
-    if (tempProdImg && pendingProdCropData.pixels) {
-      const cropped = await cropImageToWebP(tempProdImg, pendingProdCropData.pixels, 4 / 3, 0.75);
-      if (cropped) {
-        setProdForm(prev => ({ ...prev, photo: cropped }));
-      }
-    }
-    setIsProdCropModalOpen(false);
+    const cropped = await prodCrop.applyCrop(4 / 3);
+    if (cropped) setProdForm(prev => ({ ...prev, photo: cropped }));
   };
 
   // Declared as classic hoisted function to avoid access-before-declaration issues
@@ -894,8 +719,6 @@ export default function AdminPage() {
       setCafeInfo(info);
       setCafeForm(info);
       if (info) {
-        setCrop({ x: 0, y: 0 });
-        setZoom(info.bannerScale ?? 1);
       }
       setCategories(cats);
       setProducts(prods);
@@ -1184,67 +1007,6 @@ export default function AdminPage() {
         resolve('');
       };
       reader.readAsDataURL(file);
-    });
-  };
-
-  // Crop the given image to a specific pixel area and return a WebP data URL.
-  // `aspect` (width / height) is enforced on the output so the result always
-  // has the exact ratio used in the crop modal (identical on every screen).
-  const cropImageToWebP = (
-    imageSrc: string,
-    pixels: { x: number; y: number; width: number; height: number },
-    aspect: number,
-    quality: number = 0.8
-  ): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new window.Image();
-      // Loading a cross-origin (non-data:) image without CORS taints the
-      // canvas, so export via toDataURL() is blocked. Request the image with
-      // anonymous CORS so remote photos (e.g. Supabase Storage URLs) can be
-      // re-drawn and exported; if the host does not allow CORS the image fails
-      // to load and we fall back to the original source below.
-      if (!imageSrc.startsWith('data:')) {
-        img.crossOrigin = 'anonymous';
-      }
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-
-        // Derive the crop rect so its ratio matches `aspect` exactly
-        let srcX = pixels.x;
-        let srcY = pixels.y;
-        let srcW = pixels.width;
-        let srcH = pixels.height;
-
-        if (srcW / srcH > aspect) {
-          srcW = Math.round(srcH * aspect);
-        } else {
-          srcH = Math.round(srcW / aspect);
-        }
-        // Center the crop rect within the given pixels area
-        srcX += Math.round((pixels.width - srcW) / 2);
-        srcY += Math.round((pixels.height - srcH) / 2);
-
-        // Clamp to the source image bounds
-        srcW = Math.max(1, Math.min(srcW, img.width - srcX));
-        srcH = Math.max(1, Math.min(srcH, img.height - srcY));
-
-        const outW = Math.max(1, Math.round(srcW));
-        const outH = Math.max(1, Math.round(outW / aspect));
-        canvas.width = outW;
-        canvas.height = outH;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(imageSrc);
-          return;
-        }
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
-        resolve(canvas.toDataURL('image/webp', quality));
-      };
-      img.onerror = () => {
-        resolve(imageSrc);
-      };
-      img.src = imageSrc;
     });
   };
 
@@ -3043,23 +2805,17 @@ export default function AdminPage() {
 
       {/* BANNER CROP & POSITIONING POPUP MODAL */}
       <ImageCropModal
-        isOpen={isBannerCropModalOpen}
-        image={tempBannerImg}
+        isOpen={bannerCrop.isModalOpen}
+        image={bannerCrop.tempImg}
         title={t('bannerCropTitle')}
         subtitle={t('bannerCropSubtitle')}
-        labels={{
-          dragHint: t('cropDragHint'),
-          zoom: t('cropZoom'),
-          reset: t('cropReset'),
-          cancel: t('cancel'),
-          apply: t('cropApply'),
-        }}
-        crop={{ crop, zoom }}
+        labels={{ dragHint: t('cropDragHint'), zoom: t('cropZoom'), reset: t('cropReset'), cancel: t('cancel'), apply: t('cropApply') }}
+        crop={{ crop: bannerCrop.crop, zoom: bannerCrop.zoom }}
         aspect={16 / 9}
-        onCropChange={onCropChange}
-        onZoomChange={onZoomChange}
-        onCropComplete={onCropComplete}
-        onClose={() => setIsBannerCropModalOpen(false)}
+        onCropChange={bannerCrop.onCropChange}
+        onZoomChange={bannerCrop.onZoomChange}
+        onCropComplete={bannerCrop.onCropComplete}
+        onClose={bannerCrop.closeModal}
         onApply={applyBannerCrop}
       />
 
@@ -3088,23 +2844,17 @@ export default function AdminPage() {
 
       {/* LOGO CROP & POSITIONING POPUP MODAL */}
       <ImageCropModal
-        isOpen={isLogoCropModalOpen}
-        image={tempLogoImg}
+        isOpen={logoCrop.isModalOpen}
+        image={logoCrop.tempImg}
         title={t('logoCropTitle')}
         subtitle={t('logoCropSubtitle')}
-        labels={{
-          dragHint: t('cropDragHint'),
-          zoom: t('cropZoom'),
-          reset: t('cropReset'),
-          cancel: t('cancel'),
-          apply: t('cropApply'),
-        }}
-        crop={{ crop: logoCrop, zoom: logoZoom }}
+        labels={{ dragHint: t('cropDragHint'), zoom: t('cropZoom'), reset: t('cropReset'), cancel: t('cancel'), apply: t('cropApply') }}
+        crop={{ crop: logoCrop.crop, zoom: logoCrop.zoom }}
         aspect={16 / 9}
-        onCropChange={onLogoCropChange}
-        onZoomChange={onLogoZoomChange}
-        onCropComplete={onLogoCropComplete}
-        onClose={() => setIsLogoCropModalOpen(false)}
+        onCropChange={logoCrop.onCropChange}
+        onZoomChange={logoCrop.onZoomChange}
+        onCropComplete={logoCrop.onCropComplete}
+        onClose={logoCrop.closeModal}
         onApply={applyLogoCrop}
       />
 
@@ -3983,45 +3733,33 @@ export default function AdminPage() {
 
       {/* CATEGORY PHOTO CROP & POSITIONING POPUP MODAL */}
       <ImageCropModal
-        isOpen={isCatCropModalOpen}
-        image={tempCatImg}
+        isOpen={catCrop.isModalOpen}
+        image={catCrop.tempImg}
         title={t('categoryCropTitle')}
         subtitle={t('categoryCropSubtitle')}
-        labels={{
-          dragHint: t('cropDragHint'),
-          zoom: t('cropZoom'),
-          reset: t('cropReset'),
-          cancel: t('cancel'),
-          apply: t('cropApply'),
-        }}
-        crop={{ crop: catCrop, zoom: catZoom }}
+        labels={{ dragHint: t('cropDragHint'), zoom: t('cropZoom'), reset: t('cropReset'), cancel: t('cancel'), apply: t('cropApply') }}
+        crop={{ crop: catCrop.crop, zoom: catCrop.zoom }}
         aspect={4 / 3}
-        onCropChange={onCatCropChange}
-        onZoomChange={onCatZoomChange}
-        onCropComplete={onCatCropComplete}
-        onClose={() => setIsCatCropModalOpen(false)}
+        onCropChange={catCrop.onCropChange}
+        onZoomChange={catCrop.onZoomChange}
+        onCropComplete={catCrop.onCropComplete}
+        onClose={catCrop.closeModal}
         onApply={applyCatCrop}
       />
 
       {/* PRODUCT PHOTO CROP & POSITIONING POPUP MODAL */}
       <ImageCropModal
-        isOpen={isProdCropModalOpen}
-        image={tempProdImg}
+        isOpen={prodCrop.isModalOpen}
+        image={prodCrop.tempImg}
         title={t('productCropTitle')}
         subtitle={t('productCropSubtitle')}
-        labels={{
-          dragHint: t('cropDragHint'),
-          zoom: t('cropZoom'),
-          reset: t('cropReset'),
-          cancel: t('cancel'),
-          apply: t('cropApply'),
-        }}
-        crop={{ crop: prodCrop, zoom: prodZoom }}
+        labels={{ dragHint: t('cropDragHint'), zoom: t('cropZoom'), reset: t('cropReset'), cancel: t('cancel'), apply: t('cropApply') }}
+        crop={{ crop: prodCrop.crop, zoom: prodCrop.zoom }}
         aspect={4 / 3}
-        onCropChange={onProdCropChange}
-        onZoomChange={onProdZoomChange}
-        onCropComplete={onProdCropComplete}
-        onClose={() => setIsProdCropModalOpen(false)}
+        onCropChange={prodCrop.onCropChange}
+        onZoomChange={prodCrop.onZoomChange}
+        onCropComplete={prodCrop.onCropComplete}
+        onClose={prodCrop.closeModal}
         onApply={applyProdCrop}
       />
 
@@ -4059,23 +3797,17 @@ export default function AdminPage() {
 
       {/* AD PHOTO CROP & POSITIONING POPUP MODAL */}
       <ImageCropModal
-        isOpen={isAdCropModalOpen}
-        image={tempAdImg}
+        isOpen={adCrop.isModalOpen}
+        image={adCrop.tempImg}
         title={t('adCropTitle')}
         subtitle={t('adCropSubtitle')}
-        labels={{
-          dragHint: t('cropDragHint'),
-          zoom: t('cropZoom'),
-          reset: t('cropReset'),
-          cancel: t('cancel'),
-          apply: t('cropApply'),
-        }}
-        crop={{ crop: adCrop, zoom: adZoom }}
+        labels={{ dragHint: t('cropDragHint'), zoom: t('cropZoom'), reset: t('cropReset'), cancel: t('cancel'), apply: t('cropApply') }}
+        crop={{ crop: adCrop.crop, zoom: adCrop.zoom }}
         aspect={9 / 16}
-        onCropChange={onAdCropChange}
-        onZoomChange={onAdZoomChange}
-        onCropComplete={onAdCropComplete}
-        onClose={() => setIsAdCropModalOpen(false)}
+        onCropChange={adCrop.onCropChange}
+        onZoomChange={adCrop.onZoomChange}
+        onCropComplete={adCrop.onCropComplete}
+        onClose={adCrop.closeModal}
         onApply={applyAdCrop}
       />
 
