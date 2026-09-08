@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConciergeBell, X, Coffee, Info, Minus, Plus, Trash2 } from 'lucide-react';
 import { ConfirmModal } from '@/components/admin/ConfirmModal';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
@@ -36,26 +37,7 @@ export function CartDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   const [removeTarget, setRemoveTarget] = useState<Product | null>(null);
 
-  useEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-    const focusables = panelRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
-
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !focusables.length) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleTab);
-    return () => document.removeEventListener('keydown', handleTab);
-  }, [isOpen]);
+  useFocusTrap(panelRef, isOpen);
 
   return (
     <AnimatePresence>

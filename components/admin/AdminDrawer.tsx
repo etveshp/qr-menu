@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 interface AdminDrawerProps {
   isOpen: boolean;
@@ -32,24 +33,10 @@ export function AdminDrawer({
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-    const focusables = panelRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
+  useFocusTrap(panelRef, isOpen);
 
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !focusables.length) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleTab);
+  useEffect(() => {
+    if (!isOpen) return;
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
@@ -57,7 +44,6 @@ export function AdminDrawer({
     document.addEventListener('keydown', handleKey);
 
     return () => {
-      document.removeEventListener('keydown', handleTab);
       document.removeEventListener('keydown', handleKey);
     };
   }, [isOpen]);

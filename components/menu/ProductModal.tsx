@@ -5,6 +5,7 @@ import { computeTitleFloat, type TitleFloatState } from '@/lib/title-float';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, Minus, Plus, ConciergeBell } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
@@ -164,34 +165,13 @@ export function ProductModal({
     };
   }, [product, isWide]);
 
-  useEffect(() => {
-    if (!product || !dialogRef.current) return;
-    const focusables = dialogRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
+  useFocusTrap(dialogRef, !!product);
 
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !focusables.length) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleTab);
-    return () => document.removeEventListener('keydown', handleTab);
-  }, [product, isWide]);
-
-  if (!product) return null;
-
-  const ingredients = getProductIngredients(product);
-  const badgeDef = productBadgeById(product.badge);
+  const ingredients = product ? getProductIngredients(product) : [];
+  const badgeDef = product ? productBadgeById(product.badge) : undefined;
 
   const renderDescription = () =>
-    getProductDesc(product) ? (
+    product && getProductDesc(product) ? (
       <div>
         <p className="text-[#4A3B32] text-sm sm:text-base leading-relaxed">
           {getProductDesc(product)}
@@ -321,7 +301,8 @@ export function ProductModal({
   if (isWide) {
     return (
       <AnimatePresence>
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        {product && (
+        <div key="desktop" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -507,6 +488,7 @@ export function ProductModal({
           </motion.div>
           </AnimatePresence>
         </div>
+        )}
       </AnimatePresence>
     );
   }
@@ -517,7 +499,8 @@ export function ProductModal({
   // ---------------------------------------------------------------------------
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-0">
+      {product && (
+      <div key="mobile" className="fixed inset-0 z-50 flex items-end justify-center p-0">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -680,6 +663,7 @@ export function ProductModal({
         </motion.div>
         </AnimatePresence>
       </div>
+        )}
     </AnimatePresence>
   );
 }

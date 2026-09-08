@@ -52,3 +52,15 @@ export const storagePathFromPublicUrl = (baseUrl: string, bucket: string, url: s
   const prefix = `${baseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/`;
   return url.startsWith(prefix) ? url.slice(prefix.length) : null;
 };
+
+/** Trigger a file download in the browser. Shared utility used by QR download components. */
+export const triggerDownload = (blob: Blob, filename: string): void => {
+  const a = document.createElement('a');
+  const objectUrl = URL.createObjectURL(blob);
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+};

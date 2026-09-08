@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Cropper from 'react-easy-crop';
+import Cropper, { type Area } from 'react-easy-crop';
 import {
   getCafeInfo, 
   updateCafeInfo, 
@@ -81,6 +81,8 @@ import {
   FileCode2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
+import { triggerDownload } from '@/lib/photo-storage';
+import { SaveButton } from '@/components/admin/SaveButton';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
@@ -139,17 +141,6 @@ function BadgeRadioGroup({ value, onChange, t }: { value: string; onChange: (bad
       </div>
     </div>
   );
-}
-
-function triggerDownload(blob: Blob, filename: string) {
-  const a = document.createElement('a');
-  const objectUrl = URL.createObjectURL(blob);
-  a.href = objectUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 }
 
 // Compact download control with PNG (hi-res) / SVG format menu — used on the
@@ -705,7 +696,7 @@ export default function AdminPage() {
     setZoom(newZoom);
   };
 
-  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+  const onCropComplete = (croppedArea: Area, croppedAreaPixels: Area) => {
     if (croppedAreaPixels) {
       setPendingCropData({ pixels: croppedAreaPixels });
     }
@@ -960,7 +951,7 @@ export default function AdminPage() {
     try {
       setGoogleLoading(true);
       await loginWithGoogle();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAuthError(getFriendlyErrorMessage(err, lang));
       showToast(getFriendlyErrorMessage(err, lang), 'error');
     } finally {
@@ -985,7 +976,7 @@ export default function AdminPage() {
         await resetUserPassword(emailInput);
         setAuthSuccess(t('resetEmailSent'));
         showToast(t('resetEmailSent'), 'success');
-      } catch (err: any) {
+      } catch (err: unknown) {
         setAuthError(getFriendlyErrorMessage(err, lang));
       } finally {
         setAuthLoading(false);
@@ -1013,8 +1004,9 @@ export default function AdminPage() {
         await logoutUser();
         setShowNotAdminPopup(true);
       }
-    } catch (err: any) {
-      if (err?.code === 'invalid_credentials') {
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'invalid_credentials') {
         // Distinguish a wrong password (email is registered) from an
         // unregistered email. Supabase hides this by default, so we ask
         // the server-side RPC for the answer.
@@ -1071,7 +1063,7 @@ export default function AdminPage() {
       setNewPasswordInput('');
       setConfirmPasswordInput('');
       setShowChangePassword(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setChangePassError(getFriendlyErrorMessage(err, lang));
     } finally {
       setChangePassLoading(false);
@@ -1121,7 +1113,7 @@ export default function AdminPage() {
       setCurrentPasswordInput('');
       setNewPasswordInput('');
       setConfirmPasswordInput('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setChangePassError(getFriendlyErrorMessage(err, lang));
     } finally {
       setChangePassLoading(false);
@@ -1328,9 +1320,9 @@ export default function AdminPage() {
       setTimeout(() => {
         setCafeSaveStatus('idle');
       }, 2200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setCafeSaveStatus('idle');
-      showToast(err?.message || t('saveSettingsError'), 'error');
+      showToast((err as { message?: string })?.message || t('saveSettingsError'), 'error');
     }
   };
 
@@ -1346,9 +1338,9 @@ export default function AdminPage() {
       setTimeout(() => {
         setLangSaveStatus('idle');
       }, 2200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLangSaveStatus('idle');
-      showToast(err?.message || t('saveSettingsError'), 'error');
+      showToast((err as { message?: string })?.message || t('saveSettingsError'), 'error');
     }
   };
 
@@ -1364,9 +1356,9 @@ export default function AdminPage() {
       setTimeout(() => {
         setGreetingSaveStatus('idle');
       }, 2200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setGreetingSaveStatus('idle');
-      showToast(err?.message || t('saveSettingsError'), 'error');
+      showToast((err as { message?: string })?.message || t('saveSettingsError'), 'error');
     }
   };
 
@@ -1438,9 +1430,9 @@ export default function AdminPage() {
       setTimeout(() => {
         setAdSaveStatus('idle');
       }, 2200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAdSaveStatus('idle');
-      showToast(err?.message || t('adSaveError'), 'error');
+      showToast((err as {message?: string})?.message || t('adSaveError'), 'error');
     }
   };
 
@@ -1490,9 +1482,9 @@ export default function AdminPage() {
       setTimeout(() => {
         setTextBannerSaveStatus('idle');
       }, 2200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setTextBannerSaveStatus('idle');
-      showToast(err?.message || t('textBannerSaveError'), 'error');
+      showToast((err as {message?: string})?.message || t('textBannerSaveError'), 'error');
     }
   };
 
@@ -1540,9 +1532,9 @@ export default function AdminPage() {
         resetCatForm();
       }, 1200);
       await fetchData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setCatSaveStatus('idle');
-      showToast(err?.message || t('saveCategoryError'), 'error');
+      showToast((err as {message?: string})?.message || t('saveCategoryError'), 'error');
     }
   };
 
@@ -1568,8 +1560,8 @@ export default function AdminPage() {
       await deleteCategory(id);
       await fetchData();
       showToast(t('categoryDeletedSuccess'), 'success');
-    } catch (err: any) {
-      showToast(err?.message || t('deleteCategoryError'), 'error');
+    } catch (err: unknown) {
+      showToast((err as {message?: string})?.message || t('deleteCategoryError'), 'error');
     }
   };
 
@@ -1658,9 +1650,9 @@ export default function AdminPage() {
         resetProdForm();
       }, 1200);
       await fetchData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setProdSaveStatus('idle');
-      showToast(err?.message || t('saveProductError'), 'error');
+      showToast((err as {message?: string})?.message || t('saveProductError'), 'error');
     }
   };
 
@@ -1693,8 +1685,8 @@ export default function AdminPage() {
       await deleteProduct(id);
       await fetchData();
       showToast(t('productDeletedSuccess'), 'success');
-    } catch (err: any) {
-      showToast(err?.message || t('deleteProductError'), 'error');
+    } catch (err: unknown) {
+      showToast((err as {message?: string})?.message || t('deleteProductError'), 'error');
     }
   };
 
