@@ -23,6 +23,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://svitkavyqrmenu-five.vercel.app'),
   title: 'Світ Кави QR Меню',
   description: 'Вишукане цифрове меню Світ Кави. Обирайте найкращі напої та десерти за вашим столиком.',
   openGraph: {

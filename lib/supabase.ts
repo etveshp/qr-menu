@@ -183,7 +183,9 @@ export const handleRecoveryToken = async (): Promise<boolean> => {
   window.history.replaceState({}, '', window.location.pathname);
   return true;
 };
-export const ADMIN_EMAILS = ['svitkavyvisk@gmail.com'];
+const ADMIN_EMAILS = ['svitkavyvisk@gmail.com'];
+// UI helper: checks against a hardcoded email list. Not a security boundary
+// — real authorization is enforced server-side via RLS (profiles.is_admin).
 export const isUserAdmin = (user: User | null): boolean => {
   if (!user?.email) return false;
   return ADMIN_EMAILS.some(e => e.toLowerCase() === user.email!.toLowerCase());
@@ -199,7 +201,7 @@ export const hasAdminAccess = async (user: User | null): Promise<boolean> => {
 };
 
 // Data helpers
-const mapCafeInfo = (row: any): CafeInfo => ({
+export const mapCafeInfo = (row: any): CafeInfo => ({
   ownerNameUk: row.owner_name_uk ?? '', ownerNameHu: row.owner_name_hu ?? '', ownerNameEn: row.owner_name_en ?? '',
   nameUk: row.name_uk ?? '', nameHu: row.name_hu ?? '', nameEn: row.name_en ?? '',
   descriptionUk: row.description_uk ?? '', descriptionHu: row.description_hu ?? '', descriptionEn: row.description_en ?? '',
@@ -286,13 +288,13 @@ export interface SubscribeOptions {
   /** Skip the initial SELECT: the caller already has fresh data (e.g. from SSR). */
   skipInitial?: boolean;
 }
-const mapCategory = (row: any): Category => ({
+export const mapCategory = (row: any): Category => ({
   id: row.id, nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en, photo: row.photo,
   photoX: row.photo_x, photoY: row.photo_y, photoScale: row.photo_scale,
   photoOriginal: row.photo_original ?? '',
   sortOrder: row.sort_order ?? 0,
 });
-const mapProduct = (row: any): Product => ({
+export const mapProduct = (row: any): Product => ({
   id: row.id, categoryId: row.category_id,
   nameUk: row.name_uk, nameHu: row.name_hu, nameEn: row.name_en,
   descriptionUk: row.description_uk, descriptionHu: row.description_hu, descriptionEn: row.description_en,

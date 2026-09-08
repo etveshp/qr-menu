@@ -38,6 +38,7 @@ export const validateCafeInfo = (info: CafeInfo): ValidationResult => {
   if (!isBoundedString(info.greetingAdminUk ?? '', 2000)) return { ok: false, error: 'Привітання адміна (UK) занадто довге' };
   if (!isBoundedString(info.greetingAdminHu ?? '', 2000)) return { ok: false, error: 'Привітання адміна (HU) занадто довге' };
   if (!isBoundedString(info.greetingAdminEn ?? '', 2000)) return { ok: false, error: 'Привітання адміна (EN) занадто довге' };
+  if (info.defaultLang && !['uk', 'hu', 'en'].includes(info.defaultLang)) return { ok: false, error: 'Мова за замовчуванням некоректна' };
   return { ok: true };
 };
 
