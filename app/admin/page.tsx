@@ -2359,12 +2359,34 @@ export default function AdminPage() {
 
               {/* Languages */}
               <div className="bg-[#FDFBF7] p-6 md:p-8 border border-[#E6DFD5] premium-shadow rounded-2xl">
-                <h2 className="text-2xl font-display font-medium text-[#231913] mb-2 tracking-wide pb-2 border-b border-[#E6DFD5]">
-                  {t('languagesTitle')}
-                </h2>
+                <div className="flex items-center justify-between gap-4 border-b border-[#E6DFD5] pb-2 mb-2">
+                  <h2 className="text-2xl font-display font-medium text-[#231913] tracking-wide">
+                    {t('languagesTitle')}
+                  </h2>
+                  {/* Desktop: save-language button in the section header (right) */}
+                  <div className="hidden lg:block shrink-0 lg:-translate-y-[5px]">
+                    <button
+                      type="submit"
+                      form="language-settings-form"
+                      disabled={langSaveStatus === 'saving'}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#3E2F26] text-[#FAF6EE] uppercase text-xs tracking-widest font-semibold hover:bg-[#231913] transition-colors rounded-xl disabled:opacity-50 shadow-sm cursor-pointer"
+                    >
+                      {langSaveStatus === 'saving' ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-[#C09E6D]" />
+                      ) : langSaveStatus === 'saved' ? (
+                        <Check className="w-4 h-4 text-[#C09E6D] stroke-[3]" />
+                      ) : (
+                        <Save className="w-4 h-4 text-[#C09E6D]" />
+                      )}
+                      <span>
+                        {langSaveStatus === 'saving' ? t('saving') : langSaveStatus === 'saved' ? t('saved') : t('saveLangBtn')}
+                      </span>
+                    </button>
+                  </div>
+                </div>
                 <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('defaultLangHint')}</p>
 
-                <form onSubmit={handleSaveLang} className="space-y-4">
+                <form id="language-settings-form" onSubmit={handleSaveLang} className="space-y-4">
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1.5">
                       {t('defaultLangLabel')}
@@ -2383,7 +2405,7 @@ export default function AdminPage() {
                   <button
                     type="submit"
                     disabled={langSaveStatus === 'saving'}
-                    className={`relative overflow-hidden w-full md:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
+                    className={`relative overflow-hidden w-full md:w-auto lg:hidden inline-flex items-center justify-center gap-2 px-8 py-3 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md active:scale-[0.98] cursor-pointer ${
                       langSaveStatus === 'saving'
                         ? 'bg-[#2A1F18] text-[#FAF6EE] ring-2 ring-[#C09E6D]/50 shadow-inner'
                         : langSaveStatus === 'saved'

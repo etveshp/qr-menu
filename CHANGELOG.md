@@ -17,6 +17,14 @@
 
 ---
 
+## [0.7.1] - 2026-09-08
+
+### Security
+
+- **CSP посилено (N1, гілка `fix/csp-remove-unsafe-eval`)**: `'unsafe-eval'` вилучено з `script-src` у production-CSP (`next.config.ts`) — токен додається лише в dev (`NODE_ENV === 'development'`), де його вимагає React/Next. Раніше `'unsafe-eval'` + `'unsafe-inline'` у прод-політиці фактично нейтралізували захист CSP від XSS. `'unsafe-inline'` у `script-src` збережено: App Router рендерить inline RSC payload-скрипти (`self.__next_f.push`), повне видалення потребувало б nonce-механізму, несумісного з ISR. Перевірено: `npm run build`, 163 тести, `tsc --noEmit`, lint, Playwright (сторінка відкривається без CSP-violations, заголовок без `unsafe-eval`).
+
+---
+
 ## [0.7.0] - 2026-09-05
 
 ### Added

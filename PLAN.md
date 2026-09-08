@@ -430,14 +430,16 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 **Проблема:** `next.config.ts` не містить `headers()`. Немає CSP, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`.
 
 **Завдання:**
-- [ ] Додати в `next.config.ts` функцію `headers()`:
+- [x] Додати в `next.config.ts` функцію `headers()`:
   - `X-Frame-Options: DENY`
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
   - `X-Content-Type-Options: nosniff`
   - Content-Security-Policy (базовий: `default-src 'self'`, `img-src 'self' https: data:`, `style-src 'self' 'unsafe-inline'`, `script-src 'self'`, `font-src 'self' data:`, `connect-src 'self' https://*.supabase.co wss://*.supabase.co`)
-- [ ] Застосувати до всіх шляхів (`source: '/(.*)'`)
-- [ ] Перевірити: `curl -I http://localhost:3001` → заголовки присутні
+- [x] Застосувати до всіх шляхів (`source: '/(.*)'`)
+- [x] Перевірити: `curl -I http://localhost:3001` → заголовки присутні
+
+**Додатково (N1 з AUDIT.md, гілка `fix/csp-remove-unsafe-eval`):** початковий CSP мав `script-src 'self' 'unsafe-inline' 'unsafe-eval'` (у prod!), що нейтралізувало захист від XSS. Виправлено: `'unsafe-eval'` тепер додається лише в dev (`NODE_ENV === 'development'`); у prod CSP = `script-src 'self' 'unsafe-inline'`. `'unsafe-inline'` залишено свідомо — App Router генерує inline RSC payload-скрипти (`self.__next_f.push`), повне видалення потребувало б nonce-механізму (несумісний з ISR). Перевірено: build, 163 тести, `tsc`, lint, Playwright (сторінка без CSP-violations).
 
 **Перевірка:** `npm test`, `npx tsc --noEmit`, `npm run lint`
 
@@ -763,6 +765,7 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 
 | Дата | Що змінено | Ким |
 |---|---|---|
+| 2026-09-08 | Фаза 14.1 (N1) — Посилення CSP: `'unsafe-eval'` прибрано з prod-політики (`next.config.ts`, гілка `fix/csp-remove-unsafe-eval`), лишається лише в dev; `'unsafe-inline'` збережено через inline RSC payload (nonce несумісний з ISR). Перевірено: build, 163 тести, tsc, lint, Playwright без CSP-violations | Kilo |
 | 2026-09-08 | Фаза 14 — Аудит та виправлення (14.1–14.25): додано план виправлення всіх недоліків з AUDIT.md + додаткові знахідки | Kilo |
 | 2026-09-07 | Фаза 13 — Автопереклад текстів (у гілці `feat/default-language`): /api/translate + AutoTransField у Кабінеті (основна мова → кнопка перекладу в інших), покриті тексти закладу/привітань/категорій/страв. 167 тестів, tsc, lint, build — чисто | Kilo |
 | 2026-09-07 | Фаза 12 — Мова по замовчуванню (гілка `feat/default-language`): `cafe_info.default_lang`, секція «Мови» в налаштуваннях, застосування в меню для нових гостей. Міграція live | Kilo |
