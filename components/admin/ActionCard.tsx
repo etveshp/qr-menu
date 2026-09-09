@@ -19,6 +19,7 @@ interface ActionCardProps {
   onDelete: () => void;
   children: React.ReactNode;
   dragHandle?: DragHandleProps;
+  logoUrl?: string;
 }
 
 const PHOTO_WIDTH = 96;
@@ -32,11 +33,25 @@ export function ActionCard({
   onDelete,
   children,
   dragHandle,
+  logoUrl,
 }: ActionCardProps) {
   return (
     <div className="relative flex items-stretch overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-      <div className="relative w-24 aspect-[4/3] shrink-0 self-stretch overflow-hidden">
-        <Image src={photo} alt={alt} fill sizes="96px" className="object-cover" referrerPolicy="no-referrer" />
+      <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
+        {photo ? (
+          <Image src={photo} alt={alt} fill sizes="96px" className="object-cover" referrerPolicy="no-referrer" />
+        ) : logoUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center p-5">
+            <Image
+              src={logoUrl}
+              alt=""
+              fill
+              className="object-contain opacity-30"
+              sizes="96px"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Sliding text panel (covers photo on open) */}

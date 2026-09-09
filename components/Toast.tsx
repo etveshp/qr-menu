@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Toast Portal Container: bottom-right on tablet/desktop, bottom-center full-width on mobile */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end z-50 flex flex-col gap-3 pointer-events-none w-full max-w-md px-4 sm:px-0 sm:w-auto">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-md px-4 sm:px-0 sm:w-auto">
         <AnimatePresence>
           {toasts.map((toast) => {
             if (toast.type === 'greeting') {
@@ -119,7 +119,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   <Icon className="w-5 h-5" />
                 </div>
 
-                <div className="flex-1 text-xs font-semibold tracking-wide font-sans leading-relaxed">
+                <div className="flex-1 text-xs sm:text-sm font-semibold tracking-wide font-sans leading-relaxed">
                   {toast.message}
                 </div>
 

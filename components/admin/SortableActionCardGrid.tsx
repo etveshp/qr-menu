@@ -30,6 +30,7 @@ interface SortableActionCardGridProps<T extends SortableCardItem> {
   onDragStart?: () => void;
   getAlt: (item: T) => string;
   renderContent: (item: T) => React.ReactNode;
+  logoUrl?: string;
 }
 
 interface SortableRowProps<T extends SortableCardItem> {
@@ -40,6 +41,7 @@ interface SortableRowProps<T extends SortableCardItem> {
   onEdit: (item: T) => void;
   onDelete: (item: T) => void;
   renderContent: (item: T) => React.ReactNode;
+  logoUrl?: string;
 }
 
 function SortableRow<T extends SortableCardItem>({
@@ -50,6 +52,7 @@ function SortableRow<T extends SortableCardItem>({
   onEdit,
   onDelete,
   renderContent,
+  logoUrl,
 }: SortableRowProps<T>) {
   const {
     setNodeRef,
@@ -81,6 +84,7 @@ function SortableRow<T extends SortableCardItem>({
         onEdit={() => onEdit(item)}
         onDelete={() => onDelete(item)}
         dragHandle={dragHandle}
+        logoUrl={logoUrl}
       >
         {renderContent(item)}
       </ActionCard>
@@ -104,6 +108,7 @@ export function SortableActionCardGrid<T extends SortableCardItem>({
   onDragStart,
   getAlt,
   renderContent,
+  logoUrl,
 }: SortableActionCardGridProps<T>) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -200,6 +205,7 @@ export function SortableActionCardGrid<T extends SortableCardItem>({
               onEdit={onEdit}
               onDelete={onDelete}
               renderContent={renderContent}
+              logoUrl={logoUrl}
             />
           ))}
         </div>

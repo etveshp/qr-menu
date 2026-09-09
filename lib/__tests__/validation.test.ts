@@ -99,8 +99,8 @@ describe('validateCategory', () => {
     expect(validateCategory({ ...baseCategory, nameUk: '' })).toMatchObject({ ok: false });
   });
 
-  it('rejects missing photo', () => {
-    expect(validateCategory({ ...baseCategory, photo: '' })).toMatchObject({ ok: false });
+  it('accepts missing photo', () => {
+    expect(validateCategory({ ...baseCategory, photo: '' })).toMatchObject({ ok: true });
   });
 
   it('rejects oversized photo', () => {
@@ -137,8 +137,8 @@ describe('validateProduct', () => {
     expect(validateProduct({ ...baseProduct, price: Number.NaN })).toMatchObject({ ok: false });
   });
 
-  it('rejects missing photo', () => {
-    expect(validateProduct({ ...baseProduct, photo: '' })).toMatchObject({ ok: false });
+  it('accepts missing photo', () => {
+    expect(validateProduct({ ...baseProduct, photo: '' })).toMatchObject({ ok: true });
   });
 
   it('rejects oversized photo original', () => {

@@ -15,9 +15,10 @@ interface ProductCardProps {
   priceCurrency: string;
   onOpen: (product: Product) => void;
   t: Translator;
+  logoUrl?: string;
 }
 
-export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, t }: ProductCardProps) {
+export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, t, logoUrl }: ProductCardProps) {
   const badgeDef = productBadgeById(product.badge);
   return (
     <motion.div
@@ -35,14 +36,27 @@ export function ProductCard({ product, qty, index, name, priceCurrency, onOpen, 
       className="bg-[#FDFBF7] border border-[#E6DFD5] rounded-2xl premium-shadow flex flex-col overflow-hidden transition-all duration-300 hover:border-[#C09E6D] hover:shadow-md cursor-pointer group select-none"
     >
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] shrink-0 border-b border-[#E6DFD5]/40">
-        <Image
-          src={product.photo}
-          alt={name}
-          fill
-          sizes="(max-width: 640px) 46vw, 424px"
-          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          referrerPolicy="no-referrer"
-        />
+        {product.photo ? (
+          <Image
+            src={product.photo}
+            alt={name}
+            fill
+            sizes="(max-width: 640px) 46vw, 424px"
+            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            referrerPolicy="no-referrer"
+          />
+        ) : logoUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <Image
+              src={logoUrl}
+              alt=""
+              fill
+              className="object-contain opacity-30"
+              sizes="(max-width: 640px) 46vw, 424px"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : null}
         {badgeDef && (
           <span className={`absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
             {t(PRODUCT_BADGE_KEYS[badgeDef.id])}

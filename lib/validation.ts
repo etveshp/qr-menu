@@ -47,8 +47,7 @@ export const validateCategory = (category: Category): ValidationResult => {
   if (!isBoundedString(category.nameUk, MAX_NAME)) return { ok: false, error: 'Назва категорії занадто довга' };
   if (!isBoundedString(category.nameHu, MAX_NAME)) return { ok: false, error: 'Назва категорії (HU) занадто довга' };
   if (!isBoundedString(category.nameEn, MAX_NAME)) return { ok: false, error: 'Назва категорії (EN) занадто довга' };
-  if (!isNonEmptyString(category.photo)) return { ok: false, error: 'Додайте фото категорії' };
-  if (!isBoundedString(category.photo, MAX_PHOTO)) return { ok: false, error: 'Фото категорії занадто велике' };
+  if (!isOptionalString(category.photo, MAX_PHOTO)) return { ok: false, error: 'Фото категорії занадто велике' };
   if (!isOptionalString(category.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото категорії занадто великий' };
   return { ok: true };
 };
@@ -68,8 +67,7 @@ export const validateProduct = (product: Product): ValidationResult => {
   if (!isBoundedString(product.ingredientsUk, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (UA) занадто довгі' };
   if (!isBoundedString(product.ingredientsHu, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (HU) занадто довгі' };
   if (!isBoundedString(product.ingredientsEn, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (EN) занадто довгі' };
-  if (!isNonEmptyString(product.photo)) return { ok: false, error: 'Додайте фото страви' };
-  if (!isBoundedString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото страви занадто велике' };
+  if (!isOptionalString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото страви занадто велике' };
   if (!isOptionalString(product.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото страви занадто великий' };
   return { ok: true };
 };

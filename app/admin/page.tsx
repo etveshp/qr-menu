@@ -1267,7 +1267,7 @@ export default function AdminPage() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catForm.nameUk || !catForm.photo) {
+    if (!catForm.nameUk) {
       showToast(t('requiredField'), 'error');
       return;
     }
@@ -1356,7 +1356,7 @@ export default function AdminPage() {
     setEditingProduct(null);
     setProdForm({
       id: '',
-      categoryId: categories[0]?.id || '',
+      categoryId: activeMenuCategoryId || categories[0]?.id || '',
       nameUk: '',
       nameHu: '',
       nameEn: '',
@@ -1378,7 +1378,7 @@ export default function AdminPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prodForm.nameUk || !prodForm.categoryId || !prodForm.photo) {
+    if (!prodForm.nameUk || !prodForm.categoryId) {
       showToast(t('requiredField'), 'error');
       return;
     }
@@ -2573,6 +2573,7 @@ export default function AdminPage() {
                     onReorder={handleReorderCategories}
                     onDragStart={() => setOpenActionsId(null)}
                     getAlt={(cat) => cat.nameUk}
+                    logoUrl={cafeInfo?.logo}
                     renderContent={(cat) => (
                       <p className="font-semibold text-sm text-[#231913]">
                         {lang === 'hu' ? cat.nameHu : lang === 'en' ? cat.nameEn : cat.nameUk}
@@ -2654,6 +2655,7 @@ export default function AdminPage() {
                     onReorder={handleReorderProducts}
                     onDragStart={() => setOpenActionsId(null)}
                     getAlt={(p) => p.nameUk}
+                    logoUrl={cafeInfo?.logo}
                     renderContent={(p) => (
                       <>
                         <p className="font-semibold text-sm text-[#231913]">
@@ -2908,7 +2910,7 @@ export default function AdminPage() {
           />
 
           <div>
-            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')} *</label>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('categoryPhoto')}</label>
 
             {/* Hidden File Input for Category Photo */}
             <input 
@@ -2983,6 +2985,9 @@ export default function AdminPage() {
               <p className="text-xs text-[#8E7A68] mt-2">
                 {t('categoryPhotoHint')}
               </p>
+            )}
+            {!catForm.photo && (
+              <p className="text-xs text-[#8E7A68] mt-2 italic">{t('optional')}</p>
             )}
           </div>
 
@@ -3153,7 +3158,7 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPhoto')} *</label>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('productPhoto')}</label>
             <input 
               ref={prodFileInputRef}
               id="product-photo-file-input"
@@ -3218,6 +3223,9 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+            {!prodForm.photo && (
+              <p className="text-xs text-[#8E7A68] mt-2 italic">{t('optional')}</p>
+            )}
           </div>
 
           <div className="border-t border-[#E6DFD5]" />

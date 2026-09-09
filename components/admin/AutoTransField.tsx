@@ -101,7 +101,7 @@ export function AutoTransField({
             onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
             rows={rows ?? 4}
-            className={`${fieldClass} ${biggerText ? 'text-sm' : 'text-xs'} rounded-xl py-2.5 ${showTranslate ? 'pr-12' : ''}`}
+            className={`${fieldClass} text-sm rounded-xl py-2.5 ${showTranslate ? 'pr-12' : ''}`}
           />
         ) : (
           <input

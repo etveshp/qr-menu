@@ -9,9 +9,10 @@ interface CategoryCardProps {
   index: number;
   name: string;
   onSelect: (categoryId: string) => void;
+  logoUrl?: string;
 }
 
-export function CategoryCard({ category, index, name, onSelect }: CategoryCardProps) {
+export function CategoryCard({ category, index, name, onSelect, logoUrl }: CategoryCardProps) {
   return (
     <motion.button
       onClick={() => onSelect(category.id)}
@@ -28,16 +29,29 @@ export function CategoryCard({ category, index, name, onSelect }: CategoryCardPr
       className="relative aspect-[4/3] w-full flex flex-col justify-end p-4 overflow-hidden border border-[#E6DFD5] transition-shadow text-left group rounded-2xl premium-shadow hover:border-[#C09E6D] hover:shadow-lg cursor-pointer"
       style={{ aspectRatio: '4 / 3' }}
     >
-      <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
-        <Image
-          src={category.photo}
-          alt={category.nameUk}
-          fill
-          loading="eager"
-          sizes="(max-width: 640px) 46vw, 424px"
-          className="object-cover opacity-60"
-          referrerPolicy="no-referrer"
-        />
+      <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 bg-[#F1ECE3]">
+        {category.photo ? (
+          <Image
+            src={category.photo}
+            alt={category.nameUk}
+            fill
+            loading="eager"
+            sizes="(max-width: 640px) 46vw, 424px"
+            className="object-cover opacity-60"
+            referrerPolicy="no-referrer"
+          />
+        ) : logoUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <Image
+              src={logoUrl}
+              alt=""
+              fill
+              className="object-contain opacity-30"
+              sizes="(max-width: 640px) 46vw, 424px"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : null}
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-[#231913]/90 via-[#231913]/30 to-transparent" />
 

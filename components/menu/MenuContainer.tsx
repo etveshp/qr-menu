@@ -425,6 +425,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
                       index={catIndex}
                       name={getCategoryName(cat)}
                       onSelect={setActiveCategory}
+                      logoUrl={cafeInfo?.logo}
                     />
                   ))}
                 </div>
@@ -491,6 +492,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
                       priceCurrency={t('priceCurrency')}
                       onOpen={openProductModal}
                       t={t}
+                      logoUrl={cafeInfo?.logo}
                     />
                   ))}
                 </div>
@@ -525,6 +527,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         onRecPointerDown={handleRecPointerDown}
         onRecPointerUp={handleRecPointerUp}
         onRecPointerMove={handleRecPointerMove}
+        logoUrl={cafeInfo?.logo}
       />
 
       <CartDrawer
@@ -538,6 +541,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         onDecrement={handleDecrementCart}
         onIncrement={handleIncrementCart}
         onRemove={handleRemoveFromCart}
+        logoUrl={cafeInfo?.logo}
       />
 
       <footer className="mt-8 py-6 border-t border-[#E6DFD5] text-center bg-[#FDFBF7]">

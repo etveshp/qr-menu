@@ -36,6 +36,7 @@ interface ProductModalProps {
   onRecPointerDown: (e: React.PointerEvent) => void;
   onRecPointerUp: (e: React.PointerEvent) => void;
   onRecPointerMove: (e: React.PointerEvent) => void;
+  logoUrl?: string;
 }
 
 export function ProductModal({
@@ -63,6 +64,7 @@ export function ProductModal({
   onRecPointerDown,
   onRecPointerUp,
   onRecPointerMove,
+  logoUrl,
 }: ProductModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -225,14 +227,27 @@ export function ProductModal({
               className="flex-shrink-0 w-28 bg-[#FDFBF7] hover:bg-[#F5EFE6] border border-[#E6DFD5] rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-start select-none"
             >
               <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
-                <Image
-                  src={rec.photo}
-                  alt={getProductName(rec)}
-                  fill
-                  sizes="112px"
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                />
+                {rec.photo ? (
+                  <Image
+                    src={rec.photo}
+                    alt={getProductName(rec)}
+                    fill
+                    sizes="112px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : logoUrl ? (
+                  <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <Image
+                      src={logoUrl}
+                      alt=""
+                      fill
+                      className="object-contain opacity-30"
+                      sizes="112px"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ) : null}
               </div>
               <div className="p-2 w-full">
                 <h4 className="font-sans font-medium text-xs text-[#231913] leading-snug line-clamp-2 pointer-events-none">
@@ -392,16 +407,29 @@ export function ProductModal({
             >
               {/* Left column: photo flush to the top-left corner (rounded tl + br), recommended rail below */}
               <div className="relative w-[46%] shrink-0 bg-[#F1ECE3]/70 flex flex-col overflow-hidden">
-                <div className="relative aspect-[4/3] overflow-hidden shrink-0 mr-4 rounded-tl-[24px] rounded-br-[24px]">
-                  <Image
-                    src={product.photo}
-                    alt={getProductName(product)}
-                    fill
-                    priority
-                    sizes="(max-width: 1280px) 45vw, 460px"
-                    className="object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                <div className="relative aspect-[4/3] overflow-hidden shrink-0 mr-4 rounded-tl-[24px] rounded-br-[24px] bg-[#F1ECE3]">
+                  {product.photo ? (
+                    <Image
+                      src={product.photo}
+                      alt={getProductName(product)}
+                      fill
+                      priority
+                      sizes="(max-width: 1280px) 45vw, 460px"
+                      className="object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : logoUrl ? (
+                    <div className="absolute inset-0 flex items-center justify-center p-8">
+                      <Image
+                        src={logoUrl}
+                        alt=""
+                        fill
+                        className="object-contain opacity-30"
+                        sizes="(max-width: 1280px) 45vw, 460px"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  ) : null}
                   {badgeDef && (
                     <span className={`absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
                       {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
@@ -434,14 +462,27 @@ export function ProductModal({
                           className="flex-shrink-0 w-24 bg-[#FDFBF7] hover:bg-[#F5EFE6] border border-[#E6DFD5] rounded-xl overflow-hidden text-left transition-all hover:shadow-md active:scale-95 group cursor-pointer flex flex-col justify-start select-none"
                         >
                           <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
-                            <Image
-                              src={rec.photo}
-                              alt={getProductName(rec)}
-                              fill
-                              sizes="96px"
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              referrerPolicy="no-referrer"
-                            />
+                            {rec.photo ? (
+                              <Image
+                                src={rec.photo}
+                                alt={getProductName(rec)}
+                                fill
+                                sizes="96px"
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : logoUrl ? (
+                              <div className="absolute inset-0 flex items-center justify-center p-3">
+                                <Image
+                                  src={logoUrl}
+                                  alt=""
+                                  fill
+                                  className="object-contain opacity-30"
+                                  sizes="96px"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            ) : null}
                           </div>
                           <div className="p-1.5 w-full">
                             <h4 className="font-sans font-medium text-[11px] text-[#231913] leading-snug line-clamp-2 pointer-events-none">
@@ -591,15 +632,28 @@ export function ProductModal({
           >
             {/* Photo Banner with Close Button */}
             <div className="relative w-full aspect-[4/3] bg-[#F1ECE3] shrink-0 overflow-hidden">
-              <Image
-                src={product.photo}
-                alt={getProductName(product)}
-                fill
-                priority
-                sizes="(max-width: 512px) 100vw, 512px"
-                className="object-cover"
-                referrerPolicy="no-referrer"
-              />
+              {product.photo ? (
+                <Image
+                  src={product.photo}
+                  alt={getProductName(product)}
+                  fill
+                  priority
+                  sizes="(max-width: 512px) 100vw, 512px"
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : logoUrl ? (
+                <div className="absolute inset-0 flex items-center justify-center p-8">
+                  <Image
+                    src={logoUrl}
+                    alt=""
+                    fill
+                    className="object-contain opacity-30"
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              ) : null}
               {badgeDef && (
                 <span className={`absolute top-3 left-3 sm:top-3.5 sm:left-3.5 z-[6] px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-md ${badgeDef.className}`}>
                   {t(PRODUCT_BADGE_KEYS[badgeDef.id])}
