@@ -3242,9 +3242,13 @@ export default function AdminPage() {
                   .filter((p) => prodForm.recommendedIds.includes(p.id))
                   .map((rp) => (
                     <div key={rp.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
-                      <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-white">
+                      <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
                         {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
-                        <img src={rp.photo} alt={rp.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        {rp.photo ? (
+                          <img src={rp.photo} alt={rp.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : cafeInfo?.logo ? (
+                          <img src={cafeInfo.logo} alt="" className="absolute inset-0 w-full h-full object-contain opacity-30 p-4" referrerPolicy="no-referrer" />
+                        ) : null}
                       </div>
                       <div className="flex flex-1 items-center justify-between gap-2 p-3 min-w-0">
                         <p className="font-semibold text-sm text-[#231913] truncate">
@@ -3714,6 +3718,7 @@ export default function AdminPage() {
           }));
           setIsRecPickerOpen(false);
         }}
+        logoUrl={cafeInfo?.logo}
         t={t}
       />
 

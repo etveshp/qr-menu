@@ -402,7 +402,7 @@ export function ProductModal({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40, transition: { duration: 0.2, ease: 'easeIn' } }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="relative w-full max-w-4xl h-[476px] bg-[#FAF6EE] rounded-3xl shadow-2xl flex overflow-hidden z-10"
+              className="relative w-full max-w-4xl h-auto min-h-[350px] bg-[#FAF6EE] rounded-3xl shadow-2xl flex overflow-hidden z-10"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Left column: photo flush to the top-left corner (rounded tl + br), recommended rail below */}

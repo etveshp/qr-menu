@@ -17,6 +17,7 @@ interface RecommendedProductsPickerProps {
   onClose: () => void;
   onConfirm: (ids: string[]) => void;
   t: (key: keyof typeof TRANSLATIONS['uk']) => string;
+  logoUrl?: string;
 }
 
 const MAX = 5;
@@ -32,6 +33,7 @@ export function RecommendedProductsPicker({
   onClose,
   onConfirm,
   t,
+  logoUrl,
 }: RecommendedProductsPickerProps) {
   const [step, setStep] = useState<'category' | 'product'>('category');
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function RecommendedProductsPicker({
                   </button>
                 )}
                 <h3 className="font-display font-bold text-xl text-[#231913] uppercase tracking-wide leading-tight truncate">
-                  {step === 'product' ? (activeCategoryId ? catName(categories.find(c => c.id === activeCategoryId)!) : t('chooseProduct')) : t('chooseProduct')}
+                  {activeCategoryId ? catName(categories.find(c => c.id === activeCategoryId)!) : t('chooseProductCategory')}
                 </h3>
               </div>
               <button
@@ -104,9 +106,13 @@ export function RecommendedProductsPicker({
                       onClick={() => { setActiveCategoryId(cat.id); setStep('product'); }}
                       className="relative flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl cursor-pointer active:scale-[0.99] transition-transform"
                     >
-                      <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden">
+                      <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
                         {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
-                        <img src={cat.photo} alt={cat.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        {cat.photo ? (
+                          <img src={cat.photo} alt={cat.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : logoUrl ? (
+                          <img src={logoUrl} alt="" className="absolute inset-0 w-full h-full object-contain opacity-30 p-3" referrerPolicy="no-referrer" />
+                        ) : null}
                       </div>
                       <div className="p-3">
                         <p className="font-semibold text-sm text-[#231913] leading-tight">{catName(cat)}</p>
@@ -131,9 +137,13 @@ export function RecommendedProductsPicker({
                           disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer active:scale-[0.99]'
                         }`}
                       >
-                        <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden">
+                        <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
                           {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
-                          <img src={prod.photo} alt={prod.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          {prod.photo ? (
+                            <img src={prod.photo} alt={prod.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : logoUrl ? (
+                            <img src={logoUrl} alt="" className="absolute inset-0 w-full h-full object-contain opacity-30 p-3" referrerPolicy="no-referrer" />
+                          ) : null}
                         </div>
                         <div className="p-3">
                           <p className="font-semibold text-sm text-[#231913] leading-tight">{prodName(prod)}</p>
