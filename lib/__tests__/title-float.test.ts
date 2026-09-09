@@ -30,17 +30,17 @@ describe('computeTitleFloat', () => {
     expect(s.cloneOpacity).toBe(1);
     expect(s.inFlowOpacity).toBe(0);
     expect(s.cloneBottom).toBe(TITLE_FLOAT_BOTTOM_GAP);
-    expect(s.gradientHeight).toBe(ROW + TITLE_FLOAT_GRADIENT_GAP + TITLE_FLOAT_BOTTOM_GAP);
+    expect(s.gradientHeight).toBe(ROW * 3 + TITLE_FLOAT_BOTTOM_GAP);
     expect(s.gradientOpacity).toBe(1);
   });
 
-  it('cross-fades in the middle of the transition', () => {
+  it('is solid white above the photo as soon as it starts rising (binary opacity)', () => {
     const s = computeTitleFloat({ scrollTop: PADDING + ROW / 2, paddingTop: PADDING, rowHeight: ROW });
     expect(s.progress).toBe(0.5);
-    expect(s.cloneOpacity).toBe(0.5);
+    expect(s.cloneOpacity).toBe(1);
     expect(s.inFlowOpacity).toBe(0.5);
     expect(s.cloneBottom).toBe((ROW + TITLE_FLOAT_BOTTOM_GAP) / 2);
-    expect(s.gradientHeight).toBe((ROW + TITLE_FLOAT_GRADIENT_GAP + TITLE_FLOAT_BOTTOM_GAP) / 2);
+    expect(s.gradientHeight).toBe((ROW * 3 + TITLE_FLOAT_BOTTOM_GAP) / 2);
   });
 
   it('clamps negative scrollTop to the rest state', () => {
