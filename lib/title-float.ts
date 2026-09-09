@@ -14,10 +14,6 @@
 /** Додатковий «повітряний» зазор градієнта над рядком назви, px. */
 export const TITLE_FLOAT_GRADIENT_GAP = 12;
 
-/** Мультиплікатор висоти градієнта відносно рядка — градієнт піднімається вище, щоб
- *  назву+ціну було видно навіть на світлому фото. */
-const GRADIENT_HEIGHT_MULT = 3;
-
 /** Відступ між нижнім краєм фото та нижнім краєм напливлого рядка назви, px. */
 export const TITLE_FLOAT_BOTTOM_GAP = 16;
 
@@ -67,9 +63,9 @@ export function computeTitleFloat({ scrollTop, paddingTop, rowHeight }: TitleFlo
   return {
     progress,
     cloneBottom,
-    cloneOpacity: progress > 0 ? 1 : 0,
+    cloneOpacity: progress,
     inFlowOpacity: 1 - progress,
-    gradientHeight: (safeRow * GRADIENT_HEIGHT_MULT + TITLE_FLOAT_BOTTOM_GAP) * progress,
+    gradientHeight: (safeRow + TITLE_FLOAT_GRADIENT_GAP + TITLE_FLOAT_BOTTOM_GAP) * progress,
     gradientOpacity: progress,
   };
 }
