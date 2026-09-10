@@ -376,9 +376,9 @@ export function ProductModal({
                 <span className="font-bold text-3xl text-[#C09E6D] shrink-0 tracking-tight">{product.price} {t('priceCurrency')}</span>
               </div>
               <div className="flex-1 overflow-y-auto px-7 py-4 space-y-4 min-h-0">
-                {renderModifiers()}
                 {renderDescription()}
                 {renderIngredients()}
+                {renderModifiers()}
               </div>
               <div className="shrink-0 px-7 py-4 border-t border-[#E6DFD5] bg-[#FDFBF7] flex items-center gap-3">
                 {renderFooter()}
@@ -445,9 +445,9 @@ export function ProductModal({
               <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#231913] leading-tight">{getProductName(product)}</h3>
               <span className="font-bold text-2xl sm:text-3xl text-[#C09E6D] shrink-0 tracking-tight">{product.price} {t('priceCurrency')}</span>
             </div>
-            {renderModifiers()}
             {renderDescription()}
             {renderIngredients()}
+            {renderModifiers()}
             {recommendedProducts.length > 0 && <div className="mt-auto">{renderRecommended()}</div>}
           </div>
           <div className="p-4 sm:p-5 border-t border-[#E6DFD5] bg-[#FDFBF7] flex items-center gap-3">
