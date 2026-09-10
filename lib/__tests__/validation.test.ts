@@ -88,6 +88,22 @@ describe('validateCafeInfo', () => {
   it('rejects too long admin greeting', () => {
     expect(validateCafeInfo({ ...baseCafe, greetingAdminHu: 'x'.repeat(2001) })).toMatchObject({ ok: false });
   });
+
+  it('accepts an enabled-language subset with a matching default', () => {
+    expect(validateCafeInfo({ ...baseCafe, enabledLangs: ['uk', 'en'], defaultLang: 'en' })).toEqual({ ok: true });
+  });
+
+  it('rejects a default language that is not enabled', () => {
+    expect(validateCafeInfo({ ...baseCafe, enabledLangs: ['uk'], defaultLang: 'en' })).toMatchObject({ ok: false });
+  });
+
+  it('rejects an empty enabled-language set', () => {
+    expect(validateCafeInfo({ ...baseCafe, enabledLangs: [] })).toMatchObject({ ok: false });
+  });
+
+  it('rejects unknown language codes', () => {
+    expect(validateCafeInfo({ ...baseCafe, enabledLangs: ['uk', 'fr'] })).toMatchObject({ ok: false });
+  });
 });
 
 describe('validateCategory', () => {
@@ -147,6 +163,45 @@ describe('validateProduct', () => {
 
   it('accepts photo original', () => {
     expect(validateProduct({ ...baseProduct, photoOriginal: 'data:image/webp;base64,...' })).toEqual({ ok: true });
+  });
+
+  const modifierGroup = {
+    id: 'g1',
+    nameUk: 'Смак',
+    nameHu: '',
+    nameEn: '',
+    type: 'single' as const,
+    required: true,
+    display: 'chips' as const,
+    sortOrder: 0,
+    options: [{ id: 'o1', nameUk: 'Апельсин', nameHu: '', nameEn: '', priceDelta: 0, sortOrder: 0 }],
+  };
+
+  it('accepts a product with valid modifiers', () => {
+    expect(validateProduct({ ...baseProduct, modifiers: [modifierGroup] })).toEqual({ ok: true });
+  });
+
+  it('rejects a modifier group with no options', () => {
+    expect(validateProduct({ ...baseProduct, modifiers: [{ ...modifierGroup, options: [] }] })).toMatchObject({ ok: false });
+  });
+
+  it('rejects an option with an empty name', () => {
+    expect(validateProduct({
+      ...baseProduct,
+      modifiers: [{ ...modifierGroup, options: [{ ...modifierGroup.options[0], nameUk: '' }] }],
+    })).toMatchObject({ ok: false });
+  });
+
+  it('rejects a negative option price delta', () => {
+    expect(validateProduct({
+      ...baseProduct,
+      modifiers: [{ ...modifierGroup, options: [{ ...modifierGroup.options[0], priceDelta: -1 }] }],
+    })).toMatchObject({ ok: false });
+  });
+
+  it('rejects too many modifier groups', () => {
+    const many = Array.from({ length: 21 }, (_, i) => ({ ...modifierGroup, id: `g${i}` }));
+    expect(validateProduct({ ...baseProduct, modifiers: many })).toMatchObject({ ok: false });
   });
 });
 

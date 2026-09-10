@@ -10,6 +10,7 @@ import {
   objectPublicUrl,
 } from './photo-storage';
 import { nextSortOrder } from './reorder';
+import { normalizeModifierGroups } from './modifiers';
 
 // Types (same as the original lib, kept for compatibility)
 export interface CafeInfo {
@@ -28,7 +29,19 @@ export interface CafeInfo {
   showTableNumber?: boolean;
   /** Default app language (uk/hu/en). */
   defaultLang?: string;
+  /** Languages enabled in the menu (subset of uk/hu/en). */
+  enabledLangs?: string[];
 }
+
+/** All languages supported by the app. */
+export const ALL_LANGS = ['uk', 'hu', 'en'] as const;
+
+/** Coerce the enabled-langs value from the DB into a valid, non-empty subset. */
+export const normalizeEnabledLangs = (raw: unknown): string[] => {
+  if (!Array.isArray(raw)) return [...ALL_LANGS];
+  const valid = raw.filter((l): l is string => typeof l === 'string' && (ALL_LANGS as readonly string[]).includes(l));
+  return valid.length > 0 ? valid : [...ALL_LANGS];
+};
 
 export const getCafeName = (info: CafeInfo | null, lang: string): string => {
   if (!info) return '';
@@ -64,6 +77,38 @@ export const getRandomGreeting = (raw: string | undefined | null, rng: () => num
   return list[Math.floor(rng() * list.length) % list.length];
 };
 export interface Category { id: string; nameUk: string; nameHu: string; nameEn: string; photo: string; photoScale?: number; photoX?: number; photoY?: number; photoOriginal?: string; sortOrder?: number; }
+
+/** Selection mode of a modifier group: one option (radio) or many (checkboxes). */
+export type ModifierType = 'single' | 'multiple';
+/** Visual representation of a modifier group. */
+export type ModifierDisplay = 'chips' | 'tiles';
+
+export interface ModifierOption {
+  id: string;
+  nameUk: string;
+  nameHu: string;
+  nameEn: string;
+  /** Extra charge for selecting this option (>= 0). */
+  priceDelta: number;
+  /** Optional photo, used by the 'tiles' display. */
+  photo?: string;
+  sortOrder: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  nameUk: string;
+  nameHu: string;
+  nameEn: string;
+  /** 'single' = one choice, 'multiple' = any number of choices. */
+  type: ModifierType;
+  /** When true the client must pick at least one option. */
+  required: boolean;
+  display: ModifierDisplay;
+  sortOrder: number;
+  options: ModifierOption[];
+}
+
 export interface Product {
   id: string; categoryId: string;
   nameUk: string; nameHu: string; nameEn: string;
@@ -73,6 +118,8 @@ export interface Product {
   photoOriginal?: string; sortOrder?: number;
   /** Single product badge id ('' = none). */
   badge?: string;
+  /** Optional configurable modifier groups (flavour, volume, size…). */
+  modifiers?: ModifierGroup[];
 }
 export interface Advertising {
   photo: string;
@@ -215,6 +262,7 @@ export const mapCafeInfo = (row: any): CafeInfo => ({
   greetingAdminEnabled: row.greeting_admin_enabled ?? false,
   showTableNumber: row.show_table_number ?? false,
   defaultLang: row.default_lang ?? 'uk',
+  enabledLangs: normalizeEnabledLangs(row.enabled_langs),
 });
 
 export interface SavedQr {
@@ -304,6 +352,7 @@ export const mapProduct = (row: any): Product => ({
   photoOriginal: row.photo_original ?? '',
   badge: row.badge ?? '',
   sortOrder: row.sort_order ?? 0,
+  modifiers: normalizeModifierGroups(row.modifiers),
 });
 
 // 1. Cafe Info
@@ -364,6 +413,7 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
       greeting_admin_enabled: storedInfo.greetingAdminEnabled ?? false,
       show_table_number: storedInfo.showTableNumber ?? false,
       default_lang: storedInfo.defaultLang ?? 'uk',
+      enabled_langs: normalizeEnabledLangs(storedInfo.enabledLangs),
       updated_at: new Date().toISOString(),
     });
     if (error) { console.error('Supabase error writing cafeInfo', error); throw new Error('Помилка збереження налаштувань'); }
@@ -571,6 +621,7 @@ export const saveProduct = async (product: Product): Promise<void> => {
       recommended_ids: stored.recommendedIds ?? [],
       badge: stored.badge ?? '',
       sort_order: stored.sortOrder ?? 0,
+      modifiers: stored.modifiers ?? [],
     });
     if (error) { console.error('Supabase error saving product', error); throw new Error('Помилка збереження страви'); }
 

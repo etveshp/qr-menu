@@ -38,7 +38,14 @@ export const validateCafeInfo = (info: CafeInfo): ValidationResult => {
   if (!isBoundedString(info.greetingAdminUk ?? '', 2000)) return { ok: false, error: 'Привітання адміна (UK) занадто довге' };
   if (!isBoundedString(info.greetingAdminHu ?? '', 2000)) return { ok: false, error: 'Привітання адміна (HU) занадто довге' };
   if (!isBoundedString(info.greetingAdminEn ?? '', 2000)) return { ok: false, error: 'Привітання адміна (EN) занадто довге' };
-  if (info.defaultLang && !['uk', 'hu', 'en'].includes(info.defaultLang)) return { ok: false, error: 'Мова за замовчуванням некоректна' };
+  const langs = ['uk', 'hu', 'en'];
+  const enabledLangs = info.enabledLangs ?? langs;
+  if (!Array.isArray(enabledLangs) || enabledLangs.length === 0 || enabledLangs.some(l => !langs.includes(l))) {
+    return { ok: false, error: 'Некоректний набір активних мов' };
+  }
+  const defaultLang = info.defaultLang ?? 'uk';
+  if (!langs.includes(defaultLang)) return { ok: false, error: 'Мова за замовчуванням некоректна' };
+  if (!enabledLangs.includes(defaultLang)) return { ok: false, error: 'Основна мова має бути активною' };
   return { ok: true };
 };
 
@@ -69,6 +76,34 @@ export const validateProduct = (product: Product): ValidationResult => {
   if (!isBoundedString(product.ingredientsEn, MAX_INGREDIENTS)) return { ok: false, error: 'Інгредієнти (EN) занадто довгі' };
   if (!isOptionalString(product.photo, MAX_PHOTO)) return { ok: false, error: 'Фото страви занадто велике' };
   if (!isOptionalString(product.photoOriginal, MAX_PHOTO)) return { ok: false, error: 'Оригінал фото страви занадто великий' };
+
+  const modifiers = product.modifiers ?? [];
+  if (modifiers.length > 20) return { ok: false, error: 'Забагато модифікаторів (максимум 20)' };
+  for (const group of modifiers) {
+    if (!isNonEmptyString(group.nameUk)) return { ok: false, error: 'Вкажіть назву модифікатора українською' };
+    if (!isBoundedString(group.nameUk, MAX_NAME)) return { ok: false, error: 'Назва модифікатора занадто довга' };
+    if (!isBoundedString(group.nameHu, MAX_NAME)) return { ok: false, error: 'Назва модифікатора (HU) занадто довга' };
+    if (!isBoundedString(group.nameEn, MAX_NAME)) return { ok: false, error: 'Назва модифікатора (EN) занадто довга' };
+    if (group.type !== 'single' && group.type !== 'multiple') return { ok: false, error: 'Некоректний тип модифікатора' };
+    if (!Array.isArray(group.options) || group.options.length === 0) {
+      return { ok: false, error: `Модифікатор «${group.nameUk}» має містити хоча б одне значення` };
+    }
+    if (group.options.length > 50) {
+      return { ok: false, error: `Забагато значень у модифікаторі «${group.nameUk}» (максимум 50)` };
+    }
+    for (const option of group.options) {
+      if (!isNonEmptyString(option.nameUk)) {
+        return { ok: false, error: `Заповніть назву значення у модифікаторі «${group.nameUk}»` };
+      }
+      if (!isBoundedString(option.nameUk, MAX_NAME)) return { ok: false, error: 'Назва значення модифікатора занадто довга' };
+      if (!isBoundedString(option.nameHu, MAX_NAME)) return { ok: false, error: 'Назва значення (HU) занадто довга' };
+      if (!isBoundedString(option.nameEn, MAX_NAME)) return { ok: false, error: 'Назва значення (EN) занадто довга' };
+      if (typeof option.priceDelta !== 'number' || !Number.isFinite(option.priceDelta) || option.priceDelta < 0 || option.priceDelta > 100000) {
+        return { ok: false, error: 'Доплата модифікатора некоректна' };
+      }
+      if (!isOptionalString(option.photo, MAX_PHOTO)) return { ok: false, error: 'Фото значення модифікатора занадто велике' };
+    }
+  }
   return { ok: true };
 };
 

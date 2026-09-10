@@ -40,6 +40,7 @@ import {
   Advertising,
   TextBanner,
   SavedQr,
+  ModifierGroup,
   getCafeName,
   getCafeOwnerName,
   getCafeAdminGreeting,
@@ -93,6 +94,7 @@ import { QrGenerator } from '@/components/admin/QrGenerator';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { SortableActionCardGrid } from '@/components/admin/SortableActionCardGrid';
 import { RecommendedProductsPicker } from '@/components/admin/RecommendedProductsPicker';
+import { ModifiersEditor } from '@/components/admin/ModifiersEditor';
 import { useLanguage } from '@/hooks/use-language';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
@@ -391,7 +393,9 @@ export default function AdminPage() {
     bannerY: 50,
     logoScale: 1,
     logoX: 50,
-    logoY: 50
+    logoY: 50,
+    defaultLang: 'uk',
+    enabledLangs: ['uk', 'hu', 'en'],
   });
 
   // Load cached cafe info after mount to avoid SSR hydration mismatch.
@@ -409,6 +413,23 @@ export default function AdminPage() {
       // ignore invalid cache
     }
   }, []);
+
+  const adminEnabledLangs = (cafeInfo?.enabledLangs ?? ['uk', 'hu', 'en']).filter(
+    (l): l is 'uk' | 'hu' | 'en' => l === 'uk' || l === 'hu' || l === 'en'
+  );
+  const adminLangSwitcher =
+    adminEnabledLangs.length > 1 ? (
+      <LanguageSelector currentLang={lang} onChange={changeLanguage} options={adminEnabledLangs} />
+    ) : null;
+
+  useEffect(() => {
+    const configured = cafeInfo?.enabledLangs ?? ['uk', 'hu', 'en'];
+    const enabled = (['uk', 'hu', 'en'] as const).filter((l) => configured.includes(l));
+    if (enabled.length === 0) return;
+    if (!(enabled as readonly string[]).includes(lang)) {
+      changeLanguage(enabled[0]);
+    }
+  }, [cafeInfo?.enabledLangs, lang, changeLanguage]);
 
   // Welcome greeting toast: once per session, only when the admin greeting
   // toggle is enabled in cafe settings.
@@ -598,6 +619,7 @@ export default function AdminPage() {
     photoOriginal: string;
     recommendedIds: string[];
     badge: string;
+    modifiers: ModifierGroup[];
   }>({
     id: '',
     categoryId: '',
@@ -615,6 +637,7 @@ export default function AdminPage() {
     photoOriginal: '',
     recommendedIds: [],
     badge: '',
+    modifiers: [],
   });
 
   // QR Code generator states
@@ -1089,6 +1112,17 @@ export default function AdminPage() {
   };
 
   // Save the Languages section (default language) independently.
+  const toggleCafeLang = (code: string) => {
+    setCafeForm(prev => {
+      const cur = prev.enabledLangs ?? ['uk', 'hu', 'en'];
+      const has = cur.includes(code);
+      if (has && cur.length === 1) return prev;
+      const next = has ? cur.filter(l => l !== code) : [...cur, code];
+      const nextDefault = next.includes(prev.defaultLang ?? 'uk') ? (prev.defaultLang ?? 'uk') : next[0];
+      return { ...prev, enabledLangs: next, defaultLang: nextDefault };
+    });
+  };
+
   const handleSaveLang = async (e: React.FormEvent) => {
     e.preventDefault();
     setLangSaveStatus('saving');
@@ -1347,6 +1381,7 @@ export default function AdminPage() {
       photoOriginal: '',
       recommendedIds: [],
       badge: '',
+      modifiers: [],
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(false);
@@ -1371,6 +1406,7 @@ export default function AdminPage() {
       photoOriginal: '',
       recommendedIds: [],
       badge: '',
+      modifiers: [],
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -1400,7 +1436,8 @@ export default function AdminPage() {
       photo: prodForm.photo,
       photoOriginal: prodForm.photoOriginal,
       recommendedIds: prodForm.recommendedIds,
-      badge: prodForm.badge
+      badge: prodForm.badge,
+      modifiers: prodForm.modifiers
     };
 
     setProdSaveStatus('saving');
@@ -1437,6 +1474,7 @@ export default function AdminPage() {
       photoOriginal: prod.photoOriginal ?? '',
       recommendedIds: prod.recommendedIds ?? [],
       badge: prod.badge ?? '',
+      modifiers: prod.modifiers ?? [],
     });
     setProdSaveStatus('idle');
     setIsProdDrawerOpen(true);
@@ -1524,7 +1562,7 @@ export default function AdminPage() {
               <ArrowLeft className="w-4 h-4" />
               {t('backToMenu')}
             </Link>
-            <LanguageSelector currentLang={lang} onChange={changeLanguage} />
+            {adminLangSwitcher}
           </div>
         </div>
       </main>
@@ -1722,7 +1760,7 @@ export default function AdminPage() {
               <ArrowLeft className="w-4 h-4" />
               {t('backToMenu')}
             </Link>
-            <LanguageSelector currentLang={lang} onChange={changeLanguage} />
+            {adminLangSwitcher}
           </div>
         </div>
 
@@ -1795,7 +1833,7 @@ export default function AdminPage() {
             </Link>
 
             {/* Elegant Language Selector */}
-            <LanguageSelector currentLang={lang} onChange={changeLanguage} />
+            {adminLangSwitcher}
 
             <button 
               onClick={handleLogout}
@@ -2386,21 +2424,76 @@ export default function AdminPage() {
                 </div>
                 <p className="text-xs text-[#8E7A68] mb-6 leading-relaxed">{t('defaultLangHint')}</p>
 
-                <form id="language-settings-form" onSubmit={handleSaveLang} className="space-y-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1.5">
-                      {t('defaultLangLabel')}
-                    </label>
-                    <select
-                      value={cafeForm.defaultLang ?? 'uk'}
-                      onChange={(e) => setCafeForm({ ...cafeForm, defaultLang: e.target.value })}
-                      className="select-field w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#E6DFD5] text-[#231913] text-sm rounded-xl"
-                    >
-                      <option value="uk">Українська</option>
-                      <option value="hu">Magyar</option>
-                      <option value="en">English</option>
-                    </select>
+                <form id="language-settings-form" onSubmit={handleSaveLang} className="space-y-3">
+                  <div className="flex items-center gap-3 px-3.5">
+                    <span className="w-12 text-center text-[10px] uppercase tracking-wider text-[#8E7A68] font-semibold">
+                      {t('langActiveLabel')}
+                    </span>
+                    <span className="flex-1" />
+                    <span className="text-[10px] uppercase tracking-wider text-[#8E7A68] font-semibold whitespace-nowrap">
+                      {t('langMainHeader')}
+                    </span>
                   </div>
+                  {[
+                    { code: 'uk', name: 'Українська' },
+                    { code: 'hu', name: 'Magyar' },
+                    { code: 'en', name: 'English' },
+                  ].map(({ code, name }) => {
+                    const enabledLangs = cafeForm.enabledLangs ?? ['uk', 'hu', 'en'];
+                    const enabled = enabledLangs.includes(code);
+                    const isMain = (cafeForm.defaultLang ?? 'uk') === code;
+                    const lastEnabled = enabled && enabledLangs.length === 1;
+                    return (
+                      <div
+                        key={code}
+                        className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-colors ${
+                          enabled ? 'bg-[#FDFBF7] border-[#E6DFD5]' : 'bg-[#F1ECE3]/60 border-[#E6DFD5]'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enabled}
+                          aria-label={name}
+                          disabled={lastEnabled}
+                          onClick={() => toggleCafeLang(code)}
+                          className={`relative inline-flex shrink-0 w-12 h-7 rounded-full transition-colors duration-200 border ${
+                            lastEnabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                          } ${enabled ? 'bg-[#C09E6D] border-[#C09E6D]' : 'bg-[#E6DFD5] border-[#D5CBBF]'}`}
+                        >
+                          <span
+                            className={`absolute top-1/2 -translate-y-1/2 left-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 ${
+                              enabled ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          >
+                            {enabled ? <Check className="w-3.5 h-3.5 text-[#3E2F26] stroke-[3]" /> : <X className="w-3.5 h-3.5 text-[#8E7A68]" />}
+                          </span>
+                        </button>
+
+                        <span className={`flex-1 text-sm font-semibold ${enabled ? 'text-[#231913]' : 'text-[#8E7A68]'}`}>
+                          {name}
+                        </span>
+
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isMain}
+                          aria-label={t('langMainLabel')}
+                          disabled={!enabled}
+                          onClick={() => setCafeForm(prev => ({ ...prev, defaultLang: code }))}
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                            !enabled
+                              ? 'border-[#E6DFD5] opacity-40 cursor-not-allowed'
+                              : isMain
+                              ? 'border-[#C09E6D] cursor-pointer'
+                              : 'border-[#C8BFB4] hover:border-[#C09E6D] cursor-pointer'
+                          }`}
+                        >
+                          {isMain && <span className="w-3 h-3 rounded-full bg-[#C09E6D]" />}
+                        </button>
+                      </div>
+                    );
+                  })}
 
                   <button
                     type="submit"
@@ -2887,7 +2980,7 @@ export default function AdminPage() {
         isOpen={isCatDrawerOpen}
         title={editingCategory ? `${t('edit')} ${t('categories').toLowerCase()}` : t('addCategory')}
         subtitle={t('categorySubtitle')}
-        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
+        headerAction={adminLangSwitcher}
         onClose={resetCatForm}
       >
         <form onSubmit={handleSaveCategory} className="space-y-5">
@@ -3041,7 +3134,7 @@ export default function AdminPage() {
         isOpen={isProdDrawerOpen}
         title={editingProduct ? t('editDishTitle') : t('addDishTitle')}
         subtitle={t('productSubtitle')}
-        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
+        headerAction={adminLangSwitcher}
         onClose={resetProdForm}
       >
         <form onSubmit={handleSaveProduct} className="space-y-5">
@@ -3227,6 +3320,18 @@ export default function AdminPage() {
               <p className="text-xs text-[#8E7A68] mt-2 italic">{t('optional')}</p>
             )}
           </div>
+
+          <div className="border-t border-[#E6DFD5]" />
+
+          {/* Modifiers (flavour, volume, size…) */}
+          <ModifiersEditor
+            value={prodForm.modifiers}
+            onChange={(modifiers) => setProdForm(prev => ({ ...prev, modifiers }))}
+            lang={lang}
+            autoSession={autoSession}
+            onSession={setAutoSession}
+            t={t}
+          />
 
           <div className="border-t border-[#E6DFD5]" />
 
@@ -3567,7 +3672,7 @@ export default function AdminPage() {
         isOpen={isTextBannerDrawerOpen}
         title={t('textBanner')}
         onClose={closeTextBannerDrawer}
-        headerAction={<LanguageSelector currentLang={lang} onChange={changeLanguage} />}
+        headerAction={adminLangSwitcher}
       >
         <form onSubmit={handleSaveTextBanner} className="space-y-5">
           {/* Banner text */}

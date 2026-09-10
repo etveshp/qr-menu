@@ -16,6 +16,8 @@ import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
+import { cartLineKey } from '@/lib/cart';
+import { defaultSelection, selectedDelta, type ModifierSelection } from '@/lib/modifiers';
 import { Header } from '@/components/menu/Header';
 import { HeroBanner } from '@/components/menu/HeroBanner';
 import { CategoryCard } from '@/components/menu/CategoryCard';
@@ -100,6 +102,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [selectedProductModal, setSelectedProductModal] = useState<Product | null>(null);
   const [modalQty, setModalQty] = useState<number>(1);
+  const [modalSelection, setModalSelection] = useState<ModifierSelection>({});
   const [isJustAdded, setIsJustAdded] = useState<boolean>(false);
 
   // Text banner (sticky bar under the header). Seeded from SSR (Variant 1) so
@@ -208,7 +211,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     };
   }, []);
 
-  const { cart, addItem, setQty, incrementItem, decrementItem, removeItem, getQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
+  const { cart, addItem, setQty, incrementItem, decrementItem, removeItem, getQty, getProductQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
   // Close modals on Escape key + lock body scroll while a modal is open
@@ -235,16 +238,30 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
   // Apply the cafe's default language unless the guest already picked one.
   useEffect(() => {
-    const dl = cafeInfo?.defaultLang;
-    if (dl !== 'uk' && dl !== 'hu' && dl !== 'en') return;
+    const configured = cafeInfo?.enabledLangs ?? ['uk', 'hu', 'en'];
+    const enabled = (['uk', 'hu', 'en'] as const).filter((l) => configured.includes(l));
+    if (enabled.length === 0) return;
+    // If the current language was disabled, fall back to the first enabled one.
+    if (!(enabled as readonly string[]).includes(lang)) {
+      changeLanguage(enabled[0]);
+      return;
+    }
+    const preferred = (cafeInfo?.defaultLang ?? 'uk') as 'uk' | 'hu' | 'en';
+    const target = (enabled as readonly string[]).includes(preferred) ? preferred : enabled[0];
     if (typeof window !== 'undefined' && localStorage.getItem('aura_lang')) return;
-    if (lang === dl) return;
-    changeLanguage(dl as 'uk' | 'hu' | 'en');
-  }, [cafeInfo?.defaultLang, lang, changeLanguage]);
+    if (lang === target) return;
+    changeLanguage(target);
+  }, [cafeInfo?.defaultLang, cafeInfo?.enabledLangs, lang, changeLanguage]);
+
+  const selectionKeys = (sel: ModifierSelection) => Object.values(sel).flat();
 
   const openProductModal = (prod: Product) => {
+    const groups = prod.modifiers ?? [];
+    const sel = defaultSelection(groups);
     setSelectedProductModal(prod);
-    setModalQty(getQty(prod.id) > 0 ? getQty(prod.id) : 1);
+    setModalSelection(sel);
+    const lineQty = getQty(cartLineKey(prod.id, selectionKeys(sel)));
+    setModalQty(lineQty > 0 ? lineQty : 1);
     setIsJustAdded(false);
     triggerStepperHaptic();
   };
@@ -260,11 +277,20 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     playStepperSound();
   };
 
+  const handleModalSetGroup = (groupId: string, optionIds: string[]) => {
+    if (!selectedProductModal) return;
+    const next: ModifierSelection = { ...modalSelection, [groupId]: optionIds };
+    setModalSelection(next);
+    const lineQty = getQty(cartLineKey(selectedProductModal.id, selectionKeys(next)));
+    setModalQty(lineQty > 0 ? lineQty : 1);
+    triggerStepperHaptic();
+  };
+
   const handleAddModalToCart = (e?: React.MouseEvent) => {
     if (!selectedProductModal) return;
-    const prodId = selectedProductModal.id;
+    const lineKey = cartLineKey(selectedProductModal.id, selectionKeys(modalSelection));
     const targetQty = modalQty;
-    setQty(prodId, targetQty);
+    setQty(lineKey, targetQty);
     playStepperSound();
     setBouncingCart(true);
     setTimeout(() => setBouncingCart(false), 300);
@@ -291,8 +317,8 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     }
   };
 
-  const handleIncrementCart = (productId: string, e?: React.MouseEvent) => {
-    incrementItem(productId);
+  const handleIncrementCart = (lineKey: string, e?: React.MouseEvent) => {
+    incrementItem(lineKey);
     playStepperSound();
     if (e) {
       const id = Date.now();
@@ -301,17 +327,20 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     }
   };
 
-  const handleDecrementCart = (productId: string) => {
-    decrementItem(productId);
+  const handleDecrementCart = (lineKey: string) => {
+    decrementItem(lineKey);
     playStepperSound();
   };
 
-  const handleRemoveFromCart = (productId: string) => {
-    removeItem(productId);
+  const handleRemoveFromCart = (lineKey: string) => {
+    removeItem(lineKey);
     playStepperSound();
   };
 
-  const getProductQty = (id: string) => getQty(id);
+  const modalModifierGroups = selectedProductModal?.modifiers ?? [];
+  const modalUnitPrice = selectedProductModal
+    ? selectedProductModal.price + selectedDelta(modalModifierGroups, modalSelection)
+    : 0;
 
   const filteredProducts = activeCategory
     ? products.filter(p => p.categoryId === activeCategory)
@@ -513,6 +542,10 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         getProductDesc={getProductDesc}
         getProductIngredients={getProductIngredients}
         t={t}
+        lang={lang}
+        selection={modalSelection}
+        onSetGroup={handleModalSetGroup}
+        unitPrice={modalUnitPrice}
         onClose={() => setSelectedProductModal(null)}
         onDecrementQty={handleModalDecrement}
         onIncrementQty={handleModalIncrement}
@@ -531,6 +564,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
         products={products}
         totalCartPrice={totalCartPrice}
         getProductName={getProductName}
+        lang={lang}
         t={t}
         onClose={() => setIsCartOpen(false)}
         onDecrement={handleDecrementCart}

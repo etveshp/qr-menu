@@ -7,6 +7,7 @@ import {
   decrementCartItem,
   removeCartItem,
   getCartItemQty,
+  getProductQty as cartProductQty,
   getCartTotalPrice,
   type Cart,
 } from '@/lib/cart';
@@ -47,28 +48,33 @@ export function useCart(products: Array<{ id: string; price: number }>) {
     }
   }, [cart]);
 
-  const addItem = useCallback((productId: string) => {
-    setCart(prev => addToCart(prev, productId));
+  const addItem = useCallback((lineKey: string) => {
+    setCart(prev => addToCart(prev, lineKey));
   }, []);
 
-  const setQty = useCallback((productId: string, qty: number) => {
-    setCart(prev => setCartQty(prev, productId, qty));
+  const setQty = useCallback((lineKey: string, qty: number) => {
+    setCart(prev => setCartQty(prev, lineKey, qty));
   }, []);
 
-  const incrementItem = useCallback((productId: string) => {
-    setCart(prev => addToCart(prev, productId));
+  const incrementItem = useCallback((lineKey: string) => {
+    setCart(prev => addToCart(prev, lineKey));
   }, []);
 
-  const decrementItem = useCallback((productId: string) => {
-    setCart(prev => decrementCartItem(prev, productId));
+  const decrementItem = useCallback((lineKey: string) => {
+    setCart(prev => decrementCartItem(prev, lineKey));
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setCart(prev => removeCartItem(prev, productId));
+  const removeItem = useCallback((lineKey: string) => {
+    setCart(prev => removeCartItem(prev, lineKey));
   }, []);
 
   const getQty = useCallback(
-    (productId: string) => getCartItemQty(cart, productId),
+    (lineKey: string) => getCartItemQty(cart, lineKey),
+    [cart]
+  );
+
+  const getProductQty = useCallback(
+    (productId: string) => cartProductQty(cart, productId),
     [cart]
   );
 
@@ -83,6 +89,7 @@ export function useCart(products: Array<{ id: string; price: number }>) {
     decrementItem,
     removeItem,
     getQty,
+    getProductQty,
     itemsCount,
     totalPrice,
   };

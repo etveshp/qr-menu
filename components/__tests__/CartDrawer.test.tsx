@@ -62,6 +62,7 @@ function renderCart(overrides: Partial<Parameters<typeof CartDrawer>[0]> = {}) {
       products={products}
       totalCartPrice={130}
       getProductName={(p) => p.nameUk}
+      lang="uk"
       t={t as any}
       onClose={vi.fn()}
       onDecrement={vi.fn()}

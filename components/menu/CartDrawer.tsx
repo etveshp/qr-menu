@@ -8,6 +8,8 @@ import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
+import { parseCartKey, cartLineUnitPrice } from '@/lib/cart';
+import { localizedGroupName, localizedOptionName } from '@/lib/modifiers';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -15,11 +17,12 @@ interface CartDrawerProps {
   products: Product[];
   totalCartPrice: number;
   getProductName: (prod: Product) => string;
+  lang: string;
   t: Translator;
   onClose: () => void;
-  onDecrement: (productId: string) => void;
-  onIncrement: (productId: string, e?: React.MouseEvent) => void;
-  onRemove: (productId: string) => void;
+  onDecrement: (lineKey: string) => void;
+  onIncrement: (lineKey: string, e?: React.MouseEvent) => void;
+  onRemove: (lineKey: string) => void;
   logoUrl?: string;
 }
 
@@ -29,6 +32,7 @@ export function CartDrawer({
   products,
   totalCartPrice,
   getProductName,
+  lang,
   t,
   onClose,
   onDecrement,
@@ -37,7 +41,7 @@ export function CartDrawer({
   logoUrl,
 }: CartDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [removeTarget, setRemoveTarget] = useState<Product | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ key: string; name: string } | null>(null);
 
   useFocusTrap(panelRef, isOpen);
 
@@ -93,82 +97,99 @@ export function CartDrawer({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {Object.entries(cart).map(([id, qty]) => {
-                    const prod = products.find((p) => p.id === id);
+                  {Object.entries(cart).map(([key, qty]) => {
+                    const { productId, optionIds } = parseCartKey(key);
+                    const prod = products.find((p) => p.id === productId);
                     if (!prod) return null;
+                    const unitPrice = cartLineUnitPrice(prod, optionIds);
+                    const selectedGroups = (prod.modifiers ?? [])
+                      .map((group) => ({ group, options: group.options.filter((o) => optionIds.includes(o.id)) }))
+                      .filter((entry) => entry.options.length > 0);
 
                     return (
-                      <div
-                        key={id}
-                        className="bg-[#FDFBF7] border border-[#E6DFD5] rounded-2xl overflow-hidden flex items-stretch premium-shadow"
-                      >
-                        <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
-                          {prod.photo ? (
-                            <Image
-                              src={prod.photo}
-                              alt={prod.nameUk}
-                              fill
-                              sizes="96px"
-                              className="object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : logoUrl ? (
-                            <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <div key={key}>
+                        <div className="relative z-10 bg-[#FDFBF7] border border-[#E6DFD5] rounded-2xl overflow-hidden flex items-stretch premium-shadow">
+                          <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
+                            {prod.photo ? (
                               <Image
-                                src={logoUrl}
-                                alt=""
+                                src={prod.photo}
+                                alt={prod.nameUk}
                                 fill
-                                className="object-contain opacity-30"
                                 sizes="96px"
+                                className="object-cover"
                                 referrerPolicy="no-referrer"
                               />
-                            </div>
-                          ) : null}
-                        </div>
+                            ) : logoUrl ? (
+                              <div className="absolute inset-0 flex items-center justify-center p-4">
+                                <Image
+                                  src={logoUrl}
+                                  alt=""
+                                  fill
+                                  className="object-contain opacity-30"
+                                  sizes="96px"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            ) : null}
+                          </div>
 
-                        <div className="flex flex-1 flex-col justify-center gap-2.5 p-3 min-w-0">
-                          <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="flex flex-1 flex-col justify-center gap-1.5 p-3 min-w-0">
                             <h4 className="font-display font-bold text-lg text-[#231913] truncate leading-snug min-w-0">
                               {getProductName(prod)}
                             </h4>
-                          </div>
 
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-lg sm:text-xl text-[#3E2F26] font-bold">
-                              {prod.price} {t('priceCurrency')}
-                            </p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-lg sm:text-xl text-[#3E2F26] font-bold">
+                                {unitPrice} {t('priceCurrency')}
+                              </p>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="flex items-center bg-[#F1ECE3] border border-[#E6DFD5] rounded-full overflow-hidden shadow-sm">
+                              <div className="flex items-center gap-3 shrink-0">
+                                <div className="flex items-center bg-[#F1ECE3] border border-[#E6DFD5] rounded-full overflow-hidden shadow-sm">
+                                  <button
+                                    onClick={() => onDecrement(key)}
+                                    className="w-9 h-10 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
+                                    aria-label="Decrease quantity"
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </button>
+                                  <span className="w-7 text-center font-bold text-sm text-[#231913] select-none">
+                                    {qty}
+                                  </span>
+                                  <button
+                                    onClick={() => onIncrement(key)}
+                                    className="w-9 h-10 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
+                                    aria-label="Increase quantity"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
                                 <button
-                                  onClick={() => onDecrement(prod.id)}
-                                  className="w-9 h-10 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
-                                  aria-label="Decrease quantity"
+                                  type="button"
+                                  onClick={() => setRemoveTarget({ key, name: getProductName(prod) })}
+                                  className="p-1.5 text-[#3E2F26] hover:bg-[#F1ECE3] transition-all rounded-full shrink-0 cursor-pointer"
+                                  aria-label="Remove item"
                                 >
-                                  <Minus className="w-4 h-4" />
-                                </button>
-                                <span className="w-7 text-center font-bold text-sm text-[#231913] select-none">
-                                  {qty}
-                                </span>
-                                <button
-                                  onClick={() => onIncrement(prod.id)}
-                                  className="w-9 h-10 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all"
-                                  aria-label="Increase quantity"
-                                >
-                                  <Plus className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setRemoveTarget(prod)}
-                                className="p-1.5 text-[#3E2F26] hover:bg-[#F1ECE3] transition-all rounded-full shrink-0 cursor-pointer"
-                                aria-label="Remove item"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </div>
                           </div>
                         </div>
+
+                        {selectedGroups.length > 0 && (
+                          <div className="relative z-0 -mt-3 mx-2 pt-5 pb-3 px-3.5 bg-[#FDFBF7] border border-[#E6DFD5] border-t-0 rounded-b-2xl space-y-1">
+                            {selectedGroups.map(({ group, options }) => (
+                              <div key={group.id} className="flex items-baseline justify-between gap-3 text-sm leading-snug">
+                                <span className="text-[#8E7A68] shrink-0">{localizedGroupName(group, lang)}</span>
+                                <span className="text-[#231913] text-right">
+                                  {options
+                                    .map((o) => `${localizedOptionName(o, lang)}${o.priceDelta > 0 ? ` +${o.priceDelta} ${t('priceCurrency')}` : ''}`)
+                                    .join(', ')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -201,12 +222,12 @@ export function CartDrawer({
           <ConfirmModal
             isOpen={!!removeTarget}
             title={t('deleteConfirmTitle')}
-            message={removeTarget ? `${t('deleteConfirmMessage')} "${getProductName(removeTarget)}"?` : ''}
+            message={removeTarget ? `${t('deleteConfirmMessage')} "${removeTarget.name}"?` : ''}
             confirmLabel={t('delete')}
             cancelLabel={t('cancel')}
             onCancel={() => setRemoveTarget(null)}
             onConfirm={() => {
-              if (removeTarget) onRemove(removeTarget.id);
+              if (removeTarget) onRemove(removeTarget.key);
               setRemoveTarget(null);
             }}
           />

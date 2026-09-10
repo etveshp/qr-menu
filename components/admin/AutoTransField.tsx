@@ -90,9 +90,11 @@ export function AutoTransField({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{label ?? ''}</label>
-      </div>
+      {label ? (
+        <div className="mb-2 flex items-center justify-between">
+          <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{label}</label>
+        </div>
+      ) : null}
 
       <div className="relative">
         {multiline ? (

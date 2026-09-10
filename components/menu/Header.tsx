@@ -38,6 +38,10 @@ export function Header({
   t,
   tableNumber,
 }: HeaderProps) {
+  const enabledLangOptions = (cafeInfo?.enabledLangs ?? ['uk', 'hu', 'en']).filter(
+    (l): l is Language => l === 'uk' || l === 'hu' || l === 'en'
+  );
+
   return (
     <header
       ref={headerRef}
@@ -84,7 +88,13 @@ export function Header({
             </span>
           )}
 
-          <LanguageSelector currentLang={lang} onChange={changeLanguage} />
+          {enabledLangOptions.length > 1 && (
+            <LanguageSelector
+              currentLang={lang}
+              onChange={changeLanguage}
+              options={enabledLangOptions}
+            />
+          )}
 
           {/* Cart Order Button */}
           <motion.button

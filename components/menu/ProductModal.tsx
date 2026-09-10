@@ -10,6 +10,11 @@ import type { Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { ModifierSelector } from '@/components/menu/ModifierSelector';
+import {
+  missingRequiredGroups,
+  type ModifierSelection,
+} from '@/lib/modifiers';
 
 interface ProductModalProps {
   product: Product | null;
@@ -27,6 +32,10 @@ interface ProductModalProps {
   getProductDesc: (prod: Product) => string;
   getProductIngredients: (prod: Product) => string[];
   t: Translator;
+  lang: string;
+  selection: ModifierSelection;
+  onSetGroup: (groupId: string, optionIds: string[]) => void;
+  unitPrice: number;
   onClose: () => void;
   onDecrementQty: () => void;
   onIncrementQty: () => void;
@@ -55,6 +64,10 @@ export function ProductModal({
   getProductDesc,
   getProductIngredients,
   t,
+  lang,
+  selection,
+  onSetGroup,
+  unitPrice,
   onClose,
   onDecrementQty,
   onIncrementQty,
@@ -155,6 +168,19 @@ export function ProductModal({
 
   const ingredients = product ? getProductIngredients(product) : [];
   const badgeDef = product ? productBadgeById(product.badge) : undefined;
+  const modifierGroups = product?.modifiers ?? [];
+  const canAdd = missingRequiredGroups(modifierGroups, selection).length === 0;
+
+  const renderModifiers = () =>
+    modifierGroups.length > 0 ? (
+      <ModifierSelector
+        groups={modifierGroups}
+        selection={selection}
+        onSetGroup={onSetGroup}
+        lang={lang}
+        t={t}
+      />
+    ) : null;
 
   const renderDescription = () =>
     product && getProductDesc(product) ? (
@@ -219,10 +245,22 @@ export function ProductModal({
         <button onClick={onIncrementQty} className="w-10 h-12 flex items-center justify-center text-[#3E2F26] hover:bg-[#E6DFD5] active:scale-95 transition-all" aria-label="Increase quantity"
         ><Plus className="w-4 h-4" /></button>
       </div>
-      <motion.button onClick={onAddToCart} whileTap={{ scale: 0.97 }}
-        className={`flex-1 h-12 text-sm uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 rounded-full shadow-md ${isJustAdded ? 'bg-[#C09E6D] text-white' : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'}`}
+      <motion.button onClick={onAddToCart} whileTap={canAdd ? { scale: 0.97 } : undefined} disabled={!canAdd}
+        className={`flex-1 h-12 text-sm uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 rounded-full shadow-md ${
+          !canAdd
+            ? 'bg-[#C8BFB4] text-white cursor-not-allowed'
+            : isJustAdded
+            ? 'bg-[#C09E6D] text-white'
+            : 'bg-[#3E2F26] text-[#FAF6EE] hover:bg-[#231913]'
+        }`}
       >
-        {isJustAdded ? (<><Check className="w-4.5 h-4.5 stroke-[2.5]" /><span>{t('addedToCart')}</span></>) : (<><ConciergeBell className="w-4.5 h-4.5" /><span>{t('addToCart')}</span></>)}
+        {!canAdd ? (
+          <span>{t('chooseModifier')}</span>
+        ) : isJustAdded ? (
+          <><Check className="w-4.5 h-4.5 stroke-[2.5]" /><span>{t('addedToCart')}</span></>
+        ) : (
+          <><ConciergeBell className="w-4.5 h-4.5" /><span>{t('addToCart')} · {unitPrice * modalQty} {t('priceCurrency')}</span></>
+        )}
       </motion.button>
     </>
   );
@@ -338,6 +376,7 @@ export function ProductModal({
                 <span className="font-bold text-3xl text-[#C09E6D] shrink-0 tracking-tight">{product.price} {t('priceCurrency')}</span>
               </div>
               <div className="flex-1 overflow-y-auto px-7 py-4 space-y-4 min-h-0">
+                {renderModifiers()}
                 {renderDescription()}
                 {renderIngredients()}
               </div>
@@ -406,6 +445,7 @@ export function ProductModal({
               <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#231913] leading-tight">{getProductName(product)}</h3>
               <span className="font-bold text-2xl sm:text-3xl text-[#C09E6D] shrink-0 tracking-tight">{product.price} {t('priceCurrency')}</span>
             </div>
+            {renderModifiers()}
             {renderDescription()}
             {renderIngredients()}
             {recommendedProducts.length > 0 && <div className="mt-auto">{renderRecommended()}</div>}

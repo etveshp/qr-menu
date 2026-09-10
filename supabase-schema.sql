@@ -38,6 +38,7 @@ create table public.cafe_info (
   greeting_admin_enabled boolean not null default false,
   show_table_number boolean not null default false,
   default_lang text not null default 'uk',
+  enabled_langs text[] not null default '{uk,hu,en}',
   updated_at timestamptz not null default now()
 );
 
@@ -74,6 +75,7 @@ create table public.products (
   photo_original text not null default '',
   recommended_ids text[] not null default '{}',
   badge text not null default '',
+  modifiers jsonb not null default '[]'::jsonb,
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
