@@ -51,11 +51,15 @@
     "vitest": "^4.1.11"
   },
   "optionalDependencies": {
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.3.3",
+    "@tailwindcss/oxide-win32-x64-msvc": "4.1.11",
     "lightningcss-win32-x64-msvc": "^1.33.0"
   },
   "overrides": {
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true,
+    "@tailwindcss/oxide": true
   }
 }

@@ -3331,6 +3331,8 @@ export default function AdminPage() {
             autoSession={autoSession}
             onSession={setAutoSession}
             t={t}
+            savedGroupIds={(editingProduct?.modifiers ?? []).map(g => g.id)}
+            savedOptionIds={(editingProduct?.modifiers ?? []).flatMap(g => g.options.map(o => o.id))}
           />
 
           <div className="border-t border-[#E6DFD5]" />

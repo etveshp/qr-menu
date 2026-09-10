@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConciergeBell, X, Coffee, Info, Minus, Plus, Trash2 } from 'lucide-react';
@@ -177,17 +177,22 @@ export function CartDrawer({
                         </div>
 
                         {selectedGroups.length > 0 && (
-                          <div className="relative z-0 -mt-3 mx-2 pt-5 pb-3 px-3.5 bg-[#FDFBF7] border border-[#E6DFD5] border-t-0 rounded-b-2xl space-y-1">
-                            {selectedGroups.map(({ group, options }) => (
-                              <div key={group.id} className="flex items-baseline justify-between gap-3 text-sm leading-snug">
-                                <span className="text-[#8E7A68] shrink-0">{localizedGroupName(group, lang)}</span>
-                                <span className="text-[#231913] text-right">
-                                  {options
-                                    .map((o) => `${localizedOptionName(o, lang)}${o.priceDelta > 0 ? ` +${o.priceDelta} ${t('priceCurrency')}` : ''}`)
-                                    .join(', ')}
-                                </span>
-                              </div>
-                            ))}
+                          <div className="relative z-0 -mt-3 mx-2 pt-5 pb-3 px-3.5 bg-[#FDFBF7] border border-[#E6DFD5] border-t-0 rounded-b-2xl">
+                            <div className="grid grid-cols-[1fr_1.3fr_auto] gap-x-3 gap-y-1 text-sm leading-snug">
+                              {selectedGroups.map(({ group, options }) => (
+                                <Fragment key={group.id}>
+                                  {options.map((o, i) => (
+                                    <Fragment key={o.id}>
+                                      <span className="text-[#8E7A68] truncate">{i === 0 ? localizedGroupName(group, lang) : ''}</span>
+                                      <span className="text-[#231913] truncate">{localizedOptionName(o, lang)}</span>
+                                      <span className="text-right text-[#C09E6D] font-semibold whitespace-nowrap">
+                                        {o.priceDelta > 0 ? `+${o.priceDelta} ${t('priceCurrency')}` : '—'}
+                                      </span>
+                                    </Fragment>
+                                  ))}
+                                </Fragment>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

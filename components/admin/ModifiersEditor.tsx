@@ -13,10 +13,12 @@ import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } 
 import { CSS } from '@dnd-kit/utilities';
 import { MoreVertical, Plus, Trash2, Check, X } from 'lucide-react';
 import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
+import { ConfirmModal } from '@/components/admin/ConfirmModal';
 import {
   createModifierGroup,
   createModifierOption,
   localizedGroupName,
+  localizedOptionName,
 } from '@/lib/modifiers';
 import type { ModifierGroup, ModifierOption } from '@/lib/supabase';
 import type { TRANSLATIONS } from '@/lib/translations';
@@ -30,6 +32,10 @@ export interface ModifiersEditorProps {
   autoSession: Record<string, string>;
   onSession: (next: Record<string, string>) => void;
   t: Translator;
+  /** Ids of groups that already exist in the saved product (deletion asks for confirmation). */
+  savedGroupIds?: string[];
+  /** Ids of options that already exist in the saved product (deletion asks for confirmation). */
+  savedOptionIds?: string[];
 }
 
 const nameFor = (entity: { nameUk: string; nameHu: string; nameEn: string }, lang: string): string =>
@@ -75,7 +81,7 @@ function SortableGroupCard({
   const title = localizedGroupName(group, lang) || t('modifierUntitled');
 
   const segmentClass = (active: boolean) =>
-    `px-3 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+    `w-full text-center px-3 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
       active ? 'bg-[#3E2F26] text-[#FAF6EE] shadow-sm' : 'bg-[#F1ECE3] text-[#8E7A68] hover:bg-[#E6DFD5]'
     }`;
 
@@ -121,7 +127,7 @@ function SortableGroupCard({
 
           <div>
             <span className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1.5">{t('modifierType')}</span>
-            <div className="inline-flex gap-1 p-1 bg-[#F1ECE3]/60 rounded-xl">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-[#F1ECE3]/60 rounded-xl w-full">
               <button type="button" className={segmentClass(group.type === 'single')}
                 onClick={() => onUpdate({ type: 'single' })}>{t('modifierSingle')}</button>
               <button type="button" className={segmentClass(group.type === 'multiple')}
@@ -209,8 +215,10 @@ function SortableGroupCard({
   );
 }
 
-export function ModifiersEditor({ value, onChange, lang, autoSession, onSession, t }: ModifiersEditorProps) {
+export function ModifiersEditor({ value, onChange, lang, autoSession, onSession, t, savedGroupIds = [], savedOptionIds = [] }: ModifiersEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [groupToRemove, setGroupToRemove] = useState<ModifierGroup | null>(null);
+  const [optionToRemove, setOptionToRemove] = useState<{ groupId: string; option: ModifierOption } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } })
@@ -295,6 +303,11 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
     if (expandedId === id) setExpandedId(null);
   };
 
+  const requestRemoveGroup = (group: ModifierGroup) => {
+    if (savedGroupIds.includes(group.id)) setGroupToRemove(group);
+    else removeGroup(group.id);
+  };
+
   const addOption = (groupId: string) =>
     onChange(
       value.map((g) => (g.id === groupId ? { ...g, options: [...g.options, createModifierOption({ sortOrder: g.options.length })] } : g))
@@ -302,6 +315,16 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
 
   const removeOption = (groupId: string, optionId: string) =>
     onChange(value.map((g) => (g.id === groupId ? { ...g, options: g.options.filter((o) => o.id !== optionId) } : g)));
+
+  const requestRemoveOption = (groupId: string, optionId: string) => {
+    if (!savedOptionIds.includes(optionId)) {
+      removeOption(groupId, optionId);
+      return;
+    }
+    const option = value.find((g) => g.id === groupId)?.options.find((o) => o.id === optionId);
+    if (option) setOptionToRemove({ groupId, option });
+    else removeOption(groupId, optionId);
+  };
 
   const orderedGroups = (dragging ? displayIds : ids)
     .map((id) => groupById.get(id))
@@ -343,10 +366,10 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
                   isOpen={expandedId === group.id}
                   onToggleOpen={() => setExpandedId(expandedId === group.id ? null : group.id)}
                   onUpdate={(patch) => updateGroup(group.id, patch)}
-                  onRemove={() => removeGroup(group.id)}
+                  onRemove={() => requestRemoveGroup(group)}
                   onAddOption={() => addOption(group.id)}
                   onUpdateOption={(optionId, patch) => updateOption(group.id, optionId, patch)}
-                  onRemoveOption={(optionId) => removeOption(group.id, optionId)}
+                  onRemoveOption={(optionId) => requestRemoveOption(group.id, optionId)}
                   lang={lang}
                   autoSession={autoSession}
                   onSession={onSession}
@@ -358,6 +381,32 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
           </SortableContext>
         </DndContext>
       )}
+
+      <ConfirmModal
+        isOpen={!!groupToRemove}
+        title={t('deleteConfirmTitle')}
+        message={groupToRemove ? `${t('deleteConfirmMessage')} "${localizedGroupName(groupToRemove, lang) || t('modifierUntitled')}"?` : ''}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        onCancel={() => setGroupToRemove(null)}
+        onConfirm={() => {
+          if (groupToRemove) removeGroup(groupToRemove.id);
+          setGroupToRemove(null);
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={!!optionToRemove}
+        title={t('deleteConfirmTitle')}
+        message={optionToRemove ? `${t('deleteConfirmMessage')} "${localizedOptionName(optionToRemove.option, lang) || t('optionName')}"?` : ''}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        onCancel={() => setOptionToRemove(null)}
+        onConfirm={() => {
+          if (optionToRemove) removeOption(optionToRemove.groupId, optionToRemove.option.id);
+          setOptionToRemove(null);
+        }}
+      />
     </div>
   );
 }
