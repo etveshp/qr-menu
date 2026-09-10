@@ -24,6 +24,8 @@ export interface TitleFloatInput {
   paddingTop: number;
   /** Висота рядка «назва + ціна», px. */
   rowHeight: number;
+  /** Висота фото-блоку (4:3), px. */
+  photoHeight: number;
 }
 
 export interface TitleFloatState {
@@ -46,7 +48,7 @@ export interface TitleFloatState {
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-export function computeTitleFloat({ scrollTop, paddingTop, rowHeight }: TitleFloatInput): TitleFloatState {
+export function computeTitleFloat({ scrollTop, paddingTop, rowHeight, photoHeight }: TitleFloatInput): TitleFloatState {
   const safeRow = Math.max(1, rowHeight);
   // Повний шлях, який проходить рядок до повного напливу над фото:
   // спершу піднімається від свого місця (відступ paddingTop), далі — на висоту рядка.
@@ -65,7 +67,7 @@ export function computeTitleFloat({ scrollTop, paddingTop, rowHeight }: TitleFlo
     cloneBottom,
     cloneOpacity: progress,
     inFlowOpacity: 1 - progress,
-    gradientHeight: (safeRow + TITLE_FLOAT_GRADIENT_GAP + TITLE_FLOAT_BOTTOM_GAP) * progress,
+    gradientHeight: (photoHeight / 3) * progress,
     gradientOpacity: progress,
   };
 }

@@ -73,7 +73,7 @@ export function ProductModal({
   const isWide = useMediaQuery('(min-width: 1024px)');
 
   const [float, setFloat] = useState<TitleFloatState>(() =>
-    computeTitleFloat({ scrollTop: 0, paddingTop: 20, rowHeight: 60 })
+    computeTitleFloat({ scrollTop: 0, paddingTop: 20, rowHeight: 60, photoHeight: 300 })
   );
   const [cloneLayout, setCloneLayout] = useState({ left: 20, width: 0, height: 60 });
   const [recPage, setRecPage] = useState(0);
@@ -127,8 +127,13 @@ export function ProductModal({
       setCloneLayout({ left: padLeft, width: Math.max(0, width), height: rowHeight });
     };
 
+    const photoHeight = () => {
+      const w = isWide ? 896 : (content?.clientWidth ?? 390); // 896 = max-w-4xl desktop
+      return Math.max(1, w * 0.75);
+    };
+
     const update = () => {
-      setFloat(computeTitleFloat({ scrollTop: content.scrollTop, paddingTop, rowHeight }));
+      setFloat(computeTitleFloat({ scrollTop: content.scrollTop, paddingTop, rowHeight, photoHeight: photoHeight() }));
     };
 
     measure();
@@ -396,14 +401,14 @@ export function ProductModal({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div ref={contentRef} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+          <div ref={contentRef} className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col gap-4 [&>*]:shrink-0">
             <div ref={titleRowRef} className="flex items-start justify-between gap-3" style={{ opacity: float.inFlowOpacity }}>
               <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#231913] leading-tight">{getProductName(product)}</h3>
               <span className="font-bold text-2xl sm:text-3xl text-[#C09E6D] shrink-0 tracking-tight">{product.price} {t('priceCurrency')}</span>
             </div>
             {renderDescription()}
             {renderIngredients()}
-            {renderRecommended()}
+            {recommendedProducts.length > 0 && <div className="mt-auto">{renderRecommended()}</div>}
           </div>
           <div className="p-4 sm:p-5 border-t border-[#E6DFD5] bg-[#FDFBF7] flex items-center gap-3">
             {renderFooter()}
