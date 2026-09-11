@@ -227,7 +227,8 @@ export function CartDrawer({
           <ConfirmModal
             isOpen={!!removeTarget}
             title={t('deleteConfirmTitle')}
-            message={removeTarget ? `${t('deleteConfirmMessage')} "${removeTarget.name}"?` : ''}
+            message={removeTarget ? t('deleteConfirmMessage') : ''}
+            subject={removeTarget ? `"${removeTarget.name}"?` : undefined}
             confirmLabel={t('delete')}
             cancelLabel={t('cancel')}
             onCancel={() => setRemoveTarget(null)}

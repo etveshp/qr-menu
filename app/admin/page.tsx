@@ -3843,7 +3843,8 @@ export default function AdminPage() {
       <ConfirmModal
         isOpen={!!deleteTarget}
         title={t('deleteConfirmTitle')}
-        message={deleteTarget ? `${t('deleteConfirmMessage')} "${deleteTarget.name}"?` : ''}
+        message={deleteTarget ? t('deleteConfirmMessage') : ''}
+        subject={deleteTarget ? `"${deleteTarget.name}"?` : undefined}
         warning={deleteTarget?.kind === 'category' && (deleteTarget.productsCount ?? 0) > 0
           ? t('deleteCategoryWithProductsWarning').replace('{count}', String(deleteTarget!.productsCount))
           : ''}

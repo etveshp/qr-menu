@@ -37,6 +37,7 @@
 - **Lint доведено до 0 warnings** (Фаза 17.8): у `app/admin/page.tsx` і `RecommendedProductsPicker.tsx` виправлено директиви `@next/next/no-img-element` (навмисні адмін-прев'ю) — помилкові `eslint-disable` перенесено точно перед `<img>`, file-level для пікера. Тепер `npm run lint` = **0 problems**.
 - **Фінальна верифікація (Фаза 17.8):** повний ланцюг `npm test` (252) / `tsc --noEmit` (0) / `lint` (0) / `test:coverage` (проходить) / `build` (успіх); smoke prod-сервера (`/` 200 SSR з даними, `/admin` 200, кастомна 404, `/api/menu` 200). Оновлено `PLAN.md` і `AUDIT.md`.
 - **Збільшено шрифт тексту запитання в усіх попапах підтвердження видалення** (`components/admin/ConfirmModal.tsx`): `text-xs` → `text-sm sm:text-base`. Оскільки всі діалоги видалення (адмінка, кошик, модифікатори) використовують `ConfirmModal`, зміна застосована всюди.
+- **Назва предмета видалення винесена на окремий рядок** у всіх попапах (категорія, страва, модифікатор, значення модифікатора, позиція кошика): у `ConfirmModal` додано проп `subject`, що рендериться другим рядком виділеним кольором; виклики в `app/admin/page.tsx`, `CartDrawer`, `ModifiersEditor` передають назву окремо.
 - **Прибрано зовнішній хост Unsplash** (знахідка S6): з `next.config.ts` видалено `images.unsplash.com` з `remotePatterns`, а `supabase-seed.sql` очищено від 10 демо-посилань (фото категорій/товарів тепер порожні → застосунок показує фолбек-логотип). Live-БД перевірено — записів з `unsplash` немає ні в `categories`/`products`, ні в `cafe_info`/`advertising`/`text_banner`.
 
 ### Removed

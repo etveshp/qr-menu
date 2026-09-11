@@ -385,7 +385,8 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
       <ConfirmModal
         isOpen={!!groupToRemove}
         title={t('deleteConfirmTitle')}
-        message={groupToRemove ? `${t('deleteConfirmMessage')} "${localizedGroupName(groupToRemove, lang) || t('modifierUntitled')}"?` : ''}
+        message={groupToRemove ? t('deleteConfirmMessage') : ''}
+        subject={groupToRemove ? `"${localizedGroupName(groupToRemove, lang) || t('modifierUntitled')}"?` : undefined}
         confirmLabel={t('delete')}
         cancelLabel={t('cancel')}
         onCancel={() => setGroupToRemove(null)}
@@ -398,7 +399,8 @@ export function ModifiersEditor({ value, onChange, lang, autoSession, onSession,
       <ConfirmModal
         isOpen={!!optionToRemove}
         title={t('deleteConfirmTitle')}
-        message={optionToRemove ? `${t('deleteConfirmMessage')} "${localizedOptionName(optionToRemove.option, lang) || t('optionName')}"?` : ''}
+        message={optionToRemove ? t('deleteConfirmMessage') : ''}
+        subject={optionToRemove ? `"${localizedOptionName(optionToRemove.option, lang) || t('optionName')}"?` : undefined}
         confirmLabel={t('delete')}
         cancelLabel={t('cancel')}
         onCancel={() => setOptionToRemove(null)}
