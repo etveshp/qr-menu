@@ -6,24 +6,24 @@ describe('getFriendlyErrorMessage', () => {
     expect(getFriendlyErrorMessage(null)).toBe('Сталася помилка при вході');
   });
 
-  it('maps auth/invalid-credential', () => {
-    expect(getFriendlyErrorMessage({ code: 'auth/invalid-credential' }, 'uk')).toBe('Неправильна електронна адреса або пароль');
+  it('maps invalid_credentials', () => {
+    expect(getFriendlyErrorMessage({ code: 'invalid_credentials' }, 'uk')).toBe('Неправильна електронна адреса або пароль');
   });
 
-  it('maps auth/invalid-credential in hu', () => {
-    expect(getFriendlyErrorMessage({ code: 'auth/invalid-credential' }, 'hu')).toBe('Helytelen e-mail cím vagy jelszó');
+  it('maps invalid_credentials in hu', () => {
+    expect(getFriendlyErrorMessage({ code: 'invalid_credentials' }, 'hu')).toBe('Helytelen e-mail cím vagy jelszó');
   });
 
-  it('maps auth/invalid-credential in en', () => {
-    expect(getFriendlyErrorMessage({ code: 'auth/invalid-credential' }, 'en')).toBe('Invalid email or password');
+  it('maps invalid_credentials in en', () => {
+    expect(getFriendlyErrorMessage({ code: 'invalid_credentials' }, 'en')).toBe('Invalid email or password');
   });
 
-  it('maps auth/popup-closed-by-user', () => {
-    expect(getFriendlyErrorMessage({ code: 'auth/popup-closed-by-user' }, 'uk')).toBe('Вхід через Google було скасовано');
+  it('maps email_not_confirmed', () => {
+    expect(getFriendlyErrorMessage({ code: 'email_not_confirmed' }, 'uk')).toBe('Email не підтверджено. Перевірте пошту');
   });
 
-  it('maps auth/too-many-requests', () => {
-    expect(getFriendlyErrorMessage({ code: 'auth/too-many-requests' }, 'en')).toBe('Too many attempts. Please try again later');
+  it('maps over_email_send_rate_limit', () => {
+    expect(getFriendlyErrorMessage({ code: 'over_email_send_rate_limit' }, 'en')).toBe('Too many requests. Please try again later');
   });
 
   it('falls back to error message for unknown code', () => {

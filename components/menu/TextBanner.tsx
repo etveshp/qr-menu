@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import type { TextBanner as TextBannerData, Product } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 

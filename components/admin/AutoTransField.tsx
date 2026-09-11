@@ -25,8 +25,6 @@ export interface AutoTransFieldProps {
   multiline?: boolean;
   /** Default visible rows for a multiline field. */
   rows?: number;
-  /** Slightly larger text (used for greeting fields). */
-  biggerText?: boolean;
   placeholder?: string;
   required?: boolean;
 }
@@ -43,7 +41,6 @@ export function AutoTransField({
   onChange,
   multiline,
   rows,
-  biggerText,
   placeholder,
   required,
 }: AutoTransFieldProps) {

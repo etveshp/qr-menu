@@ -6,9 +6,8 @@ import {
   entityPhotoPaths,
   isDataUriPhoto,
   dataUriMime,
-  dataUriToBase64,
+  dataUrlToBlob,
   objectPublicUrl,
-  storagePathFromPublicUrl,
 } from '../photo-storage';
 
 const BASE = 'https://abc123.supabase.co';
@@ -29,11 +28,10 @@ describe('isDataUriPhoto', () => {
   });
 });
 
-describe('dataUriMime / dataUriToBase64', () => {
-  it('extracts mime and payload', () => {
+describe('dataUriMime', () => {
+  it('extracts the mime type', () => {
     expect(dataUriMime('data:image/webp;base64,QUJD')).toBe('image/webp');
-    expect(dataUriToBase64('data:image/webp;base64,QUJD')).toBe('QUJD');
-    expect(dataUriToBase64('no data uri')).toBe('');
+    expect(dataUriMime('data:image/png;base64,QUJD')).toBe('image/png');
   });
 });
 
@@ -52,17 +50,35 @@ describe('object paths', () => {
   });
 });
 
-describe('objectPublicUrl / storagePathFromPublicUrl', () => {
-  it('round-trips public URLs', () => {
-    const path = 'cafe/banner.webp';
-    const url = objectPublicUrl(BASE, PHOTO_BUCKET, path);
-    expect(url).toBe(`${BASE}/storage/v1/object/public/menu-photos/cafe/banner.webp`);
-    expect(storagePathFromPublicUrl(BASE, PHOTO_BUCKET, url)).toBe(path);
+describe('dataUrlToBlob', () => {
+  it('decodes a base64 data URL into a Blob', () => {
+    const blob = dataUrlToBlob('data:image/png;base64,QUJD');
+    expect(blob.type).toBe('image/png');
+    expect(blob.size).toBe(3);
   });
 
-  it('returns null for foreign or malformed URLs', () => {
-    expect(storagePathFromPublicUrl(BASE, PHOTO_BUCKET, 'https://other.com/x.webp')).toBeNull();
-    expect(storagePathFromPublicUrl(BASE, PHOTO_BUCKET, '')).toBeNull();
-    expect(storagePathFromPublicUrl(BASE, PHOTO_BUCKET, `${BASE}/storage/v1/object/public/other-bucket/x`)).toBeNull();
+  it('decodes a non-base64 data URL', () => {
+    const blob = dataUrlToBlob('data:text/plain,hello%20world');
+    expect(blob.type).toBe('text/plain');
+    expect(blob.size).toBe(11);
+  });
+
+  it('falls back to application/octet-stream for a malformed value', () => {
+    const blob = dataUrlToBlob('not-a-data-url');
+    expect(blob.type).toBe('application/octet-stream');
+  });
+});
+
+describe('objectPublicUrl', () => {
+  it('builds a public URL for a stored object', () => {
+    expect(objectPublicUrl(BASE, PHOTO_BUCKET, 'cafe/banner.webp')).toBe(
+      `${BASE}/storage/v1/object/public/menu-photos/cafe/banner.webp`
+    );
+  });
+
+  it('normalizes a trailing slash on the base URL', () => {
+    expect(objectPublicUrl(`${BASE}/`, PHOTO_BUCKET, 'x.webp')).toBe(
+      `${BASE}/storage/v1/object/public/menu-photos/x.webp`
+    );
   });
 });

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   triggerHapticFeedback,
   triggerStepperHaptic,
-  triggerAddToCartHaptic,
   playStepperSound,
   playAddToCartChime,
 } from '../sound';
@@ -67,14 +66,9 @@ describe('sound utilities', () => {
     expect(navigator.vibrate).toHaveBeenCalled();
   });
 
-  it('triggerAddToCartHaptic vibrates pattern', () => {
-    triggerAddToCartHaptic();
-    expect(navigator.vibrate).toHaveBeenCalledWith([15, 30, 25]);
-  });
-
-  it('playAddToCartChime triggers haptic and uses audio context', () => {
+  it('playAddToCartChime triggers the add-to-cart haptic pattern', () => {
     playAddToCartChime();
-    expect(navigator.vibrate).toHaveBeenCalled();
+    expect(navigator.vibrate).toHaveBeenCalledWith([15, 30, 25]);
     // creates an oscillator via the singleton context
     expect(window.AudioContext).toBeDefined();
   });

@@ -54,26 +54,6 @@ const MESSAGES: Record<string, Record<Language, string>> = {
   },
 
   // Shared codes
-  'auth/invalid-credential': {
-    uk: 'Неправильна електронна адреса або пароль',
-    hu: 'Helytelen e-mail cím vagy jelszó',
-    en: 'Invalid email or password',
-  },
-  'auth/popup-closed-by-user': {
-    uk: 'Вхід через Google було скасовано',
-    hu: 'A Google bejelentkezés meg lett szakítva',
-    en: 'Google sign-in was cancelled',
-  },
-  'auth/cancelled-popup-request': {
-    uk: 'Запит входу скасовано',
-    hu: 'A bejelentkezési kérelem megszakítva',
-    en: 'Sign-in request was cancelled',
-  },
-  'auth/too-many-requests': {
-    uk: 'Забагато невдалих спроб. Спробуйте пізніше',
-    hu: 'Túl sok próbálkozás. Próbálja újra később',
-    en: 'Too many attempts. Please try again later',
-  },
   'permission-denied': {
     uk: 'Недостатньо прав для виконання операції',
     hu: 'Nincs jogosultság a művelet végrehajtásához',

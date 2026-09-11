@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   addToCart,
   setCartQty,
-  incrementCartItem,
   decrementCartItem,
   getCartItemQty,
   getCartItemsCount,
@@ -36,12 +35,6 @@ describe('addToCart', () => {
 describe('setCartQty', () => {
   it('sets quantity directly', () => {
     expect(setCartQty({}, 'p1', 5)).toEqual({ p1: 5 });
-  });
-});
-
-describe('incrementCartItem', () => {
-  it('behaves like addToCart', () => {
-    expect(incrementCartItem({ p1: 1 }, 'p1')).toEqual({ p1: 2 });
   });
 });
 

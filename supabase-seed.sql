@@ -29,10 +29,10 @@ on conflict (id) do update set
 
 -- 2. Categories
 insert into public.categories (id, name_uk, name_hu, name_en, photo) values
-  ('espresso-bar', 'Еспресо бар', 'Eszpresszó bár', 'Espresso Bar', 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=400'),
-  ('signature', 'Авторські напої', 'Különleges italok', 'Signature Drinks', 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=400'),
-  ('tea-matcha', 'Чай та Матча', 'Tea és Matcha', 'Tea & Matcha', 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&q=80&w=400'),
-  ('desserts', 'Вишукані десерти', 'Különleges desszertek', 'Exquisite Desserts', 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=400')
+  ('espresso-bar', 'Еспресо бар', 'Eszpresszó bár', 'Espresso Bar', ''),
+  ('signature', 'Авторські напої', 'Különleges italok', 'Signature Drinks', ''),
+  ('tea-matcha', 'Чай та Матча', 'Tea és Matcha', 'Tea & Matcha', ''),
+  ('desserts', 'Вишукані десерти', 'Különleges desszertek', 'Exquisite Desserts', '')
 on conflict (id) do nothing;
 
 -- 3. Products
@@ -43,35 +43,35 @@ insert into public.products (id, category_id, name_uk, name_hu, name_en, descrip
     'Frissen pörkölt specialty kávéból főzve (100% arabica). Intenzív íz étcsokoládé, karamell és citrusos savasság jegyeivel.',
     'Brewed on freshly roasted specialty beans (100% Arabica). Rich taste with notes of dark chocolate, caramel, and citrus acidity.',
     'Спешелті кава, очищена вода', 'Specialty kávé, tisztított víz', 'Specialty coffee, purified water',
-    65, 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'),
+    65, ''),
   ('flat-white', 'espresso-bar',
     'Флет Вайт', 'Flat White', 'Flat White',
     'Ідеальний баланс подвійного еспресо та оксамитового ніжного молока з мінімальною піною.',
     'A dupla eszpresszó és a selymesen lágy tej tökéletes egyensúlya, minimális habbal.',
     'The perfect balance of double espresso and silky smooth milk with minimal microfoam.',
     'Подвійне еспресо, незбиране молоко', 'Dupla eszpresszó, teljes tej', 'Double espresso, whole milk',
-    95, 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&q=80&w=300'),
+    95, ''),
   ('lavender-latte', 'signature',
     'Лавандовий раф', 'Levendulás Raf', 'Lavender Raf',
     'Вершковий ніжний напій з додаванням натуральних квітів лаванди та домашнього ванільного сиропу.',
     'Krémes, lágy ital valódi levendulavirágokkal és házi vaníliasziruppal.',
     'Creamy, smooth drink infused with natural lavender flowers and homemade vanilla syrup.',
     'Еспресо, вершки, лавандовий цвіт, ванільний сироп', 'Eszpresszó, tejszín, levendulavirág, vaníliaszirup', 'Espresso, cream, lavender flowers, vanilla syrup',
-    110, 'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&q=80&w=300'),
+    110, ''),
   ('pistachio-latte', 'signature',
     'Фісташковий лате', 'Pisztáciás Latte', 'Pistachio Latte',
     'Справжній гурманський досвід: еспресо з додаванням преміальної пасти з добірних фісташок та ніжною молочною піною.',
     'Igazi gourmet élmény: eszpresszó prémium pisztáciapasztával és finom tejhabbal.',
     'A true gourmet experience: espresso with premium pistachio paste and silky milk foam.',
     'Еспресо, натуральна фісташкова паста, незбиране молоко, фісташкова крихта', 'Eszpresszó, természetes pisztáciapaszta, teljes tej, pisztácia törmelék', 'Espresso, natural pistachio paste, whole milk, pistachio crumbs',
-    130, 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=300'),
+    130, ''),
   ('matcha-latte', 'tea-matcha',
     'Церемоніальна Матча Лате', 'Ceremoniális Matcha Latte', 'Ceremonial Matcha Latte',
     'Японський чай матча преміум-класу, збитий вручну бамбуковим віничком, з ніжним молоком на вибір.',
     'Prémium japán matcha tea, kézzel felvert bambusz habverővel, választható tejjel.',
     'Premium Japanese matcha tea, hand-whisked with a bamboo chasen, with your choice of milk.',
     'Матча преміум, рисове/кокосове/вівсяне молоко', 'Matcha prémium, rizs/kókusz/zab tej', 'Premium matcha, rice/coconut/oat milk',
-    120, 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&q=80&w=300'),
+    120, ''),
   ('macaron', 'desserts',
     'Макарон Фісташка-Малина', 'Pisztácia-Málna Macaron', 'Pistachio-Raspberry Macaron',
     'Традиційне французьке тістечко на основі мигдалевого борошна з ганашем з білого шоколаду, фісташковою пастою та свіжим малиновим кюлі в центрі.',
@@ -80,5 +80,5 @@ insert into public.products (id, category_id, name_uk, name_hu, name_en, descrip
     'Мигдалеве борошно, цукрова пудра, яєчний білок, білий шоколад, фісташкова паста, малина, пектин',
     'Mandulaliszt, porcukor, tojásfehérje, fehér csokoládé, pisztáciapaszta, málna, pektin',
     'Almond flour, powdered sugar, egg whites, white chocolate, pistachio paste, raspberry, pectin',
-    80, 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?auto=format&fit=crop&q=80&w=300')
+    80, '')
 on conflict (id) do nothing;

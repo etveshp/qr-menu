@@ -15,8 +15,6 @@ export default defineConfig({
       exclude: [
         'lib/supabase.ts',
         'lib/translator.ts',
-        'components/menu/MenuContainer.tsx',
-        'components/menu/ProductModal.tsx',
         'components/menu/Header.tsx',
         'components/menu/HeroBanner.tsx',
         'components/menu/CategoryCard.tsx',

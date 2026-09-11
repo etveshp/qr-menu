@@ -38,19 +38,26 @@ export const dataUriMime = (value: string): string => {
   return m ? m[1].toLowerCase() : 'image/webp';
 };
 
-export const dataUriToBase64 = (value: string): string => {
-  const m = /^data:image\/[^;,]+;base64,([\s\S]*)$/.exec(value);
-  return m ? m[1] : '';
-};
-
 /** Public URL of a stored object, e.g. `${baseUrl}/storage/v1/object/public/menu-photos/cafe/banner.webp`. */
 export const objectPublicUrl = (baseUrl: string, bucket: string, path: string): string =>
   `${baseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/${path}`;
 
-/** Inverse of objectPublicUrl: extracts the object path, or null for foreign URLs. */
-export const storagePathFromPublicUrl = (baseUrl: string, bucket: string, url: string): string | null => {
-  const prefix = `${baseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/`;
-  return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+/**
+ * Convert a `data:` URL to a Blob without `fetch`. `fetch('data:...')` is blocked
+ * by our CSP (`connect-src` has no `data:`), which broke QR PNG export.
+ */
+export const dataUrlToBlob = (dataUrl: string): Blob => {
+  const comma = dataUrl.indexOf(',');
+  const header = comma === -1 ? '' : dataUrl.slice(0, comma);
+  const payload = comma === -1 ? dataUrl : dataUrl.slice(comma + 1);
+  const mime = /data:([^;,]+)/.exec(header)?.[1] ?? 'application/octet-stream';
+  if (!header.includes(';base64')) {
+    return new Blob([decodeURIComponent(payload)], { type: mime });
+  }
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
 };
 
 /** Trigger a file download in the browser. Shared utility used by QR download components. */

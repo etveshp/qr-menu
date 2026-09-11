@@ -17,7 +17,7 @@ export function triggerStepperHaptic() {
 }
 
 // Rich double pulse tactile feedback for Add to Cart button
-export function triggerAddToCartHaptic() {
+function triggerAddToCartHaptic() {
   triggerHapticFeedback([15, 30, 25]);
 }
 

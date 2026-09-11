@@ -1,5 +1,6 @@
 import { defineConfig } from "eslint/config";
 import next from "eslint-config-next";
+import tseslint from "typescript-eslint";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,5 +13,19 @@ export default defineConfig([
   },
   {
     extends: [...next],
+  },
+  {
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrors: "none",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
   },
 ]);

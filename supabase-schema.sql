@@ -252,5 +252,5 @@ end $$;
 -- 5. Make the first admin
 -- Replace 'ADMIN_EMAIL' with your admin email and run once:
 -- ============================================================
--- update public.profiles set is_admin = true where email = 'svitkavyvisk@gmail.com';
+-- update public.profiles set is_admin = true where email = 'ADMIN_EMAIL';
 -- (If the user already signed up, the trigger created a profile row above.)

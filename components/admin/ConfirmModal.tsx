@@ -32,7 +32,7 @@ export function ConfirmModal({
           <Trash2 className="w-7 h-7" />
         </div>
         <h3 className="font-display font-medium text-xl text-[#231913] mb-2">{title}</h3>
-        <p className="text-xs text-[#8E7A68] leading-relaxed mb-2">{message}</p>
+        <p className="text-sm sm:text-base text-[#8E7A68] leading-relaxed mb-2">{message}</p>
         {warning && (
           <div className="mb-5 flex items-start gap-2.5 p-3 bg-[#FAF6EE] border border-[#C09E6D]/40 rounded-xl text-left">
             <AlertTriangle className="w-4 h-4 text-[#C09E6D] shrink-0 mt-0.5" />

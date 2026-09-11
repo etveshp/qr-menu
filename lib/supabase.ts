@@ -192,7 +192,7 @@ export const loginWithGoogle = async (): Promise<void> => {
   // After OAuth, Supabase redirects straight to the admin cabinet. The admin
   // page restores the session via getSession() and shows the cabinet; non-admins
   // are signed out and bounced back to the menu.
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } });
+  const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } });
   if (error) throw error;
   // OAuth redirects; the session is handled by onAuthStateChange
 };
@@ -230,19 +230,10 @@ export const handleRecoveryToken = async (): Promise<boolean> => {
   window.history.replaceState({}, '', window.location.pathname);
   return true;
 };
-const ADMIN_EMAILS = ['svitkavyvisk@gmail.com'];
-// UI helper: checks against a hardcoded email list. Not a security boundary
-// — real authorization is enforced server-side via RLS (profiles.is_admin).
-export const isUserAdmin = (user: User | null): boolean => {
-  if (!user?.email) return false;
-  return ADMIN_EMAILS.some(e => e.toLowerCase() === user.email!.toLowerCase());
-};
 export const hasAdminAccess = async (user: User | null): Promise<boolean> => {
-  if (!user) return false;
-  if (isUserAdmin(user)) return true;
-  // Check Supabase profiles table
+  if (!user || !supabase) return false;
   try {
-    const { data } = await supabase!.from('profiles').select('is_admin').eq('id', user.id).single();
+    const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
     return data?.is_admin === true;
   } catch { return false; }
 };
@@ -366,6 +357,7 @@ export const getCafeInfo = async (): Promise<CafeInfo> => {
   }
   return getLocal('cafeInfo', DEFAULT_CAFE_INFO);
 };
+let cafeInfoSubId = 0;
 export const subscribeCafeInfo = (callback: (info: CafeInfo) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   // Fetch current value first (Realtime only pushes changes, not the initial
@@ -378,7 +370,7 @@ export const subscribeCafeInfo = (callback: (info: CafeInfo) => void, opts?: Sub
       }
     }, () => {});
   }
-  const channel = supabase.channel('cafe_info');
+  const channel = supabase.channel(`cafe-info-${cafeInfoSubId++}`);
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'cafe_info', filter: 'id=eq.1' }, (payload) => {
     const row = payload.new as any;
     if (row) {
@@ -444,6 +436,7 @@ export const getCategories = async (): Promise<Category[]> => {
   }
   return getLocal('categories', DEFAULT_CATEGORIES);
 };
+let categoriesSubId = 0;
 export const subscribeCategories = (callback: (cats: Category[]) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   let fetchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -457,7 +450,7 @@ export const subscribeCategories = (callback: (cats: Category[]) => void, opts?:
   if (!opts?.skipInitial) {
     fetchAll();
   }
-  const channel = supabase.channel('categories');
+  const channel = supabase.channel(`categories-${categoriesSubId++}`);
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
     // Refetch the whole list on every change (INSERT/UPDATE/DELETE). A DELETE
     // cannot reliably patch a skipped local cache, so no special-case here.
@@ -529,6 +522,7 @@ export const getProducts = async (): Promise<Product[]> => {
   }
   return getLocal('products', DEFAULT_PRODUCTS);
 };
+let productsSubId = 0;
 export const subscribeProducts = (callback: (prods: Product[]) => void, opts?: SubscribeOptions): (() => void) => {
   if (!supabase) return () => {};
   let fetchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -542,7 +536,7 @@ export const subscribeProducts = (callback: (prods: Product[]) => void, opts?: S
   if (!opts?.skipInitial) {
     fetchAll();
   }
-  const channel = supabase.channel('products');
+  const channel = supabase.channel(`products-${productsSubId++}`);
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
     // Debounce batch updates (e.g. reorder writes many rows at once).
     if (fetchTimer) clearTimeout(fetchTimer);

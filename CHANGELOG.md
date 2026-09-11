@@ -17,6 +17,44 @@
 
 ---
 
+## [0.10.0] - 2026-09-11
+
+### Added
+
+- **Error boundaries** (Фаза 17.1, гілка `fix/audit-followup`): `app/error.tsx` (брендований fallback із кнопкою «Спробувати знову» та посиланням «До меню»), `app/global-error.tsx` (критичний збій root layout, inline-стилі), `app/not-found.tsx` (кастомна 404 у палітрі застосунку). Клієнтський виняток тепер показує контрольований екран замість дефолтного екрана Next.
+- Автотести `app/__tests__/error-pages.test.tsx` (5): рендер fallback і спрацювання `reset`, повнодокументний `global-error`, 404 з посиланням «До меню», інтеграційна перевірка межі помилки (помилка рендера → fallback → `reset` повертає робочий стан).
+- Перевірено: **196 тестів**, `npx tsc --noEmit`, `npm run lint` (0 errors), `npm run build`; на `next start` маршрут `/no-such-page` → HTTP 404 з кастомною сторінкою.
+
+### Security
+
+- **Прибрано захардкоджений email адміністратора з клієнтського бандла** (Фаза 17.2, знахідка S1): видалено `ADMIN_EMAILS` та `isUserAdmin` (`lib/supabase.ts`); `hasAdminAccess` тепер покладається виключно на `profiles.is_admin` через RLS. У профілі кабінету роль показується зі стану автентифікації, а не з email. Передумову перевірено на live-БД (1 адмін = власник). Email знеособлено і в SQL-коментарі.
+- Регресійний захист: `lib/__tests__/no-hardcoded-admin.test.ts` сканує вихідні `.ts/.tsx` на заборонені `svitkavyvisk@gmail.com`, `ADMIN_EMAILS`, `isUserAdmin`; `auth.test.ts` переписано під нову логіку. Скан `.next/static` + `.next/server` підтвердив відсутність email у прод-бандлі. 190 тестів, tsc, lint (0 errors), build — чисто.
+
+### Changed
+
+- **Realtime-канали меню отримали унікальні topic-и** (Фаза 17.3, знахідка R3): `subscribeCafeInfo`/`subscribeCategories`/`subscribeProducts` (`lib/supabase.ts`) тепер використовують `cafe-info-N`/`categories-N`/`products-N`, як `advertising`/`text_banner`. Повторна підписка (React StrictMode, зміна ефекту) більше не повертає вже підписаний канал і не кидає помилку при `.on()`. Автотест `lib/__tests__/realtime-topics.test.ts` (3). 193 тести, tsc, lint (0 errors), build — чисто.
+- **Оптимізовано scroll-обробник меню** (Фаза 17.4, знахідка R1): новий хук `hooks/use-raf-throttle.ts` коалесить часті `scroll`/`resize` в один `requestAnimationFrame`; `MenuContainer` вимірює висоту хедера й позицію кнопки кошика через нього та не оновлює стан без змін (functional update з bail-out). `scroll` — `passive`. Автотест `hooks/__tests__/use-raf-throttle.test.tsx` (4). 197 тестів, tsc, lint (0 errors), build — чисто.
+- **Lint доведено до 0 warnings** (Фаза 17.8): у `app/admin/page.tsx` і `RecommendedProductsPicker.tsx` виправлено директиви `@next/next/no-img-element` (навмисні адмін-прев'ю) — помилкові `eslint-disable` перенесено точно перед `<img>`, file-level для пікера. Тепер `npm run lint` = **0 problems**.
+- **Фінальна верифікація (Фаза 17.8):** повний ланцюг `npm test` (252) / `tsc --noEmit` (0) / `lint` (0) / `test:coverage` (проходить) / `build` (успіх); smoke prod-сервера (`/` 200 SSR з даними, `/admin` 200, кастомна 404, `/api/menu` 200). Оновлено `PLAN.md` і `AUDIT.md`.
+- **Збільшено шрифт тексту запитання в усіх попапах підтвердження видалення** (`components/admin/ConfirmModal.tsx`): `text-xs` → `text-sm sm:text-base`. Оскільки всі діалоги видалення (адмінка, кошик, модифікатори) використовують `ConfirmModal`, зміна застосована всюди.
+- **Прибрано зовнішній хост Unsplash** (знахідка S6): з `next.config.ts` видалено `images.unsplash.com` з `remotePatterns`, а `supabase-seed.sql` очищено від 10 демо-посилань (фото категорій/товарів тепер порожні → застосунок показує фолбек-логотип). Live-БД перевірено — записів з `unsplash` немає ні в `categories`/`products`, ні в `cafe_info`/`advertising`/`text_banner`.
+
+### Removed
+
+- **Мертвий код** (Фаза 17.5, знахідки G1/G2/G3): видалено невикористаний `components/admin/SaveButton.tsx` та його імпорт; `incrementCartItem` (`lib/cart.ts`); `dataUriToBase64` і `storagePathFromPublicUrl` (`lib/photo-storage.ts`); зайвий `export` у `triggerAddToCartHaptic` (`lib/sound.ts`); Firebase-легасі коди з `lib/errors.ts`. Прибрано раніше прихований мертвий код: проп `biggerText`, стан `loading`/`cropBannerStatus`/`cropLogoStatus`, `byId`, функцію `handleAddToCart` і `addItem` (`MenuContainer`), низку невживаних імпортів/змінних. Тести оновлено.
+- **Примусове виявлення сміття:** увімкнено `@typescript-eslint/no-unused-vars` (error) в `eslint.config.mjs` та `noUnusedLocals`/`noUnusedParameters` у `tsconfig.json` — невикористані імпорти/змінні більше не проходять CI. 195 тестів, tsc, lint (0 errors), build — чисто.
+
+### Fixed
+
+- **Експорт QR у PNG падав з `TypeError: Failed to fetch`:** `fetch(dataUrl)` до `data:` URL блокується нашим CSP (`connect-src` без `data:`), тому `downloadPngHi` в адмінці та `QrGenerator` не могли віддати PNG. Додано утиліту `dataUrlToBlob` (`lib/photo-storage.ts`) — локальне декодування `data:` у `Blob` без `fetch`; застосовано в обох місцях. CSP не послаблювався. Тести `photo-storage` (+3). 255 тестів, tsc, lint (0 problems), build — чисто.
+- **Відсутній cleanup таймерів (Фаза 17.6, знахідка R2):** новий хук `hooks/use-safe-timeouts.ts` реєструє `setTimeout` і гарантовано чистить їх при unmount. `MenuContainer` (стани `recIsDragging`, `bouncingCart`, `isJustAdded`, `floaters`) та `app/admin/page.tsx` (9 save-status таймерів + drag-стан) переведено на нього; для `longPressTimerRef` додано unmount-cleanup. Це прибирає `setState` після unmount і «висячі» таймери. Автотест `hooks/__tests__/use-safe-timeouts.test.tsx` (3). 198 тестів, tsc, lint (0 errors), build — чисто.
+
+### Added
+
+- **Чесне покриття тестами UI (Фаза 17.7, знахідка P2):** з `coverage.exclude` прибрано `MenuContainer` і `ProductModal`; додано тести на меню (`MenuContainer`, `ProductModal`, `ModifierSelector`, `NotAdminModal`), адмін-компоненти (`RecommendedProductsPicker`, `ModifiersEditor`, `SortableActionCardGrid`, `ActionCard`, `AdminDrawer`, `AutoTransField`) і хуки (`use-image-crop`, `use-focus-trap`). У `test/setup.ts` додано jsdom-стаби `ResizeObserver`, `IntersectionObserver`, `matchMedia`, rAF. Покриття: statements 74.7%, branches 68.5%, functions 71.0%, lines 80.1% — усі пороги пройдено **без зниження** (до кроку `npm run test:coverage` взагалі падав: 53.8% statements / 46.2% functions). **252 тести / 37 файлів**, tsc, lint (0 errors), build — чисто.
+
+---
+
 ## [0.9.0] - 2026-09-10
 
 ### Added

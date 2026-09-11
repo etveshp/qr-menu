@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Cropper, { type Area } from 'react-easy-crop';
 import {
   getCafeInfo, 
   updateCafeInfo, 
@@ -31,7 +30,6 @@ import {
   resetUserPassword,
   logoutUser,
   hasAdminAccess,
-  isUserAdmin,
   supabase,
   handleRecoveryToken,
   CafeInfo,
@@ -82,8 +80,7 @@ import {
   FileCode2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { triggerDownload, cropImageToWebP } from '@/lib/photo-storage';
-import { SaveButton } from '@/components/admin/SaveButton';
+import { triggerDownload, dataUrlToBlob } from '@/lib/photo-storage';
 import { useImageCrop } from '@/hooks/use-image-crop';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
@@ -96,10 +93,10 @@ import { SortableActionCardGrid } from '@/components/admin/SortableActionCardGri
 import { RecommendedProductsPicker } from '@/components/admin/RecommendedProductsPicker';
 import { ModifiersEditor } from '@/components/admin/ModifiersEditor';
 import { useLanguage } from '@/hooks/use-language';
+import { useSafeTimeouts } from '@/hooks/use-safe-timeouts';
 import { getFriendlyErrorMessage } from '@/lib/errors';
 import { NotAdminModal } from '@/components/NotAdminModal';
 
-const LANG_CODE: Record<string, string> = { uk: 'UA', hu: 'HU', en: 'EN' };
 
 const WELCOME_KEYS = ['welcomeMsg1', 'welcomeMsg2', 'welcomeMsg3', 'welcomeMsg4', 'welcomeMsg5'] as const;
 
@@ -175,8 +172,7 @@ function SavedQrDownload({ tableNumber, t }: { tableNumber: number; t: Translato
         margin: 2,
         color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
-      const blob = await (await fetch(dataUrl)).blob();
-      triggerDownload(blob, `svit_kavy_menu_table_${tableNumber}.png`);
+      triggerDownload(dataUrlToBlob(dataUrl), `svit_kavy_menu_table_${tableNumber}.png`);
     } catch (err) {
       console.error('PNG export failed', err);
     } finally {
@@ -255,6 +251,7 @@ export default function AdminPage() {
   const { showToast, showGreetingToast } = useToast();
   const { lang, changeLanguage, t } = useLanguage();
   const router = useRouter();
+  const safeTimeout = useSafeTimeouts();
 
   // Sidebar nav card height (used to match the QR generator section to it).
   const sidebarCardRef = useRef<HTMLDivElement>(null);
@@ -369,7 +366,6 @@ export default function AdminPage() {
   const [cafeInfo, setCafeInfo] = useState<CafeInfo | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'cafe' | 'categories' | 'products' | 'qr' | 'advertising'>('cafe');
@@ -548,7 +544,6 @@ export default function AdminPage() {
   // Reorder products within one category (drag & drop) — optimistic + persist.
   const handleReorderProducts = async (orderedIds: string[]) => {
     const prev = products;
-    const byId = new Map(prev.map((p) => [p.id, p]));
     const positions = new Map(orderedIds.map((id, i) => [id, i]));
     const next = prev.map((p) =>
       positions.has(p.id) ? { ...p, sortOrder: positions.get(p.id)! } : p
@@ -588,7 +583,7 @@ export default function AdminPage() {
 
   const handlePillsPointerUp = () => {
     setPillsIsMouseDown(false);
-    setTimeout(() => setPillsIsDragging(false), 50);
+    safeTimeout(() => setPillsIsDragging(false), 50);
   };
 
   const handlePillsPointerMove = (e: React.PointerEvent) => {
@@ -655,8 +650,6 @@ export default function AdminPage() {
   const [greetingSaveStatus, setGreetingSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [catSaveStatus, setCatSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [prodSaveStatus, setProdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [cropBannerStatus, setCropBannerStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [cropLogoStatus, setCropLogoStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [adSaveStatus, setAdSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isAdDrawerOpen, setIsAdDrawerOpen] = useState<boolean>(false);
 
@@ -731,7 +724,6 @@ export default function AdminPage() {
 
   // Declared as classic hoisted function to avoid access-before-declaration issues
   async function fetchData() {
-    setLoading(true);
     try {
       const info = await getCafeInfo();
       const cats = await getCategories();
@@ -741,8 +733,6 @@ export default function AdminPage() {
       
       setCafeInfo(info);
       setCafeForm(info);
-      if (info) {
-      }
       setCategories(cats);
       setProducts(prods);
       setAdForm(ad);
@@ -753,14 +743,12 @@ export default function AdminPage() {
       }
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   }
 
   // Load data on mount
   useEffect(() => {
-    setTimeout(() => {
+    safeTimeout(() => {
       fetchData();
     }, 0);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1102,7 +1090,7 @@ export default function AdminPage() {
       await fetchData();
       setCafeSaveStatus('saved');
       showToast(t('updateSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         setCafeSaveStatus('idle');
       }, 2200);
     } catch (err: unknown) {
@@ -1131,7 +1119,7 @@ export default function AdminPage() {
       await fetchData();
       setLangSaveStatus('saved');
       showToast(t('updateSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         setLangSaveStatus('idle');
       }, 2200);
     } catch (err: unknown) {
@@ -1149,7 +1137,7 @@ export default function AdminPage() {
       await fetchData();
       setGreetingSaveStatus('saved');
       showToast(t('updateSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         setGreetingSaveStatus('idle');
       }, 2200);
     } catch (err: unknown) {
@@ -1223,7 +1211,7 @@ export default function AdminPage() {
       await saveAdvertising(adForm);
       setAdSaveStatus('saved');
       showToast(t('adSaveSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         setAdSaveStatus('idle');
       }, 2200);
     } catch (err: unknown) {
@@ -1275,7 +1263,7 @@ export default function AdminPage() {
       await saveTextBanner(textBannerForm);
       setTextBannerSaveStatus('saved');
       showToast(t('textBannerSaveSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         setTextBannerSaveStatus('idle');
       }, 2200);
     } catch (err: unknown) {
@@ -1324,7 +1312,7 @@ export default function AdminPage() {
       await saveCategory(newCat);
       setCatSaveStatus('saved');
       showToast(editingCategory ? t('categoryUpdatedSuccess') : t('addSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         resetCatForm();
       }, 1200);
       await fetchData();
@@ -1445,7 +1433,7 @@ export default function AdminPage() {
       await saveProduct(newProd);
       setProdSaveStatus('saved');
       showToast(editingProduct ? t('productUpdatedSuccess') : t('addSuccess'), 'success');
-      setTimeout(() => {
+      safeTimeout(() => {
         resetProdForm();
       }, 1200);
       await fetchData();
@@ -1818,7 +1806,7 @@ export default function AdminPage() {
                     {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
                   </span>
                   <span className="text-[9px] text-[#C09E6D] font-semibold uppercase tracking-wider">
-                    {isUserAdmin(currentUser) ? t('roleAdmin') : t('roleCustomer')}
+                    {isAuthenticated ? t('roleAdmin') : t('roleCustomer')}
                   </span>
                 </div>
               </div>
@@ -2303,7 +2291,6 @@ export default function AdminPage() {
                       }}
                       multiline
                       rows={8}
-                      biggerText
                       placeholder={t('greetingCustomerPlaceholder')}
                     />
                   </div>
@@ -2352,7 +2339,6 @@ export default function AdminPage() {
                       }}
                       multiline
                       rows={8}
-                      biggerText
                       placeholder={t('greetingAdminPlaceholder')}
                     />
                   </div>
@@ -3350,10 +3336,11 @@ export default function AdminPage() {
                   .map((rp) => (
                     <div key={rp.id} className="flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl">
                       <div className="relative w-24 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
                         {rp.photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline
                           <img src={rp.photo} alt={rp.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : cafeInfo?.logo ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline
                           <img src={cafeInfo.logo} alt="" className="absolute inset-0 w-full h-full object-contain opacity-30 p-4" referrerPolicy="no-referrer" />
                         ) : null}
                       </div>

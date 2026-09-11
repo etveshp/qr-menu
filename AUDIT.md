@@ -9,6 +9,30 @@
 
 ---
 
+## Актуальний стан (2026-09-11, Фаза 17, гілка `fix/audit-followup`)
+
+Після аудиту 2026-09-10 виконано 8 кроків виправлень (`PLAN.md`, Фаза 17). Цей розділ **перекриває** застарілі числа нижче (163 тестів тощо).
+
+Автоперевірки: `npm test` — **252/252 (37 файлів)**, `npx tsc --noEmit` — 0, `npm run lint` — **0 problems**, `npm run build` — успіх, `npm run test:coverage` — **проходить** (statements 74.7 / branches 68.5 / functions 71.0 / lines 80.1; до Фази 17 падав навіть із виключеннями). Smoke prod-сервера: `/` 200 (SSR з даними), `/admin` 200, `/no-such-page` → 404 з кастомною сторінкою, `/api/menu` 200.
+
+Закрито у Фазі 17:
+
+| Знахідка | Крок | Стан |
+|---|---|---|
+| P1 — немає error boundaries | 17.1 | ✅ `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx` + автoтести |
+| S1/S7 — `ADMIN_EMAILS` у клієнтському бандлі | 17.2 | ✅ прибрано; `hasAdminAccess` лише через `profiles.is_admin`; скан-тест |
+| R3 — фіксовані Realtime topic-и | 17.3 | ✅ унікальні topic-и + тести |
+| R1 — scroll без rAF | 17.4 | ✅ хук `use-raf-throttle` + тести |
+| N2/G6/G7/R10 — мертвий код і відсутність правил | 17.5 | ✅ `SaveButton` і dead exports видалено, Firebase-коди прибрано, увімкнено `no-unused-vars`/`noUnusedLocals` |
+| R2 — `setTimeout` без cleanup | 17.6 | ✅ хук `use-safe-timeouts`, таймери очищаються |
+| I2/P2 — coverage exclude завеликий | 17.7 | ✅ `MenuContainer`/`ProductModal` повернуто в покриття, пороги пройдено без зниження |
+| D12 — doc drift | 17.x | ✅ `PLAN.md`/`CHANGELOG.md` синхронізовано |
+| S6 — `images.unsplash.com` у `remotePatterns` | пост-17 | ✅ прибрано з `next.config.ts`; `supabase-seed.sql` очищено від Unsplash (live-БД перевірено: 0 записів) |
+
+Поза обсягом Фази 17 (лишається актуальним): **N1** (CSP `unsafe-inline` — прийнятий компроміс з ISR), **S5** (уніфікація write-політик), **D1** (моноліт `admin/page.tsx`), **D4** (дублювання QR-download), **I2′** (`vitest.config` ESM-попередження), **I3** (optionalDependencies), **14.24** (`showTableNumber`).
+
+---
+
 ## 0. Методологія та статус автоперевірок (свіжі)
 
 | Перевірка | Результат |

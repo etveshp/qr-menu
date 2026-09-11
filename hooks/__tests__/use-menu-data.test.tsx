@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
+import { renderHook, waitFor, cleanup } from '@testing-library/react';
 import { useMenuData } from '../use-menu-data';
 
 const mocks = vi.hoisted(() => ({

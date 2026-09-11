@@ -761,6 +761,61 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 
 ---
 
+## Фаза 17 — АУДИТ 2026-09-10: КЛЮЧОВІ ВИПРАВЛЕННЯ (гілка `fix/audit-followup`)
+
+Джерело: звіт аудиту 2026-09-10 (детальний план — `.kilo/plans/1789057835871-audit-fixes-plan.md`).
+Обсяг: стабільність, безпека, гігієна. Міграції БД і розбиття `app/admin/page.tsx` — **поза обсягом**.
+Після кожного кроку: `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build`. Перехід до наступного кроку — лише після підтвердження стабільної роботи.
+
+### 17.1 Error boundaries (P1 — HIGH)
+- [x] `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx` у палітрі проєкту (`Link`, без нових перекладів).
+- [x] Автотести `app/__tests__/error-pages.test.tsx` (5): рендер fallback + `reset`-колбек, повнодокументний `global-error`, 404 з посиланням, інтеграційна перевірка межі помилки (помилка рендера → показ fallback → `reset` відновлює робочий стан).
+- [x] Перевірено: **196 тестів**, `tsc --noEmit`, lint (0 errors, без нових попереджень), `npm run build`; на `next start :3100` `/no-such-page` → HTTP 404 з кастомною сторінкою, error boundary зареєстровано в RSC-payload.
+
+### 17.2 Прибрати `ADMIN_EMAILS` з клієнта (S1 — MEDIUM)
+- [x] Передумова підтверджена: у live-БД `profiles` 1 адмін, і він збігається з раніше захардкодженим власником.
+- [x] `lib/supabase.ts`: видалено `ADMIN_EMAILS`/`isUserAdmin`; `hasAdminAccess` тепер лише через `profiles.is_admin` (+ guard `!supabase`).
+- [x] `app/admin/page.tsx`: роль у профілі показується зі стану `isAuthenticated`, email у логіці не використовується; SQL-коментар у `supabase-schema.sql` знеособлено (`ADMIN_EMAIL`).
+- [x] Тести: переписано `lib/__tests__/auth.test.ts` (guard-кейси) + новий `lib/__tests__/no-hardcoded-admin.test.ts` (сканує `.ts/.tsx` на заборонені `svitkavyvisk@gmail.com`/`ADMIN_EMAILS`/`isUserAdmin`).
+- [x] Перевірено: **190 тестів**, `tsc --noEmit`, lint (0 errors), `npm run build`; скан `.next/static` + `.next/server` → email відсутній.
+
+### 17.3 Realtime: уніфікувати unique topic (R3 — LOW)
+- [x] `lib/supabase.ts`: `subscribeCafeInfo`/`subscribeCategories`/`subscribeProducts` отримали унікальні topic-и (`cafe-info-N`, `categories-N`, `products-N`), як в advertising/text_banner — повторна підписка не повертає вже підписаний канал.
+- [x] Автотест `lib/__tests__/realtime-topics.test.ts` (3): подвійна підписка дає різні topic-и, формат теми, cleanup `removeChannel`.
+- [x] Перевірено: **193 тести**, `tsc --noEmit`, lint (0 errors), `npm run build` — чисто. End-to-end realtime (зміна в адмінці → оновлення меню) — у фінальному smoke 17.8.
+
+### 17.4 rAF-throttle скролу (R1 — MEDIUM)
+- [x] Новий хук `hooks/use-raf-throttle.ts`: коалесить часті виклики в один `requestAnimationFrame`, чистить кадр при unmount, завжди викликає актуальний колбек.
+- [x] `components/menu/MenuContainer.tsx`: вимірювання винесено в `measureHeader` (з порівнянням перед `setState` — functional update з bail-out), підключено через `useRafThrottle` на `scroll`/`resize`; `scroll` — `passive`.
+- [x] Автотест `hooks/__tests__/use-raf-throttle.test.tsx` (4): коалесинг, новий кадр після виконання, актуальний callback, `cancelAnimationFrame` при unmount.
+- [x] Перевірено: **197 тестів**, `tsc --noEmit`, lint (0 errors), `npm run build` — чисто.
+
+### 17.5 Мертвий код + примусове виявлення (G1/G2/G3)
+- [x] Видалено мертвий `components/admin/SaveButton.tsx` разом з імпортом; прибрано `incrementCartItem` (`lib/cart.ts`), `dataUriToBase64`/`storagePathFromPublicUrl` (`lib/photo-storage.ts`), зайвий `export` `triggerAddToCartHaptic` (`lib/sound.ts`), Firebase-легасі коди з `lib/errors.ts`; тести оновлено.
+- [x] Разом з правилами прибрано раніше приховане: невикористаний `biggerText`-проп (`AutoTransField` + 2 виклики в адмінці), мертвий стан `loading`/`cropBannerStatus`/`cropLogoStatus`, `byId`, `handleAddToCart`/`addItem` (`MenuContainer`), невживані імпорти/змінні в `admin/page.tsx`, `MenuContainer`, `TextBanner`, `LanguageSelector`, `lib/supabase.ts` тощо.
+- [x] Увімкнено `@typescript-eslint/no-unused-vars` (error, `eslint.config.mjs`, плагін з `typescript-eslint`), `noUnusedLocals` + `noUnusedParameters` (`tsconfig.json`). Перевірено, що правило реально спрацьовує на тимчасовому файлі.
+- [x] Перевірено: **195 тестів**, `tsc --noEmit`, lint (0 errors, 9 старих warnings), `npm run build` — чисто.
+
+### 17.6 Cleanup таймерів (R2 — MEDIUM)
+- [x] Новий хук `hooks/use-safe-timeouts.ts`: реєструє `setTimeout`, чистить усі при unmount, прибирає id після виконання; автотест `hooks/__tests__/use-safe-timeouts.test.tsx` (3).
+- [x] `components/menu/MenuContainer.tsx`: голі таймери (`recIsDragging`, `bouncingCart`, `isJustAdded`, `floaters`) переведено на `safeTimeout`; unmount-cleanup розширено на `longPressTimerRef` (окрім наявного `cartToastTimerRef`). Обидва `ref`-таймери лишено (їх скасовують вручну).
+- [x] `app/admin/page.tsx`: усі 9 save-status таймерів + таймер drag-стану переведено на `safeTimeout`.
+- [x] Перевірено: **198 тестів**, `tsc --noEmit`, lint (0 errors), `npm run build` — чисто.
+
+### 17.7 Чесне покриття тестами (P2 — MEDIUM)
+- [x] `MenuContainer` і `ProductModal` прибрано з `coverage.exclude` — метрика більше не маскує UI-логіку.
+- [x] Додано тести: `MenuContainer` (6), `ProductModal` (6), `ModifierSelector` (5), `NotAdminModal` (4), `RecommendedProductsPicker` (7), `ModifiersEditor` (8), `SortableActionCardGrid` (1), `admin-basics` (ActionCard/AdminDrawer/AutoTransField, 8), `use-image-crop` (5), `use-focus-trap` (5). Для jsdom додано стаби `ResizeObserver`/`IntersectionObserver`/`matchMedia`/rAF (`test/setup.ts`).
+- [x] Покриття досягло **statements 74.7% / branches 68.5% / functions 71.0% / lines 80.1%** — усі пороги (70/50/70/70) пройдено **без зниження**. Для контексту: до кроку `npm run test:coverage` падав навіть із виключеннями (statements 53.8%, функції 46.2%).
+- [x] Перевірено: **252 тести / 37 файлів**, `tsc --noEmit`, lint (0 errors), `npm run build` — чисто.
+
+### 17.8 Фінальна верифікація + документація
+- [x] Lint доведено до **0 problems** (виправлено 9 попереджень `no-img-element`/unused-directive у `admin/page.tsx` і `RecommendedProductsPicker.tsx`).
+- [x] Повний ланцюг: **252 тести / 37 файлів**, `tsc --noEmit` 0, lint 0, `test:coverage` проходить, `npm run build` — успіх.
+- [x] Smoke prod-сервера (`next start :3100`): `/` 200 (SSR з даними кафе), `/admin` 200, `/no-such-page` → HTTP 404 з кастомною сторінкою, `/api/menu` 200 з `cafeInfo`.
+- [x] Оновлено `PLAN.md`, `CHANGELOG.md`, `AUDIT.md` (розділ «Актуальний стан» із закритими знахідками).
+
+---
+
 ## Журнал змін плану
 
 | Дата | Що змінено | Ким |
@@ -838,3 +893,12 @@ SQL застосовано до live-БД через Supabase CLI. Міграц�
 | 2026-09-02 | Фаза 7.18 — Слоган у HeroBanner + клієнтський greet-попап: під назвою закладу показується слоган (опис), привітання клієнтів — попапом раз на сесію з випадковим текстом з БД. 136 тестів, typecheck, lint — чисто | Kilo |
 | 2026-09-10 | Фаза 15 — Модифікатори страв (гілка `feature/product-modifiers`): типи `ModifierGroup`/`ModifierOption`, колонка `products.modifiers jsonb` (міграція `20260910120000_product_modifiers.sql`, застосовано до live-БД через `supabase db push`), `lib/modifiers.ts` (+ тести), валідація в `validateProduct` (+ тести), адмін-редактор `ModifiersEditor` у сайдбарі страви, `ModifierSelector` у картці меню (чипси/плитки, доплати, блокування обов'язкових), кошик із рядками `productId#optionIds` + `CartDrawer`, переклади uk/hu/en. 187 тестів, build, typecheck, lint — чисто | Kilo |
 | 2026-09-10 | Фаза 16 — Керування мовами (гілка `feature/product-modifiers`): картки мов у налаштуваннях (тогл активності + радіо основної), колонка `cafe_info.enabled_langs` (міграція `20260910150000_cafe_enabled_langs.sql`, застосовано), `normalizeEnabledLangs` + мапінг/запис, валідація (+ тести), клієнт показує лише активні мови з фолбеком. 191 тест, typecheck, lint — чисто | Kilo |
+| 2026-09-11 | Фаза 17 (аудит): гілка `fix/audit-followup`, план ключових виправлень. Виконано 17.1 — error boundaries (`app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx`) + автотести `app/__tests__/error-pages.test.tsx` (5, у т.ч. межа помилки з `reset`): 196 тестів, tsc, lint (0 errors), build — чисто; на `next start` кастомна 404 (HTTP 404) підтверджена | Kilo |
+| 2026-09-11 | Фаза 17.2 — прибрано `ADMIN_EMAILS`/`isUserAdmin` з клієнта (`lib/supabase.ts`, `app/admin/page.tsx`); `hasAdminAccess` лише через `profiles.is_admin`; передумову перевірено на live-БД (1 адмін = власник); SQL-коментар знеособлено; тести `auth` переписано + новий скан-тест `no-hardcoded-admin`. 190 тестів, tsc, lint (0 errors), build — чисто; prod-бандл без email | Kilo |
+| 2026-09-11 | Фаза 17.3 — Realtime: `subscribeCafeInfo`/`subscribeCategories`/`subscribeProducts` переведено на унікальні topic-и (як advertising/text_banner); автотест `realtime-topics` (3). 193 тести, tsc, lint (0 errors), build — чисто | Kilo |
+| 2026-09-11 | Фаза 17.4 — rAF-throttle скролу: новий хук `use-raf-throttle`, `MenuContainer` міряє хедер/кнопку кошика через нього з порівнянням перед `setState`; автотест `use-raf-throttle` (4). 197 тестів, tsc, lint (0 errors), build — чисто | Kilo |
+| 2026-09-11 | Фаза 17.5 — мертвий код і примусове виявлення: видалено `SaveButton`, `incrementCartItem`, `dataUriToBase64`, `storagePathFromPublicUrl`, зайвий `export`, Firebase-коди в errors, `biggerText`, мертві стани/функції/імпорти; увімкнено `no-unused-vars` + `noUnusedLocals`/`noUnusedParameters`. 195 тестів, tsc, lint (0 errors), build — чисто | Kilo |
+| 2026-09-11 | Фаза 17.6 — cleanup таймерів: хук `use-safe-timeouts` (+3 тести); `MenuContainer` і `admin/page.tsx` переведено на `safeTimeout`, додано unmount-cleanup для `longPressTimerRef`. 198 тестів, tsc, lint (0 errors), build — чисто | Kilo |
+| 2026-09-11 | Фаза 17.7 — чесне покриття: `MenuContainer`/`ProductModal` прибрано з exclude, додано тести на UI меню/адмінки + jsdom-стаби; покриття 74.7/68.5/71.0/80.1 (пороги 70/50/70/70 пройдено), `test:coverage` раніше падав. 252 тести / 37 файлів, tsc, lint (0 errors), build — чисто | Kilo |
+| 2026-09-11 | Фаза 17.8 — фінал: lint доведено до 0 problems; повний ланцюг (252 тести, tsc, lint, coverage, build) — зелено; smoke prod (`/`, `/admin` 200, кастомна 404, `/api/menu`); синхронізовано `PLAN.md`, `CHANGELOG.md`, `AUDIT.md`. Гілку `fix/audit-followup` готово до merge | Kilo |
+| 2026-09-11 | Пост-Фаза 17 (S6): `images.unsplash.com` прибрано з `remotePatterns` (`next.config.ts`); `supabase-seed.sql` очищено від Unsplash; live-БД перевірено (0 записів). 252 тести, tsc, lint (0 problems), build — чисто | Kilo |

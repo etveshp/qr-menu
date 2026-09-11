@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Category, Product, Advertising, getCafeName, getCafeCustomerGreeting, getRandomGreeting, subscribeTextBanner, TextBanner as TextBannerData } from '@/lib/supabase';
@@ -9,13 +9,14 @@ import {
   triggerStepperHaptic,
   triggerHapticFeedback,
 } from '@/lib/sound';
-import Link from 'next/link';
 import { ArrowLeft, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
+import { useRafThrottle } from '@/hooks/use-raf-throttle';
+import { useSafeTimeouts } from '@/hooks/use-safe-timeouts';
 import { cartLineKey } from '@/lib/cart';
 import { defaultSelection, selectedDelta, type ModifierSelection } from '@/lib/modifiers';
 import { Header } from '@/components/menu/Header';
@@ -65,7 +66,8 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
   const { lang, changeLanguage, t } = useLanguage();
   const [showNotAdminPopup, setShowNotAdminPopup] = useState(false);
-  const { currentUser, isAdmin: isAdminLoggedIn } = useAuth(() => setShowNotAdminPopup(true));
+  const { isAdmin: isAdminLoggedIn } = useAuth(() => setShowNotAdminPopup(true));
+  const safeTimeout = useSafeTimeouts();
 
   // Customer greeting: shown once per session as a greeting toast when the cafe
   // enabled a customer greeting. A random greeting is picked from the DB list.
@@ -119,29 +121,42 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     return () => unsubscribe();
   }, []);
 
+  const measureHeader = useCallback(() => {
+    if (headerRef.current) {
+      const height = headerRef.current.offsetHeight;
+      setHeaderHeight((prev) => (prev === height ? prev : height));
+    }
+    if (cartButtonRef.current) {
+      const rect = cartButtonRef.current.getBoundingClientRect();
+      const next = {
+        top: Math.round(rect.top * 2) / 2,
+        right: Math.round((window.innerWidth - rect.right) * 2) / 2,
+        width: Math.round(rect.width * 2) / 2,
+        height: Math.round(rect.height * 2) / 2,
+      };
+      setCartButtonRect((prev) => (
+        prev &&
+        prev.top === next.top &&
+        prev.right === next.right &&
+        prev.width === next.width &&
+        prev.height === next.height
+          ? prev
+          : next
+      ));
+    }
+  }, []);
+
+  const scheduleMeasure = useRafThrottle(measureHeader);
+
   useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
-      }
-      if (cartButtonRef.current) {
-        const rect = cartButtonRef.current.getBoundingClientRect();
-        setCartButtonRect({
-          top: rect.top,
-          right: window.innerWidth - rect.right,
-          width: rect.width,
-          height: rect.height,
-        });
-      }
-    };
-    updateHeaderHeight();
-    window.addEventListener('resize', updateHeaderHeight);
-    window.addEventListener('scroll', updateHeaderHeight);
+    measureHeader();
+    window.addEventListener('resize', scheduleMeasure);
+    window.addEventListener('scroll', scheduleMeasure, { passive: true });
     return () => {
-      window.removeEventListener('resize', updateHeaderHeight);
-      window.removeEventListener('scroll', updateHeaderHeight);
+      window.removeEventListener('resize', scheduleMeasure);
+      window.removeEventListener('scroll', scheduleMeasure);
     };
-  }, [selectedProductModal]);
+  }, [selectedProductModal, measureHeader, scheduleMeasure]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -185,7 +200,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   const handleRecPointerUp = (e: React.PointerEvent) => {
     if (e.pointerType === 'touch') return;
     setRecIsMouseDown(false);
-    setTimeout(() => setRecIsDragging(false), 50);
+    safeTimeout(() => setRecIsDragging(false), 50);
   };
 
   const handleRecPointerMove = (e: React.PointerEvent) => {
@@ -208,10 +223,11 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
   useEffect(() => {
     return () => {
       if (cartToastTimerRef.current) clearTimeout(cartToastTimerRef.current);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     };
   }, []);
 
-  const { cart, addItem, setQty, incrementItem, decrementItem, removeItem, getQty, getProductQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
+  const { cart, setQty, incrementItem, decrementItem, removeItem, getQty, getProductQty, itemsCount: totalCartItemsCount, totalPrice: totalCartPrice } = useCart(products);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
   // Close modals on Escape key + lock body scroll while a modal is open
@@ -293,27 +309,14 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     setQty(lineKey, targetQty);
     playStepperSound();
     setBouncingCart(true);
-    setTimeout(() => setBouncingCart(false), 300);
+    safeTimeout(() => setBouncingCart(false), 300);
     setIsJustAdded(true);
-    setTimeout(() => setIsJustAdded(false), 1400);
+    safeTimeout(() => setIsJustAdded(false), 1400);
     triggerCartToast(targetQty);
     if (e) {
       const id = Date.now();
       setFloaters(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
-      setTimeout(() => setFloaters(prev => prev.filter(f => f.id !== id)), 800);
-    }
-  };
-
-  const handleAddToCart = (productId: string, e?: React.MouseEvent) => {
-    addItem(productId);
-    playStepperSound();
-    setBouncingCart(true);
-    setTimeout(() => setBouncingCart(false), 300);
-    triggerCartToast(1);
-    if (e) {
-      const id = Date.now();
-      setFloaters(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
-      setTimeout(() => setFloaters(prev => prev.filter(f => f.id !== id)), 800);
+      safeTimeout(() => setFloaters(prev => prev.filter(f => f.id !== id)), 800);
     }
   };
 
@@ -323,7 +326,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     if (e) {
       const id = Date.now();
       setFloaters(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
-      setTimeout(() => setFloaters(prev => prev.filter(f => f.id !== id)), 800);
+      safeTimeout(() => setFloaters(prev => prev.filter(f => f.id !== id)), 800);
     }
   };
 

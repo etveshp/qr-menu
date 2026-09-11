@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Download, Check, X, FileCode2, ChevronDown, Loader2, Save } from 'lucide-react';
 import type { Translator } from '@/lib/translator';
+import { dataUrlToBlob } from '@/lib/photo-storage';
 
 interface QrGeneratorProps {
   tableNumber: string;
@@ -63,9 +64,7 @@ export function QrGenerator({ tableNumber, qrCodeDataUrl, t, onTableNumberChange
         margin: 2,
         color: { dark: '#3E2F26', light: '#FFFFFF' },
       });
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      triggerDownload(blob, `svit_kavy_menu_table_${tableNumber}.png`);
+      triggerDownload(dataUrlToBlob(dataUrl), `svit_kavy_menu_table_${tableNumber}.png`);
     } catch (err) {
       console.error('PNG export failed', err);
     } finally {

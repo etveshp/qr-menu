@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element -- admin previews render small, already-cropped images */
+
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Check, ChevronLeft } from 'lucide-react';
@@ -107,7 +109,6 @@ export function RecommendedProductsPicker({
                       className="relative flex items-center overflow-hidden border border-[#E6DFD5] bg-[#FAF6EE] rounded-2xl cursor-pointer active:scale-[0.99] transition-transform"
                     >
                       <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
                         {cat.photo ? (
                           <img src={cat.photo} alt={cat.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : logoUrl ? (
@@ -138,7 +139,6 @@ export function RecommendedProductsPicker({
                         }`}
                       >
                         <div className="relative w-20 aspect-[4/3] shrink-0 overflow-hidden bg-[#F1ECE3]">
-                          {/* eslint-disable-next-line @next/next/no-img-element -- admin preview, already optimized inline */}
                           {prod.photo ? (
                             <img src={prod.photo} alt={prod.nameUk} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : logoUrl ? (

@@ -36,8 +36,6 @@ export const setCartQty = (cart: Cart, lineKey: string, qty: number): Cart => ({
   [lineKey]: qty,
 });
 
-export const incrementCartItem = addToCart;
-
 export const decrementCartItem = (cart: Cart, lineKey: string): Cart => {
   const qty = cart[lineKey];
   if (!qty || qty <= 1) {
