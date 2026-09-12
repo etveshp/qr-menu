@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { validateCafeInfo, validateCategory, validateProduct, validateTextBanner } from './validation';
 import {
   PHOTO_BUCKET,
@@ -198,7 +198,9 @@ export const loginWithGoogle = async (): Promise<void> => {
 };
 export const resetUserPassword = async (email: string): Promise<void> => {
   if (!supabase) throw new Error('Supabase not configured');
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/admin' });
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/admin?flow=recovery',
+  });
   if (error) throw error;
 };
 export const logoutUser = async (): Promise<void> => {
@@ -209,24 +211,45 @@ export const logoutUser = async (): Promise<void> => {
     localStorage.removeItem('isAdmin');
   }
 };
-export const subscribeToAuth = (callback: (user: User | null) => void): (() => void) => {
-  if (!supabase) { callback(null); return () => {}; }
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null);
+export const subscribeToAuth = (
+  callback: (user: User | null, event: AuthChangeEvent) => void
+): (() => void) => {
+  if (!supabase) { callback(null, 'INITIAL_SESSION'); return () => {}; }
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ?? null, event);
   });
   return () => subscription.unsubscribe();
 };
-// Handles the password-recovery link (PKCE): verifies the token_hash from the
-// URL and establishes the recovery session. Returns true when a recovery flow
-// was processed so the caller can show a change-password form.
+// Handles the password-recovery redirect for every Supabase flow:
+// - custom template with `?token_hash=...&type=recovery` → verifyOtp;
+// - PKCE redirect `?code=...` / implicit `#access_token=...` → recognised via
+//   the `flow=recovery` marker that resetUserPassword adds to the redirect, or
+//   via `type=recovery`. PKCE/implicit sessions are established by supabase-js
+//   automatically; if a code is still pending we exchange it explicitly.
+// Returns true when a recovery flow was detected so the caller can show the
+// change-password form.
 export const handleRecoveryToken = async (): Promise<boolean> => {
   if (!supabase || typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const isRecovery =
+    params.get('flow') === 'recovery' ||
+    params.get('type') === 'recovery' ||
+    hashParams.get('type') === 'recovery';
+  if (!isRecovery) return false;
+
   const tokenHash = params.get('token_hash');
-  const type = params.get('type');
-  if (!tokenHash || type !== 'recovery') return false;
-  const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
-  if (error) return false;
+  if (tokenHash && params.get('type') === 'recovery') {
+    const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
+    if (error) return false;
+  } else {
+    const { data } = await supabase.auth.getSession();
+    const code = params.get('code');
+    if (!data.session && code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) return false;
+    }
+  }
   window.history.replaceState({}, '', window.location.pathname);
   return true;
 };

@@ -44,7 +44,7 @@ import {
   getCafeAdminGreeting,
   getRandomGreeting
 } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { User, AuthChangeEvent } from '@supabase/supabase-js';
 import type { Translator } from '@/lib/translator';
 import { PRODUCT_BADGES, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 import { ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
@@ -308,8 +308,9 @@ export default function AdminPage() {
   // Shared auth handling. Admins open the cabinet; non-admins are signed out.
   // Non-admins who arrive via OAuth (e.g. Google) are silently bounced back
   // to the menu, while the email/password flow shows its own modal.
-  const handleAuthUser = useCallback(async (user: User | null) => {
+  const handleAuthUser = useCallback(async (user: User | null, event?: AuthChangeEvent) => {
     setCurrentUser(user);
+    if (event === 'PASSWORD_RECOVERY') setShowChangePassword(true);
     const admin = user && (await hasAdminAccess(user));
     if (admin) {
       setIsAuthenticated(true);
