@@ -20,6 +20,10 @@ async function fetchMenuData(): Promise<MenuContainerProps['initialData']> {
       next: { revalidate: 30, tags: ['menu'] },
     });
     if (!res.ok) return null;
+    // Guard against non-JSON bodies (e.g. Vercel deployment-protection HTML on
+    // protected preview URLs) so SSR cleanly falls back to client-side loading
+    // instead of throwing a JSON.parse error.
+    if (!(res.headers.get('content-type') ?? '').includes('application/json')) return null;
     const data = await res.json();
     return {
       cafeInfo: data.cafeInfo ?? null,

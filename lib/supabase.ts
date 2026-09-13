@@ -7,6 +7,7 @@ import {
   entityPhotoPaths,
   isDataUriPhoto,
   dataUriMime,
+  dataUrlToBlob,
   objectPublicUrl,
 } from './photo-storage';
 import { nextSortOrder } from './reorder';
@@ -156,8 +157,7 @@ export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
 const storeOrKeep = async (value: string, path: string): Promise<string> => {
   if (!supabase || !value || !isDataUriPhoto(value)) return value;
   try {
-    const res = await fetch(value);
-    const blob = await res.blob();
+    const blob = dataUrlToBlob(value);
     const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, {
       contentType: dataUriMime(value),
       upsert: true,
