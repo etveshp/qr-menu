@@ -163,10 +163,24 @@ const storeOrKeep = async (value: string, path: string): Promise<string> => {
       upsert: true,
     });
     if (error) throw error;
-    return objectPublicUrl(supabaseUrl, PHOTO_BUCKET, path);
+    // Cache-busting: the object path is deterministic, so append a version so
+    // browsers / the image optimizer fetch the fresh bytes after a re-upload.
+    return `${objectPublicUrl(supabaseUrl, PHOTO_BUCKET, path)}?v=${Date.now().toString(36)}`;
   } catch (e) {
     console.error('Photo storage upload failed, keeping inline value', e);
     return value;
+  }
+};
+
+// Deletes stored objects (e.g. when a photo is cleared or its entity removed)
+// so the bucket does not accumulate orphans.
+const removePhotoObjects = async (paths: string[]): Promise<void> => {
+  if (!supabase || paths.length === 0) return;
+  try {
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+    if (error) console.error('Photo storage cleanup failed', error);
+  } catch (e) {
+    console.error('Photo storage cleanup failed', e);
   }
 };
 
@@ -410,6 +424,12 @@ export const updateCafeInfo = async (info: CafeInfo): Promise<void> => {
   const logo = await storeOrKeep(info.logo, CAFE_PHOTO_PATHS.logo);
   const bannerOriginal = await storeOrKeep(info.bannerOriginal ?? '', CAFE_PHOTO_PATHS.bannerOriginal);
   const logoOriginal = await storeOrKeep(info.logoOriginal ?? '', CAFE_PHOTO_PATHS.logoOriginal);
+  const cafeCleanup: string[] = [];
+  if (!info.banner) cafeCleanup.push(CAFE_PHOTO_PATHS.banner);
+  if (!info.logo) cafeCleanup.push(CAFE_PHOTO_PATHS.logo);
+  if (!info.bannerOriginal) cafeCleanup.push(CAFE_PHOTO_PATHS.bannerOriginal);
+  if (!info.logoOriginal) cafeCleanup.push(CAFE_PHOTO_PATHS.logoOriginal);
+  await removePhotoObjects(cafeCleanup);
   const storedInfo: CafeInfo = { ...info, banner, logo, bannerOriginal, logoOriginal };
   setLocal('cafeInfo', storedInfo);
   if (supabase) {
@@ -515,6 +535,10 @@ export const saveCategory = async (category: Category): Promise<void> => {
   const paths = entityPhotoPaths('category', category.id);
   const photo = await storeOrKeep(category.photo, paths.photo);
   const photoOriginal = await storeOrKeep(category.photoOriginal ?? '', paths.photoOriginal);
+  await removePhotoObjects([
+    ...(category.photo ? [] : [paths.photo]),
+    ...(category.photoOriginal ? [] : [paths.photoOriginal]),
+  ]);
   const current = await getCategories();
   const idx = current.findIndex(c => c.id === category.id);
   const sortOrder = idx >= 0 ? (category.sortOrder ?? current[idx].sortOrder ?? idx) : nextSortOrder(current);
@@ -533,6 +557,7 @@ export const deleteCategory = async (id: string): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) { console.error('Supabase error deleting category', error); throw new Error('Помилка видалення категорії'); }
+    await removePhotoObjects(Object.values(entityPhotoPaths('category', id)));
     triggerMenuRevalidation();
   }
 };
@@ -596,6 +621,10 @@ export const saveProduct = async (product: Product): Promise<void> => {
   const paths = entityPhotoPaths('product', product.id);
   const photo = await storeOrKeep(product.photo, paths.photo);
   const photoOriginal = await storeOrKeep(product.photoOriginal ?? '', paths.photoOriginal);
+  await removePhotoObjects([
+    ...(product.photo ? [] : [paths.photo]),
+    ...(product.photoOriginal ? [] : [paths.photoOriginal]),
+  ]);
   const current = await getProducts();
   const idx = current.findIndex(p => p.id === product.id);
   const existing = idx >= 0 ? current[idx] : undefined;
@@ -681,6 +710,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
   if (supabase) {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) { console.error('Supabase error deleting product', error); throw new Error('Помилка видалення страви'); }
+    await removePhotoObjects(Object.values(entityPhotoPaths('product', id)));
     triggerMenuRevalidation();
   }
 };
@@ -741,6 +771,10 @@ export const subscribeAdvertising = (callback: (ad: Advertising) => void, opts?:
 export const saveAdvertising = async (ad: Advertising): Promise<void> => {
   const photo = await storeOrKeep(ad.photo ?? '', ADVERTISING_PHOTO_PATHS.photo);
   const photoOriginal = await storeOrKeep(ad.photoOriginal ?? '', ADVERTISING_PHOTO_PATHS.photoOriginal);
+  await removePhotoObjects([
+    ...(ad.photo ? [] : [ADVERTISING_PHOTO_PATHS.photo]),
+    ...(ad.photoOriginal ? [] : [ADVERTISING_PHOTO_PATHS.photoOriginal]),
+  ]);
   const storedAd: Advertising = { ...ad, photo, photoOriginal };
   setLocal('advertising', storedAd);
   if (supabase) {
