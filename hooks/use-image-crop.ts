@@ -41,7 +41,7 @@ export function useImageCrop(): UseImageCropReturn {
 
   const closeModal = () => setIsModalOpen(false);
 
-  const applyCrop = async (aspect: number, quality: number = 0.75): Promise<string | null> => {
+  const applyCrop = async (aspect: number, quality: number = 0.9): Promise<string | null> => {
     if (!tempImg || !pendingPixels) return null;
     try {
       return await cropImageToWebP(tempImg, pendingPixels, aspect, quality);

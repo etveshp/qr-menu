@@ -82,6 +82,7 @@ import {
 import QRCode from 'qrcode';
 import { triggerDownload, dataUrlToBlob } from '@/lib/photo-storage';
 import { useImageCrop } from '@/hooks/use-image-crop';
+import { IMAGE_COMPRESSION, CROP_QUALITY } from '@/lib/image-compression';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AutoTransField, type LangCode } from '@/components/admin/AutoTransField';
 import { ImageCropModal } from '@/components/admin/ImageCropModal';
@@ -683,7 +684,7 @@ export default function AdminPage() {
   };
 
   const applyBannerCrop = async () => {
-    const cropped = await bannerCrop.applyCrop(16 / 9, 0.75);
+    const cropped = await bannerCrop.applyCrop(16 / 9, CROP_QUALITY.cafeBanner);
     if (cropped) setCafeForm(prev => ({ ...prev, banner: cropped, bannerX: 50, bannerY: 50, bannerScale: 1 }));
   };
 
@@ -692,7 +693,7 @@ export default function AdminPage() {
   };
 
   const applyLogoCrop = async () => {
-    const cropped = await logoCrop.applyCrop(16 / 9, 0.85);
+    const cropped = await logoCrop.applyCrop(16 / 9, CROP_QUALITY.cafeLogo);
     if (cropped) setCafeForm(prev => ({ ...prev, logo: cropped, logoX: 50, logoY: 50, logoScale: 1 }));
   };
 
@@ -701,7 +702,7 @@ export default function AdminPage() {
   };
 
   const applyCatCrop = async () => {
-    const cropped = await catCrop.applyCrop(4 / 3);
+    const cropped = await catCrop.applyCrop(4 / 3, CROP_QUALITY.category);
     if (cropped) setCatForm(prev => ({ ...prev, photo: cropped, photoX: 50, photoY: 50, photoScale: 1 }));
   };
 
@@ -710,7 +711,7 @@ export default function AdminPage() {
   };
 
   const applyAdCrop = async () => {
-    const cropped = await adCrop.applyCrop(9 / 16, 0.8);
+    const cropped = await adCrop.applyCrop(9 / 16, CROP_QUALITY.advertising);
     if (cropped) setAdForm(prev => ({ ...prev, photo: cropped }));
   };
 
@@ -719,7 +720,7 @@ export default function AdminPage() {
   };
 
   const applyProdCrop = async () => {
-    const cropped = await prodCrop.applyCrop(4 / 3);
+    const cropped = await prodCrop.applyCrop(4 / 3, CROP_QUALITY.product);
     if (cropped) setProdForm(prev => ({ ...prev, photo: cropped }));
   };
 
@@ -971,7 +972,7 @@ export default function AdminPage() {
     file: File,
     maxWidth: number,
     maxHeight: number,
-    quality: number = 0.8
+    quality: number = 0.9
   ): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -1030,32 +1031,7 @@ export default function AdminPage() {
     // Reset input value so re-selecting same file triggers onChange
     e.target.value = '';
 
-    // Define compression settings depending on image purpose to optimize storage size
-    let maxWidth = 800;
-    let maxHeight = 800;
-    let quality = 0.8;
-
-    if (target === 'cafeBanner') {
-      maxWidth = 1200;
-      maxHeight = 675; // 16:9 ratio
-      quality = 0.75;
-    } else if (target === 'cafeLogo') {
-      maxWidth = 250;
-      maxHeight = 250;
-      quality = 0.85;
-    } else if (target === 'category') {
-      maxWidth = 600;
-      maxHeight = 450; // 4:3 ratio
-      quality = 0.75;
-    } else if (target === 'product') {
-      maxWidth = 600;
-      maxHeight = 600;
-      quality = 0.75;
-    } else if (target === 'advertising') {
-      maxWidth = 540;
-      maxHeight = 960; // 9:16 ratio
-      quality = 0.8;
-    }
+    const { maxWidth, maxHeight, quality } = IMAGE_COMPRESSION[target];
 
     try {
       const compressedBase64 = await compressAndConvertToWebP(file, maxWidth, maxHeight, quality);

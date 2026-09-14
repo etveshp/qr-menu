@@ -218,7 +218,7 @@ export function ProductModal({
             >
               <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
                 {rec.photo ? (
-                  <Image src={rec.photo} alt={getProductName(rec)} fill sizes="112px" className="object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
+                  <Image src={rec.photo} alt={getProductName(rec)} fill quality={90} sizes="112px" className="object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
                 ) : logoUrl ? (
                   <div className="absolute inset-0 flex items-center justify-center p-4">
                     <Image src={logoUrl} alt="" fill className="object-contain opacity-30" sizes="112px" referrerPolicy="no-referrer" />
@@ -331,7 +331,7 @@ export function ProductModal({
             <div className="relative w-[46%] shrink-0 bg-[#F1ECE3]/70 flex flex-col overflow-hidden">
               <div className="relative aspect-[4/3] overflow-hidden shrink-0 mr-4 rounded-tl-[24px] rounded-br-[24px] bg-[#F1ECE3]">
                 {product.photo ? (
-                  <Image src={product.photo} alt={getProductName(product)} fill priority sizes="(max-width: 1280px) 45vw, 460px" className="object-cover" referrerPolicy="no-referrer" />
+                  <Image src={product.photo} alt={getProductName(product)} fill priority quality={90} sizes="(max-width: 1280px) 45vw, 460px" className="object-cover" referrerPolicy="no-referrer" />
                 ) : logoUrl ? (
                   <div className="absolute inset-0 flex items-center justify-center p-8">
                     <Image src={logoUrl} alt="" fill className="object-contain opacity-30" sizes="(max-width: 1280px) 45vw, 460px" referrerPolicy="no-referrer" />
@@ -353,7 +353,7 @@ export function ProductModal({
                       >
                         <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#F1ECE3] border-b border-[#E6DFD5]/50 pointer-events-none">
                           {rec.photo ? (
-                            <Image src={rec.photo} alt={getProductName(rec)} fill sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
+                            <Image src={rec.photo} alt={getProductName(rec)} fill quality={90} sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
                           ) : logoUrl ? (
                             <div className="absolute inset-0 flex items-center justify-center p-3">
                               <Image src={logoUrl} alt="" fill className="object-contain opacity-30" sizes="96px" referrerPolicy="no-referrer" />
@@ -414,7 +414,7 @@ export function ProductModal({
         >
           <div className="relative w-full aspect-[4/3] bg-[#F1ECE3] shrink-0 overflow-hidden">
             {product.photo ? (
-              <Image src={product.photo} alt={getProductName(product)} fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover" referrerPolicy="no-referrer" />
+              <Image src={product.photo} alt={getProductName(product)} fill priority quality={90} sizes="(max-width: 512px) 100vw, 512px" className="object-cover" referrerPolicy="no-referrer" />
             ) : logoUrl ? (
               <div className="absolute inset-0 flex items-center justify-center p-8">
                 <Image src={logoUrl} alt="" fill className="object-contain opacity-30" sizes="(max-width: 512px) 100vw, 512px" referrerPolicy="no-referrer" />

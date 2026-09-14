@@ -107,6 +107,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
               src={ad.photo}
               alt={t('advertising')}
               fill
+              quality={90}
               sizes="(min-width: 640px) 240px, min(92vw,380px)"
               className="object-cover"
               referrerPolicy="no-referrer"

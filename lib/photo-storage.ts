@@ -77,7 +77,7 @@ export const cropImageToWebP = (
   imageSrc: string,
   pixels: { x: number; y: number; width: number; height: number },
   aspect: number,
-  quality: number = 0.8
+  quality: number = 0.9
 ): Promise<string> => {
   return new Promise((resolve) => {
     const img = new window.Image();

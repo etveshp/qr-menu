@@ -19,6 +19,7 @@ export function HeroBanner({ cafeInfo, lang, t }: HeroBannerProps) {
           src={cafeInfo.banner}
           alt="Cafe Banner"
           fill
+          quality={90}
           sizes="(min-width: 928px) 896px, 100vw"
           className="object-cover opacity-100"
           priority

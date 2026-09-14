@@ -35,6 +35,7 @@ export function CategoryCard({ category, index, name, onSelect, logoUrl }: Categ
             src={category.photo}
             alt={category.nameUk}
             fill
+            quality={90}
             loading="eager"
             sizes="(max-width: 640px) 46vw, 424px"
             className="object-cover opacity-60"

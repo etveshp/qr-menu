@@ -61,7 +61,7 @@ describe('useImageCrop', () => {
       cropped = await result.current.applyCrop(4 / 3);
     });
 
-    expect(mockedCrop).toHaveBeenCalledWith('/img.png', area, 4 / 3, 0.75);
+    expect(mockedCrop).toHaveBeenCalledWith('/img.png', area, 4 / 3, 0.9);
     expect(cropped).toBe('cropped-webp');
     expect(result.current.isModalOpen).toBe(false);
   });
