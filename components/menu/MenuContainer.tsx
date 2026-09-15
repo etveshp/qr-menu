@@ -13,6 +13,7 @@ import { ArrowLeft, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
+import { APP_NAME } from '@/lib/translations';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
 import { useRafThrottle } from '@/hooks/use-raf-throttle';
@@ -377,7 +378,7 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] text-[#4A3B32]">
         <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
+        <p className="font-display tracking-widest text-sm uppercase">{APP_NAME}</p>
       </div>
     );
   }
@@ -413,8 +414,10 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
       <TextBanner
         banner={textBanner}
         products={products}
+        categories={categories}
         headerHeight={headerHeight}
         onOpenProduct={openProductModal}
+        onOpenCategory={setActiveCategory}
         t={t}
       />
 
@@ -594,7 +597,9 @@ export function MenuContainer({ initialData }: MenuContainerProps) {
 
       <AdPopup
         products={products}
+        categories={categories}
         onOpenProduct={openProductModal}
+        onOpenCategory={setActiveCategory}
         initialAd={initialData?.advertising ? (initialData.advertising as unknown as Advertising) : undefined}
         t={t}
       />

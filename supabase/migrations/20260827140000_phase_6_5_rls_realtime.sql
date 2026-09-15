@@ -1,10 +1,9 @@
 -- Migration: Фаза 6.5 — RLS через profiles + Realtime publication (live БД)
 -- Ідемпотентна: безпечно запускати повторно.
 
--- 1. Профіль адміна (якщо користувач уже є в auth.users)
-insert into public.profiles (id, email, is_admin)
-select id, email, true from auth.users where email = 'svitkavyvisk@gmail.com'
-on conflict (id) do update set is_admin = true, email = excluded.email;
+-- 1. Адміна призначають вручну: зареєструвати користувача, потім
+-- `update public.profiles set is_admin = true where email = '<email>';`
+-- (Тут нічого не хардкодимо — додаток портативний між власниками.)
 
 -- 2. Допоміжна функція is_admin_true() (для політики profiles read)
 create or replace function public.is_admin_true()

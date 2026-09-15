@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { subscribeAdvertising, type Advertising, type Product } from '@/lib/supabase';
+import { subscribeAdvertising, type Advertising, type Product, type Category } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 import { productBadgeById, PRODUCT_BADGE_KEYS } from '@/lib/badges';
 
@@ -23,13 +23,15 @@ const isWithinShowWindow = (ad: Advertising): boolean => {
 
 interface AdPopupProps {
   products: Product[];
+  categories: Category[];
   onOpenProduct: (product: Product) => void;
+  onOpenCategory: (categoryId: string) => void;
   t: Translator;
   /** Fresh photo-banner settings from SSR (menu caching); skips the initial fetch. */
   initialAd?: Advertising;
 }
 
-export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps) {
+export function AdPopup({ products, categories, onOpenProduct, onOpenCategory, t, initialAd }: AdPopupProps) {
   const [ad, setAd] = useState<Advertising>(initialAd ?? DEFAULT_AD);
   const [visible, setVisible] = useState(false);
   const wasShownRef = useRef(false);
@@ -75,13 +77,25 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
 
   const close = () => setVisible(false);
 
-  const product = products.find((p) => p.id === ad.productId);
+  const product = ad.productId ? products.find((p) => p.id === ad.productId) : undefined;
+  const linkedCategory = !product && ad.categoryId ? categories.find((c) => c.id === ad.categoryId) : undefined;
   const badgeDef = productBadgeById(product?.badge);
 
-  const openLinkedProduct = () => {
-    if (!product) return;
+  const hasLink = Boolean(product || linkedCategory);
+  const linkLabel = product
+    ? `${t('adOpenProduct')}: ${product.nameUk}`
+    : linkedCategory
+      ? `${t('adOpenCategory')}: ${linkedCategory.nameUk}`
+      : '';
+
+  const openLinkedTarget = () => {
+    if (!product && !linkedCategory) return;
     setVisible(false);
-    onOpenProduct(product);
+    if (product) {
+      onOpenProduct(product);
+    } else if (linkedCategory) {
+      onOpenCategory(linkedCategory.id);
+    }
   };
 
   return (
@@ -98,7 +112,7 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
         >
           {/* 9:16 photo banner with small outer margins (not full screen) */}
           <motion.div
-            className={`relative w-full max-w-[min(92vw,380px)] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${product ? 'cursor-pointer' : ''}`}
+            className={`relative w-full max-w-[min(92vw,380px)] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl border border-white/20 sm:w-[240px] sm:max-w-none sm:pointer-events-auto sm:mb-2 sm:mr-2 ${hasLink ? 'cursor-pointer' : ''}`}
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
@@ -120,12 +134,12 @@ export function AdPopup({ products, onOpenProduct, t, initialAd }: AdPopupProps)
               </span>
             )}
 
-            {/* Whole photo banner opens the linked dish (click-through area) */}
-            {product && (
+            {/* Whole photo banner opens the linked dish/category (click-through area) */}
+            {hasLink && (
               <button
                 type="button"
-                onClick={openLinkedProduct}
-                aria-label={`${t('adOpenProduct')}: ${product.nameUk}`}
+                onClick={openLinkedTarget}
+                aria-label={linkLabel}
                 className="absolute inset-0 z-10"
               />
             )}

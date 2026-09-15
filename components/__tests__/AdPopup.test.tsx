@@ -4,6 +4,10 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { AdPopup } from '../menu/AdPopup';
 import type { Product } from '../../lib/supabase';
 
+const category = (id: string, nameUk: string) => ({
+  id, nameUk, nameHu: nameUk, nameEn: nameUk, photo: '',
+});
+
 // Keep every registered subscription: an "unsubscribed" (stale) one may still
 // fire later (its in-flight fetch resolves), mirroring the real subscribeAdvertising.
 let subscribeCbs: Array<(ad: any) => void> = [];
@@ -44,8 +48,20 @@ describe('AdPopup', () => {
     return map[key] ?? key;
   };
 
+  const renderAd = (overrides?: Partial<Parameters<typeof AdPopup>[0]>) =>
+    render(
+      <AdPopup
+        products={[]}
+        categories={[]}
+        onOpenProduct={() => {}}
+        onOpenCategory={() => {}}
+        t={mockT}
+        {...overrides}
+      />
+    );
+
   it('shows the popup when ad is enabled with photo after delay', () => {
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ delaySeconds: 0 }));
     act(() => { vi.runAllTimers(); });
@@ -54,7 +70,7 @@ describe('AdPopup', () => {
   });
 
   it('renders the close button', () => {
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ delaySeconds: 0 }));
     act(() => { vi.runAllTimers(); });
@@ -64,7 +80,7 @@ describe('AdPopup', () => {
 
   it('closes the popup when the close button is clicked', async () => {
     vi.useRealTimers();
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ delaySeconds: 0 }));
 
@@ -80,7 +96,7 @@ describe('AdPopup', () => {
   });
 
   it('does not show the popup when ad is disabled', () => {
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ enabled: false }));
     act(() => { vi.runAllTimers(); });
@@ -89,7 +105,7 @@ describe('AdPopup', () => {
   });
 
   it('does not show the popup when ad has no photo', () => {
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ photo: '' }));
     act(() => { vi.runAllTimers(); });
@@ -98,7 +114,7 @@ describe('AdPopup', () => {
   });
 
   it('respects the configured delay', () => {
-    render(<AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />);
+    renderAd();
 
     act(() => fireAd({ delaySeconds: 5 }));
     act(() => { vi.advanceTimersByTime(1); });
@@ -116,7 +132,7 @@ describe('AdPopup', () => {
     // arrive later. It must not cancel the live subscription's pending timer.
     render(
       <StrictMode>
-        <AdPopup products={[]} onOpenProduct={() => {}} t={mockT} />
+        <AdPopup products={[]} categories={[]} onOpenProduct={() => {}} onOpenCategory={() => {}} t={mockT} />
       </StrictMode>
     );
 
@@ -142,7 +158,7 @@ describe('AdPopup', () => {
       price: 100, photo: '', recommendedIds: [],
     };
     const onOpenProduct = vi.fn();
-    render(<AdPopup products={[linked]} onOpenProduct={onOpenProduct} t={mockT} />);
+    renderAd({ products: [linked], onOpenProduct });
 
     act(() => fireAd({ delaySeconds: 0, categoryId: 'c1', productId: 'p1' }));
 
@@ -155,6 +171,28 @@ describe('AdPopup', () => {
 
     expect(onOpenProduct).toHaveBeenCalledTimes(1);
     expect(onOpenProduct).toHaveBeenCalledWith(linked);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('opens the linked category when ad has a category but no product', async () => {
+    vi.useRealTimers();
+    const cat = category('c1', 'Авторські напої');
+    const onOpenCategory = vi.fn();
+    renderAd({ categories: [cat], onOpenCategory });
+
+    act(() => fireAd({ delaySeconds: 0, categoryId: 'c1', productId: '' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    const openBtn = screen.getByRole('button', { name: /Авторські напої/ });
+    fireEvent.click(openBtn);
+
+    expect(onOpenCategory).toHaveBeenCalledTimes(1);
+    expect(onOpenCategory).toHaveBeenCalledWith('c1');
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

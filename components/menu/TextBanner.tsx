@@ -3,32 +3,38 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { motion } from 'motion/react';
-import type { TextBanner as TextBannerData, Product } from '@/lib/supabase';
+import type { TextBanner as TextBannerData, Product, Category } from '@/lib/supabase';
 import type { Translator } from '@/lib/translator';
 
 interface TextBannerProps {
   banner: TextBannerData;
   products: Product[];
+  categories: Category[];
   headerHeight: number;
   onOpenProduct: (product: Product) => void;
+  onOpenCategory: (categoryId: string) => void;
   t: Translator;
 }
 
 export function TextBanner({
   banner,
   products,
+  categories,
   headerHeight,
   onOpenProduct,
+  onOpenCategory,
   t,
 }: TextBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
-  const product = products.find(p => p.id === banner.productId);
+  const product = banner.productId ? products.find(p => p.id === banner.productId) : undefined;
+  const linkedCategory = !product && banner.categoryId ? categories.find(c => c.id === banner.categoryId) : undefined;
 
   if (!banner.enabled || !banner.text || dismissed) return null;
 
   const openLink = () => {
     if (product) onOpenProduct(product);
+    else if (linkedCategory) onOpenCategory(linkedCategory.id);
   };
 
   return (
@@ -42,8 +48,8 @@ export function TextBanner({
     >
       <button
         type="button"
-        onClick={product ? openLink : undefined}
-        className={`relative w-full flex items-center justify-center gap-2 px-14 sm:px-16 bg-[#F1ECE3] hover:bg-[#EAE3D8] transition-colors ${product ? 'cursor-pointer' : 'cursor-default'}`}
+        onClick={product || linkedCategory ? openLink : undefined}
+        className={`relative w-full flex items-center justify-center gap-2 px-14 sm:px-16 bg-[#F1ECE3] hover:bg-[#EAE3D8] transition-colors ${product || linkedCategory ? 'cursor-pointer' : 'cursor-default'}`}
         style={{ minHeight: Math.max(30, Math.round(headerHeight / 2)) }}
       >
         <span className="text-sm sm:text-base font-semibold text-[#231913] leading-snug truncate">

@@ -83,7 +83,7 @@ describe('MenuContainer', () => {
   it('renders categories from SSR data', () => {
     renderMenu();
     expect(screen.getByText('Кава')).toBeInTheDocument();
-    expect(screen.getByText('Світ Кави')).toBeInTheDocument();
+    expect(screen.getAllByText('Світ Кави').length).toBeGreaterThan(0);
   });
 
   it('shows a category\u2019s products when selected', async () => {

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import { MenuContainer, type MenuContainerProps } from '@/components/menu/MenuContainer';
+import { APP_NAME } from '@/lib/translations';
 
 // ISR: revalidate the menu page at most every 30 seconds.
 export const revalidate = 30;
@@ -46,7 +47,7 @@ export default async function MenuPage() {
       fallback={
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] text-[#4A3B32]">
           <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
+          <p className="font-display tracking-widest text-sm uppercase">{APP_NAME}</p>
         </div>
       }
     >

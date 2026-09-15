@@ -47,7 +47,7 @@ import {
 import type { User, AuthChangeEvent } from '@supabase/supabase-js';
 import type { Translator } from '@/lib/translator';
 import { PRODUCT_BADGES, PRODUCT_BADGE_KEYS } from '@/lib/badges';
-import { ADVERTISING_FEATURES, TEXT_BANNER_FEATURES } from '@/lib/translations';
+import { ADVERTISING_FEATURES, TEXT_BANNER_FEATURES, APP_NAME } from '@/lib/translations';
 import { useToast } from '@/components/Toast';
 import { 
   Coffee, 
@@ -1540,7 +1540,7 @@ export default function AdminPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6EE] font-sans text-[#4A3B32]">
         <div className="w-12 h-12 border-2 border-[#C09E6D] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-display tracking-widest text-sm uppercase">Світ Кави QR Меню</p>
+        <p className="font-display tracking-widest text-sm uppercase">{APP_NAME}</p>
       </main>
     );
   }
@@ -3515,11 +3515,12 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Optional product link (category → product): clicking the photo banner opens the dish */}
+          {/* Optional link: choosing a category alone links the whole category;
+              choosing a dish on top links that dish */}
           <div className="space-y-3">
             <div>
               <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold">{t('adLinkLabel')}</label>
-              <p className="text-[11px] text-[#8E7A68] mt-1 leading-relaxed">{t('adLinkHint')}</p>
+              <p className="text-[11px] text-[#8E7A68] mt-1 leading-relaxed whitespace-pre-line">{t('adLinkHint')}</p>
             </div>
 
             <select
@@ -3660,9 +3661,10 @@ export default function AdminPage() {
             <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerTextHint')}</p>
           </div>
 
-          {/* Product link (category → product) */}
+          {/* Optional link: category alone links the whole category; dish on top overrides */}
           <div>
-            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-2">{t('textBannerLinkLabel')}</label>
+            <label className="block text-xs uppercase tracking-wider text-[#8E7A68] font-semibold mb-1">{t('textBannerLinkLabel')}</label>
+            <p className="text-[11px] text-[#8E7A68] mb-2 leading-relaxed whitespace-pre-line">{t('textBannerLinkHint')}</p>
 
             <select
               value={textBannerForm.categoryId || ''}
@@ -3688,8 +3690,6 @@ export default function AdminPage() {
                   <option key={p.id} value={p.id}>{p.nameUk}</option>
                 ))}
             </select>
-
-            <p className="text-[11px] text-[#8E7A68] mt-1.5 leading-relaxed">{t('textBannerLinkHint')}</p>
           </div>
 
           {/* Badge for the advertised dish */}

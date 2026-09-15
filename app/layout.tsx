@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import './globals.css'; // Global styles
 import { ToastProvider } from '@/components/Toast';
+import { CAFE_NAME, APP_NAME } from '@/lib/translations';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -23,18 +24,18 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://svitkavyqrmenu-five.vercel.app'),
-  title: 'Світ Кави QR Меню',
-  description: 'Вишукане цифрове меню Світ Кави. Обирайте найкращі напої та десерти за вашим столиком.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'),
+  title: APP_NAME,
+  description: `Цифрове меню ${CAFE_NAME}. Обирайте найкращі напої та десерти за вашим столиком.`,
   openGraph: {
-    title: 'Світ Кави QR Меню',
-    description: 'Вишукане цифрове меню Світ Кави. Обирайте найкращі напої та десерти за вашим столиком.',
+    title: APP_NAME,
+    description: `Цифрове меню ${CAFE_NAME}. Обирайте найкращі напої та десерти за вашим столиком.`,
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Світ Кави QR Меню',
-    description: 'Вишукане цифрове меню Світ Кави.',
+    title: APP_NAME,
+    description: `Цифрове меню ${CAFE_NAME}.`,
   },
 };
 

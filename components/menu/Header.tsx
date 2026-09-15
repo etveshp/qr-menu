@@ -4,7 +4,7 @@ import { type RefObject } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Coffee, Key, ConciergeBell } from 'lucide-react';
+import { Key, ConciergeBell } from 'lucide-react';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import type { CafeInfo } from '@/lib/supabase';
 import { getCafeName } from '@/lib/supabase';
@@ -63,7 +63,9 @@ export function Header({
             </div>
           ) : (
             <div className="h-14 sm:h-16 flex items-center justify-start shrink-0">
-              <Coffee className="w-8 h-8 text-[#3E2F26]" />
+              <span className="font-display text-3xl sm:text-4xl font-semibold text-[#3E2F26] leading-none whitespace-nowrap">
+                {getCafeName(cafeInfo, lang) || t('appName')}
+              </span>
             </div>
           )}
         </div>
